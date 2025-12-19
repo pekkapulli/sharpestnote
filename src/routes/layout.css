@@ -1,2 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Spectral:wght@300;400;500;600;700&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
+
+@theme {
+	--font-sans: 'Spectral', serif;
+	--font-serif: 'Spectral', serif;
+	--color-off-white: #f9f8f4;
+	--color-dark-blue: #303d53;
+	--color-yellow: #f6d868;
+}
+
+:root {
+	color: var(--color-dark-blue);
+	background-color: var(--color-off-white);
+	font-family: var(--font-serif);
+	line-height: 1.6;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+	background-color: var(--color-off-white);
+}
+
+h1,
+h2,
+h3,
+h4 {
+	font-weight: 300;
+	letter-spacing: -0.015em;
+}
+
+h1 {
+	font-size: clamp(2rem, 3vw, 2.75rem);
+}
+
+h2 {
+	font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+}
+
+h3 {
+	font-size: clamp(1.5rem, 2vw, 1.85rem);
+}
+
+h4 {
+	font-size: 1.25rem;
+}
+
+p {
+	margin: 0 0 1rem;
+}
+
+a {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, var(--color-dark-blue) 70%, transparent);
+	text-underline-offset: 0.15em;
+}
+
+a:hover {
+	text-decoration-color: var(--color-dark-blue);
+}
