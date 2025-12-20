@@ -1,81 +1,75 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import TrebleStaff from '$lib/TrebleStaff.svelte';
+	import Staff from '$lib/Staff.svelte';
 	import { createTuner } from '$lib/useTuner.svelte';
-	import { DEFAULT_A4 } from '$lib';
-
-	// Sample notes for the sight reading game by instrument (written pitch)
-	const noteRanges: Record<Instrument, string[]> = {
-		violin: [
-			'G3',
-			'A3',
-			'B3',
-			'C4',
-			'D4',
-			'E4',
-			'F4',
-			'G4',
-			'A4',
-			'B4',
-			'C5',
-			'D5',
-			'E5',
-			'F5',
-			'G5'
-		],
-		guitar: [
-			'E3',
-			'F3',
-			'G3',
-			'A3',
-			'B3',
-			'C4',
-			'D4',
-			'E4',
-			'F4',
-			'G4',
-			'A4',
-			'B4',
-			'C5',
-			'D5',
-			'E5'
-		]
-	};
-
-	type Instrument = 'violin' | 'guitar';
+	import { DEFAULT_A4, noteNameFromMidi } from '$lib';
+	import {
+		instrumentConfigs,
+		instrumentMap,
+		defaultInstrumentId,
+		type InstrumentConfig
+	} from '$lib/config/instruments';
+	import type { InstrumentId } from '$lib/config/types';
 
 	let currentNote = $state<string | null>(null);
 	let streak = $state(0);
 	let showSuccess = $state(false);
 	let isGameStarted = $state(false);
-	let selectedInstrument = $state<Instrument>('violin');
-	const availableNotes = $derived(noteRanges[selectedInstrument]);
+	let selectedInstrument = $state<InstrumentId>(defaultInstrumentId);
+	const selectedConfig = $derived(instrumentMap[selectedInstrument]);
+	const availableNotes = $derived(selectedConfig.writtenRange);
 
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
 
-	// Transpose note down by an octave for guitar
-	function transposeNoteForInstrument(note: string): string {
-		if (selectedInstrument !== 'guitar') return note;
+	const letterToSemitone: Record<string, number> = {
+		C: 0,
+		D: 2,
+		E: 4,
+		F: 5,
+		G: 7,
+		A: 9,
+		B: 11
+	};
 
-		const noteName = note.slice(0, -1);
-		const octave = parseInt(note.slice(-1));
-		return `${noteName}${octave - 1}`;
+	function noteNameToMidi(n: string): number | null {
+		const m = /^([A-G])([#b]?)(\d)$/.exec(n);
+		if (!m) return null;
+		const [, letter, accidental, octaveStr] = m;
+		let semitone = letterToSemitone[letter];
+		if (accidental === '#') semitone += 1;
+		if (accidental === 'b') semitone -= 1;
+		const octave = Number(octaveStr);
+		return (octave + 1) * 12 + semitone;
 	}
 
-	// Transpose detected note up by an octave for guitar (for display)
-	function transposeDetectedNoteForDisplay(note: string | null): string | null {
-		if (!note || selectedInstrument !== 'guitar') return note;
+	function midiToNoteName(midi: number): string {
+		return noteNameFromMidi(midi, 'sharp');
+	}
 
-		const noteName = note.slice(0, -1);
-		const octave = parseInt(note.slice(-1));
-		return `${noteName}${octave + 1}`;
+	function transposeNote(note: string, semitones: number): string | null {
+		const midi = noteNameToMidi(note);
+		if (midi === null) return null;
+		return midiToNoteName(midi + semitones);
+	}
+
+	function transposeNoteForInstrument(note: string): string | null {
+		const cfg: InstrumentConfig = selectedConfig;
+		if (!cfg) return note;
+		return transposeNote(note, cfg.transpositionSemitones);
+	}
+
+	function transposeDetectedNoteForDisplay(note: string | null): string | null {
+		if (!note) return null;
+		const cfg: InstrumentConfig = selectedConfig;
+		if (!cfg) return note;
+		return transposeNote(note, -cfg.transpositionSemitones) ?? note;
 	}
 
 	// Watch for correct note detection
 	$effect(() => {
 		if (tuner.state.note && currentNote && !showSuccess) {
 			const expectedNote = transposeNoteForInstrument(currentNote);
-			if (tuner.state.note === expectedNote) {
+			if (expectedNote && tuner.state.note === expectedNote) {
 				handleCorrectNote();
 			} else {
 				streak = 0;
@@ -138,27 +132,19 @@
 			<div class="mb-6">
 				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<div class="mb-2 block text-sm font-medium text-slate-700">Select your instrument</div>
-				<div class="mx-auto flex max-w-xs gap-2">
-					<button
-						onclick={() => (selectedInstrument = 'violin')}
-						class={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition ${
-							selectedInstrument === 'violin'
-								? 'bg-dark-blue text-white'
-								: 'bg-white text-slate-900 hover:bg-slate-100'
-						}`}
-					>
-						🎻 Violin
-					</button>
-					<button
-						onclick={() => (selectedInstrument = 'guitar')}
-						class={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition ${
-							selectedInstrument === 'guitar'
-								? 'bg-dark-blue text-white'
-								: 'bg-white text-slate-900 hover:bg-slate-100'
-						}`}
-					>
-						🎸 Guitar
-					</button>
+				<div class="mx-auto grid max-w-sm grid-cols-2 gap-2 sm:grid-cols-3">
+					{#each instrumentConfigs as instrument}
+						<button
+							onclick={() => (selectedInstrument = instrument.id)}
+							class={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
+								selectedInstrument === instrument.id
+									? 'bg-dark-blue text-white'
+									: 'bg-white text-slate-900 hover:bg-slate-100'
+							}`}
+						>
+							{instrument.label}
+						</button>
+					{/each}
 				</div>
 			</div>
 
@@ -179,13 +165,10 @@
 			<header class="text-center">
 				<div class="flex items-center justify-center gap-2">
 					<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Sight reading game</p>
-					<span class="text-lg">
-						{selectedInstrument === 'violin' ? '🎻' : '🎸'}
-					</span>
 				</div>
 				<h1 class="mt-1">Read the note</h1>
 				<p class="mx-auto mt-2 max-w-2xl text-slate-700">
-					Play the note shown on the treble staff with your {selectedInstrument}.
+					Play the note shown on the {selectedConfig.clef} staff with your {selectedInstrument}.
 				</p>
 			</header>
 
@@ -212,11 +195,13 @@
 						showSuccess ? 'scale-105 ring-4 ring-green-400' : ''
 					}`}
 				>
-					<TrebleStaff
+					<Staff
 						note={currentNote}
 						ghostNote={transposeDetectedNoteForDisplay(tuner.state.note)}
+						cents={tuner.state.cents}
 						accidental="sharp"
 						height={150}
+						clef={selectedConfig.clef}
 					/>
 				</div>
 
@@ -230,6 +215,15 @@
 					{#if showSuccess}
 						<p class="mt-2 text-lg font-bold text-green-600">✓ Correct! Next note coming...</p>
 					{/if}
+
+					<div class="mt-4 flex justify-center">
+						<button
+							onclick={nextNote}
+							class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-px hover:bg-slate-200 hover:shadow"
+						>
+							Skip
+						</button>
+					</div>
 				</div>
 			{/if}
 		</div>
