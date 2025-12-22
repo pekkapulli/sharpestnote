@@ -1,4 +1,4 @@
-export type InstrumentId = 'violin' | 'guitar' | 'viola' | 'cello' | 'recorder';
+export type InstrumentId = 'violin' | 'guitar' | 'viola' | 'cello' | 'flute' | 'recorder';
 
 export type Clef = 'treble' | 'alto' | 'bass';
 

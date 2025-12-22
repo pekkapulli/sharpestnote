@@ -23,6 +23,7 @@ export interface TunerState {
 export interface TunerOptions {
 	a4?: number;
 	accidental?: Accidental;
+	debounceTime?: number;
 }
 
 export function createTuner(options: TunerOptions = {}) {
@@ -48,6 +49,7 @@ export function createTuner(options: TunerOptions = {}) {
 
 	const a4 = $state({ value: options.a4 ?? 442 });
 	const accidental = $state({ value: options.accidental ?? 'sharp' });
+	const debounceTime = $state({ value: options.debounceTime ?? 200 });
 
 	async function refreshDevices() {
 		try {
@@ -79,9 +81,16 @@ export function createTuner(options: TunerOptions = {}) {
 					? {
 							deviceId: { exact: state.selectedDeviceId },
 							echoCancellation: false,
-							noiseSuppression: false
+							noiseSuppression: false,
+							autoGainControl: false,
+							channelCount: 1
 						}
-					: { echoCancellation: false, noiseSuppression: false },
+					: {
+							echoCancellation: false,
+							noiseSuppression: false,
+							autoGainControl: false,
+							channelCount: 1
+						},
 				video: false
 			};
 
@@ -159,7 +168,7 @@ export function createTuner(options: TunerOptions = {}) {
 					debouncedNote = pendingNote;
 					state.note = pendingNote;
 					noteDebounceId = null;
-				}, 300);
+				}, debounceTime.value);
 			} else if (noteDebounceId === null && state.note !== debouncedNote) {
 				// Timer already fired; sync state if needed
 				state.note = debouncedNote;
@@ -202,6 +211,12 @@ export function createTuner(options: TunerOptions = {}) {
 		},
 		set accidental(value: Accidental) {
 			accidental.value = value;
+		},
+		get debounceTime() {
+			return debounceTime.value;
+		},
+		set debounceTime(value: number) {
+			debounceTime.value = value;
 		},
 		start,
 		stop,

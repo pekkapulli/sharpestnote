@@ -43,6 +43,14 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		topNote: 'G4'
 	},
 	{
+		id: 'flute',
+		label: 'Flute',
+		clef: 'treble',
+		transpositionSemitones: 0,
+		bottomNote: 'C4',
+		topNote: 'C6'
+	},
+	{
 		id: 'recorder',
 		label: 'Recorder',
 		clef: 'treble',

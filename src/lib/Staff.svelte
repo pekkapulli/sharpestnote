@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Accidental } from '$lib';
 	import type { Clef } from '$lib/config/types';
 	import { staffLayouts } from '$lib/config/staffs';
 	import type { KeySignature, Mode } from '$lib/config/keys';
