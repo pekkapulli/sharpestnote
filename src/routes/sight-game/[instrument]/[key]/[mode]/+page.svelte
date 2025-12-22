@@ -11,7 +11,8 @@
 	import type { InstrumentId } from '$lib/config/types';
 	import {
 		transposeForTransposition,
-		transposeDetectedNoteForDisplay as transposeDetectedForDisplay
+		transposeDetectedNoteForDisplay as transposeDetectedForDisplay,
+		noteNameToMidi
 	} from '$lib/util/noteNames';
 
 	const params = $derived(page.params);
@@ -61,18 +62,35 @@
 		}
 	});
 
-	function getRandomNote() {
+	function getRandomNote(previous?: string | null) {
 		const list = availableNotes;
 		if (!list || list.length === 0) {
 			return selectedConfig?.bottomNote ?? 'C4';
 		}
+
+		if (previous) {
+			const prevMidi = noteNameToMidi(previous);
+			if (prevMidi !== null) {
+				const filtered = list.filter((n) => {
+					const midi = noteNameToMidi(n);
+					return midi !== null && Math.abs(midi - prevMidi) <= 5;
+				});
+				if (filtered.length) {
+					return filtered[Math.floor(Math.random() * filtered.length)];
+				}
+			}
+		}
+
 		return list[Math.floor(Math.random() * list.length)];
 	}
 
 	function newMelody() {
 		const length = Math.floor(Math.random() * 4) + 1; // 1..4
 		const arr: string[] = [];
-		for (let i = 0; i < length; i += 1) arr.push(getRandomNote());
+		for (let i = 0; i < length; i += 1) {
+			const prev = i > 0 ? arr[i - 1] : null;
+			arr.push(getRandomNote(prev));
+		}
 		melody = arr;
 		currentIndex = 0;
 		showSuccess = false;

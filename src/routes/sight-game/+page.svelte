@@ -24,7 +24,7 @@
 	<div class="max-w-2xl text-center">
 		<h1 class="mb-4">Sight Reading Game</h1>
 		<p class="mb-8 text-slate-700">
-			Play the notes shown on the staff with your instrument in the selected key
+			Play the melodies shown on the staff with your instrument in the selected key
 		</p>
 
 		<!-- Instrument selector -->
