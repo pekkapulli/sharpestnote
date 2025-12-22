@@ -114,6 +114,7 @@
 					opacity={ghostNotePosition === notePosition ? 0.8 : 0.4}
 					stroke={ghostNotePosition === notePosition ? '#22c55e' : 'none'}
 					strokeWidth={ghostNotePosition === notePosition ? 2 : 0}
+					{lineSpacing}
 				/>
 			{/if}
 
@@ -126,6 +127,7 @@
 					fill={isHit ? '#16a34a' : 'black'}
 					stroke={isHit ? '#22c55e' : 'none'}
 					strokeWidth={isHit ? 2 : 0}
+					{lineSpacing}
 				/>
 			{/if}
 		</svg>
@@ -138,18 +140,6 @@
 			<ClefSymbol {clef} size="{lineSpacing * 4}px" />
 		</div>
 	</div>
-
-	<!-- Note label -->
-	{#if note}
-		<div class="rounded-lg bg-dark-blue px-6 py-3 text-center">
-			<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current note</p>
-			<p class="mt-1 text-3xl font-bold text-white">{note}</p>
-		</div>
-	{:else}
-		<div class="rounded-lg bg-slate-200 px-6 py-3 text-center">
-			<p class="text-sm tracking-[0.08em] text-slate-600 uppercase">Waiting for note...</p>
-		</div>
-	{/if}
 </div>
 
 <style>

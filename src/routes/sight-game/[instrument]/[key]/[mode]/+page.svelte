@@ -159,19 +159,15 @@
 		{/if}
 
 		{#if currentNote}
-			<!-- Streak and detected -->
-			<div class="grid gap-4 sm:grid-cols-2">
+			<!-- Streak -->
+			<!-- <div class="flex justify-center">
 				<div class="rounded-2xl bg-white p-6 text-center shadow-sm">
 					<p class="text-xs tracking-[0.08em] text-slate-500 uppercase">Streak</p>
 					<p class={`mt-2 text-4xl font-bold ${streak > 0 ? 'text-green-600' : 'text-slate-500'}`}>
 						{streak}
 					</p>
 				</div>
-				<div class="rounded-2xl bg-white p-6 text-center shadow-sm">
-					<p class="text-xs tracking-[0.08em] text-slate-500 uppercase">Detected</p>
-					<p class="mt-2 text-4xl font-bold text-blue-600">{tuner.state.note ?? '--'}</p>
-				</div>
-			</div>
+			</div> -->
 
 			<!-- Staff display -->
 			<div
@@ -187,6 +183,24 @@
 					clef={selectedConfig.clef}
 					{keySignature}
 				/>
+			</div>
+
+			<!-- Note labels -->
+			<div class="flex justify-center">
+				<details class="rounded-lg bg-dark-blue px-8 py-4 text-center">
+					<summary
+						class="cursor-pointer text-sm tracking-[0.08em] text-slate-300 uppercase hover:text-white"
+					>
+						Show note names
+					</summary>
+					<div class="mt-3">
+						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current note</p>
+						<p class="mt-1 text-3xl font-bold text-white">{currentNote}</p>
+						<div class="my-2 border-t border-slate-600"></div>
+						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Detected</p>
+						<p class="mt-1 text-2xl font-bold text-slate-300">{tuner.state.note ?? '--'}</p>
+					</div>
+				</details>
 			</div>
 
 			<!-- Tuner status -->
