@@ -18,12 +18,16 @@ export interface TunerState {
 	error: string | null;
 	devices: MediaDeviceInfo[];
 	selectedDeviceId: string | null;
+	amplitude: number;
+	isNoteActive: boolean;
 }
 
 export interface TunerOptions {
 	a4?: number;
 	accidental?: Accidental;
 	debounceTime?: number;
+	amplitudeThreshold?: number;
+	instrument?: 'violin' | 'guitar' | 'flute' | 'generic';
 }
 
 export function createTuner(options: TunerOptions = {}) {
@@ -36,6 +40,8 @@ export function createTuner(options: TunerOptions = {}) {
 	let noteDebounceId: number | null = null;
 	let debouncedNote: string | null = null;
 	let pendingNote: string | null = null;
+	const frequencyHistory: number[] = [];
+	const amplitudeHistory: number[] = [];
 
 	const state = $state<TunerState>({
 		isListening: false,
@@ -44,12 +50,32 @@ export function createTuner(options: TunerOptions = {}) {
 		note: null,
 		error: null,
 		devices: [],
-		selectedDeviceId: null
+		selectedDeviceId: null,
+		amplitude: 0,
+		isNoteActive: false
 	});
 
 	const a4 = $state({ value: options.a4 ?? 442 });
 	const accidental = $state({ value: options.accidental ?? 'sharp' });
 	const debounceTime = $state({ value: options.debounceTime ?? 200 });
+	const amplitudeThreshold = $state({ value: options.amplitudeThreshold ?? 0.02 });
+	const instrument = $state({ value: options.instrument ?? 'generic' });
+
+	function calculateAmplitude(data: Float32Array): number {
+		let sum = 0;
+		for (let i = 0; i < data.length; i++) {
+			sum += data[i] * data[i];
+		}
+		return Math.sqrt(sum / data.length);
+	}
+
+	function isFrequencyStable(freq: number, windowSize: number = 5): boolean {
+		if (frequencyHistory.length < windowSize) return false;
+		const recent = frequencyHistory.slice(-windowSize);
+		const avg = recent.reduce((a, b) => a + b) / recent.length;
+		const variance = recent.reduce((sum, f) => sum + Math.abs(f - avg), 0) / recent.length;
+		return variance < avg * 0.02; // Within 2% variance
+	}
 
 	async function refreshDevices() {
 		try {
@@ -149,8 +175,20 @@ export function createTuner(options: TunerOptions = {}) {
 		const tempData = new Float32Array(analyser.fftSize) as Float32Array<ArrayBuffer>;
 		analyser.getFloatTimeDomainData(tempData);
 		const freq = autoCorrelate(tempData, audioContext.sampleRate);
+		const amplitude = calculateAmplitude(tempData);
 
-		if (freq > 0) {
+		state.amplitude = amplitude;
+
+		// Track frequency and amplitude history
+		frequencyHistory.push(freq);
+		amplitudeHistory.push(amplitude);
+		if (frequencyHistory.length > 20) frequencyHistory.shift();
+		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
+
+		state.isNoteActive =
+			amplitude > amplitudeThreshold.value && freq > 0 && isFrequencyStable(freq);
+
+		if (freq > 0 && state.isNoteActive) {
 			const currentA4 = untrack(() => a4.value);
 			const currentAccidental = untrack(() => accidental.value);
 
@@ -217,6 +255,18 @@ export function createTuner(options: TunerOptions = {}) {
 		},
 		set debounceTime(value: number) {
 			debounceTime.value = value;
+		},
+		get amplitudeThreshold() {
+			return amplitudeThreshold.value;
+		},
+		set amplitudeThreshold(value: number) {
+			amplitudeThreshold.value = value;
+		},
+		get instrument() {
+			return instrument.value;
+		},
+		set instrument(value: 'violin' | 'guitar' | 'flute' | 'generic') {
+			instrument.value = value;
 		},
 		start,
 		stop,

@@ -6,6 +6,7 @@ export type Accidental = 'natural' | 'sharp' | 'flat';
 export interface KeySignature {
 	note: string; // Base note (e.g., 'C', 'G', 'F')
 	mode: Mode;
+	preferredAccidental: 'sharp' | 'flat'; // Preferred accidental for this key
 	sharps: string[]; // Notes that are sharp in this key (e.g., ['F#', 'C#', 'G#'])
 	flats: string[]; // Notes that are flat in this key (e.g., ['B♭', 'E♭', 'A♭'])
 }
@@ -20,90 +21,105 @@ export const keySignatures: KeySignature[] = [
 	{
 		note: 'C',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: [],
 		flats: []
 	},
 	{
 		note: 'G',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#'],
 		flats: []
 	},
 	{
 		note: 'D',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#'],
 		flats: []
 	},
 	{
 		note: 'A',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#'],
 		flats: []
 	},
 	{
 		note: 'E',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#'],
 		flats: []
 	},
 	{
 		note: 'B',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#', 'A#'],
 		flats: []
 	},
 	{
 		note: 'F#',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'],
 		flats: []
 	},
 	{
 		note: 'C#',
 		mode: 'major',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
 		flats: []
 	},
 	{
 		note: 'F',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭']
 	},
 	{
 		note: 'B♭',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭']
 	},
 	{
 		note: 'E♭',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭']
 	},
 	{
 		note: 'A♭',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭']
 	},
 	{
 		note: 'D♭',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭', 'G♭']
 	},
 	{
 		note: 'G♭',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭', 'G♭', 'C♭']
 	},
 	{
 		note: 'C♭',
 		mode: 'major',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭', 'G♭', 'C♭', 'F♭']
 	},
@@ -112,90 +128,105 @@ export const keySignatures: KeySignature[] = [
 	{
 		note: 'A',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: [],
 		flats: []
 	},
 	{
 		note: 'E',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#'],
 		flats: []
 	},
 	{
 		note: 'B',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#'],
 		flats: []
 	},
 	{
 		note: 'F#',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#'],
 		flats: []
 	},
 	{
 		note: 'C#',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#'],
 		flats: []
 	},
 	{
 		note: 'G#',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#', 'A#'],
 		flats: []
 	},
 	{
 		note: 'D#',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'],
 		flats: []
 	},
 	{
 		note: 'A#',
 		mode: 'natural_minor',
+		preferredAccidental: 'sharp',
 		sharps: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
 		flats: []
 	},
 	{
 		note: 'D',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭']
 	},
 	{
 		note: 'G',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭']
 	},
 	{
 		note: 'C',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭']
 	},
 	{
 		note: 'F',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭']
 	},
 	{
 		note: 'B♭',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭', 'G♭']
 	},
 	{
 		note: 'E♭',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭', 'G♭', 'C♭']
 	},
 	{
 		note: 'A♭',
 		mode: 'natural_minor',
+		preferredAccidental: 'flat',
 		sharps: [],
 		flats: ['B♭', 'E♭', 'A♭', 'D♭', 'G♭', 'C♭', 'F♭']
 	}
@@ -268,18 +299,18 @@ export function getRelativeMajor(minorKey: string): KeySignature | undefined {
 }
 
 export const keyOptions = [
-	{ note: 'C', label: 'C' },
-	{ note: 'C#', label: 'C#' },
-	{ note: 'D', label: 'D' },
-	{ note: 'D#', label: 'D#' },
-	{ note: 'E', label: 'E' },
-	{ note: 'F', label: 'F' },
-	{ note: 'F#', label: 'F#' },
-	{ note: 'G', label: 'G' },
-	{ note: 'G#', label: 'G#' },
-	{ note: 'A', label: 'A' },
-	{ note: 'A#', label: 'A#' },
-	{ note: 'B', label: 'B' }
+	{ value: 'C', label: 'C' },
+	{ value: 'C#', label: 'C#' },
+	{ value: 'D', label: 'D' },
+	{ value: 'D#', label: 'D#' },
+	{ value: 'E', label: 'E' },
+	{ value: 'F', label: 'F' },
+	{ value: 'F#', label: 'F#' },
+	{ value: 'G', label: 'G' },
+	{ value: 'G#', label: 'G#' },
+	{ value: 'A', label: 'A' },
+	{ value: 'A#', label: 'A#' },
+	{ value: 'B', label: 'B' }
 ];
 
 export const modeOptions = [

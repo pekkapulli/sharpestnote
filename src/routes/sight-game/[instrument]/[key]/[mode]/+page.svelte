@@ -4,11 +4,15 @@
 	import Staff from '$lib/Staff.svelte';
 	import MicrophoneSelector from '$lib/MicrophoneSelector.svelte';
 	import { createTuner } from '$lib/useTuner.svelte';
-	import { DEFAULT_A4, noteNameFromMidi } from '$lib';
-	import { instrumentMap, type InstrumentConfig } from '$lib/config/instruments';
+	import { DEFAULT_A4 } from '$lib';
+	import { instrumentMap } from '$lib/config/instruments';
 	import { getKeySignature, type Mode } from '$lib/config/keys';
 	import { getInstrumentRangeForKey } from '$lib/util/getInstrumentRangeForKey';
 	import type { InstrumentId } from '$lib/config/types';
+	import {
+		transposeForTransposition,
+		transposeDetectedNoteForDisplay as transposeDetectedForDisplay
+	} from '$lib/util/noteNames';
 
 	const params = $derived(page.params);
 	const instrument = $derived(params.instrument as InstrumentId);
@@ -25,61 +29,30 @@
 		console.log('Available notes:', availableNotes);
 	});
 
+	// Keep tuner accidental aligned with the current key signature
+	$effect(() => {
+		if (tuner) {
+			tuner.accidental = keySignature.preferredAccidental;
+		}
+	});
+
 	let currentNote = $state<string | null>(null);
 	let streak = $state(0);
 	let showSuccess = $state(false);
 
-	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
-
-	const letterToSemitone: Record<string, number> = {
-		C: 0,
-		D: 2,
-		E: 4,
-		F: 5,
-		G: 7,
-		A: 9,
-		B: 11
-	};
-
-	function noteNameToMidi(n: string): number | null {
-		const m = /^([A-G])([#b]?)(\d)$/.exec(n);
-		if (!m) return null;
-		const [, letter, accidental, octaveStr] = m;
-		let semitone = letterToSemitone[letter];
-		if (accidental === '#') semitone += 1;
-		if (accidental === 'b') semitone -= 1;
-		const octave = Number(octaveStr);
-		return (octave + 1) * 12 + semitone;
-	}
-
-	function midiToNoteName(midi: number): string {
-		return noteNameFromMidi(midi, 'sharp');
-	}
-
-	function transposeNote(note: string, semitones: number): string | null {
-		const midi = noteNameToMidi(note);
-		if (midi === null) return null;
-		return midiToNoteName(midi + semitones);
-	}
-
-	function transposeNoteForInstrument(note: string): string | null {
-		const cfg: InstrumentConfig = selectedConfig;
-		if (!cfg) return note;
-		return transposeNote(note, cfg.transpositionSemitones);
-	}
-
-	function transposeDetectedNoteForDisplay(note: string | null): string | null {
-		if (!note) return null;
-		const cfg: InstrumentConfig = selectedConfig;
-		if (!cfg) return note;
-		return transposeNote(note, -cfg.transpositionSemitones) ?? note;
-	}
+	const tuner = createTuner({ a4: DEFAULT_A4 });
 
 	// Watch for correct note detection
 	$effect(() => {
 		console.log(tuner.state.note, currentNote, showSuccess);
 		if (tuner.state.note && currentNote && !showSuccess) {
-			const expectedNote = transposeNoteForInstrument(currentNote);
+			const expectedNote = selectedConfig
+				? transposeForTransposition(
+						currentNote,
+						selectedConfig.transpositionSemitones,
+						keySignature.preferredAccidental
+					)
+				: currentNote;
 			if (expectedNote && tuner.state.note === expectedNote) {
 				handleCorrectNote();
 			} else {
@@ -177,7 +150,13 @@
 			>
 				<Staff
 					note={currentNote}
-					ghostNote={transposeDetectedNoteForDisplay(tuner.state.note)}
+					ghostNote={selectedConfig
+						? transposeDetectedForDisplay(
+								tuner.state.note,
+								selectedConfig.transpositionSemitones,
+								keySignature.preferredAccidental
+							)
+						: tuner.state.note}
 					cents={tuner.state.cents}
 					height={150}
 					clef={selectedConfig.clef}
@@ -187,7 +166,7 @@
 
 			<!-- Note labels -->
 			<div class="flex justify-center">
-				<details class="rounded-lg bg-dark-blue px-8 py-4 text-center">
+				<details class="rounded-lg bg-dark-blue px-8 py-4 text-center" open>
 					<summary
 						class="cursor-pointer text-sm tracking-[0.08em] text-slate-300 uppercase hover:text-white"
 					>

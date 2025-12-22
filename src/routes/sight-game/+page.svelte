@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { instrumentConfigs, defaultInstrumentId } from '$lib/config/instruments';
-	import { getMajorKeys, getNaturalMinorKeys } from '$lib/config/keys';
+	import { keyOptions, modeOptions } from '$lib/config/keys';
 	import type { InstrumentId } from '$lib/config/types';
 	import { createTuner } from '$lib/useTuner.svelte';
 	import { onMount } from 'svelte';
@@ -10,10 +10,6 @@
 	let selectedMode = $state<'major' | 'natural_minor'>('major');
 
 	const tuner = createTuner();
-	const majorKeys = getMajorKeys();
-	const minorKeys = getNaturalMinorKeys();
-	const keyList = $derived(selectedMode === 'major' ? majorKeys : minorKeys);
-	const keyNotes = $derived(keyList.map((k) => k.note));
 
 	onMount(() => {
 		tuner.checkSupport();
@@ -55,8 +51,8 @@
 					bind:value={selectedKey}
 					class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 				>
-					{#each keyNotes as keyNote}
-						<option value={keyNote}>{keyNote}</option>
+					{#each keyOptions as keyOption}
+						<option value={keyOption.value}>{keyOption.label}</option>
 					{/each}
 				</select>
 			</div>
@@ -67,8 +63,9 @@
 					bind:value={selectedMode}
 					class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 				>
-					<option value="major">Major</option>
-					<option value="natural_minor">Natural Minor</option>
+					{#each modeOptions as option}
+						<option value={option.mode}>{option.label}</option>
+					{/each}
 				</select>
 			</div>
 		</div>
