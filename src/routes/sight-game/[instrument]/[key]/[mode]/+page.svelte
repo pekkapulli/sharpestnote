@@ -14,6 +14,7 @@
 		transposeDetectedNoteForDisplay as transposeDetectedForDisplay,
 		noteNameToMidi
 	} from '$lib/util/noteNames';
+	import type { NoteLength } from '$lib/config/rhythm';
 
 	const params = $derived(page.params);
 	const instrument = $derived(params.instrument as InstrumentId);
@@ -37,18 +38,22 @@
 		}
 	});
 
-	let melody = $state<string[] | null>(null);
+	type MelodyItem = { note: string; length: NoteLength };
+	let melody = $state<MelodyItem[] | null>(null);
 	let currentIndex = $state(0);
 	let streak = $state(0);
 	let showSuccess = $state(false);
 
-	const tuner = createTuner({ a4: DEFAULT_A4 });
+	const tuner = createTuner({
+		a4: DEFAULT_A4,
+		tempoBPM: 60
+	});
 
 	// Watch for correct note detection
 	$effect(() => {
-		console.log('detected', tuner.state.note, 'melody', melody, 'idx', currentIndex);
+		console.log(tuner.state.heldSixteenths);
 		if (tuner.state.note && melody && melody.length && !showSuccess) {
-			const target = melody[currentIndex];
+			const target = melody[currentIndex].note;
 			const expectedNote = selectedConfig
 				? transposeForTransposition(
 						target,
@@ -84,14 +89,30 @@
 		return list[Math.floor(Math.random() * list.length)];
 	}
 
+	function createLengths(count: number): NoteLength[] {
+		if (count <= 1) return [16];
+		if (count === 2) return [8, 8];
+		if (count === 3) {
+			const patterns: NoteLength[][] = [
+				[4, 4, 8],
+				[4, 8, 4],
+				[8, 4, 4]
+			];
+			return patterns[Math.floor(Math.random() * patterns.length)];
+		}
+		// 4 or more -> clamp to 4 notes and use quarters
+		return new Array(Math.min(count, 4)).fill(4);
+	}
+
 	function newMelody() {
 		const length = Math.floor(Math.random() * 4) + 1; // 1..4
-		const arr: string[] = [];
+		const notes: string[] = [];
 		for (let i = 0; i < length; i += 1) {
-			const prev = i > 0 ? arr[i - 1] : null;
-			arr.push(getRandomNote(prev));
+			const prev = i > 0 ? notes[i - 1] : null;
+			notes.push(getRandomNote(prev));
 		}
-		melody = arr;
+		const lens = createLengths(notes.length);
+		melody = notes.map((n, i) => ({ note: n, length: lens[i] }));
 		currentIndex = 0;
 		showSuccess = false;
 	}
@@ -176,7 +197,7 @@
 				}`}
 			>
 				<Staff
-					notes={melody}
+					sequence={melody}
 					{currentIndex}
 					ghostNote={selectedConfig
 						? transposeDetectedForDisplay(
@@ -203,7 +224,7 @@
 					<div class="mt-3">
 						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current melody</p>
 						<p class="mt-1 text-xl font-bold text-white">
-							{#each melody as n, i}
+							{#each melody as item, i}
 								<span
 									class={i === currentIndex
 										? 'text-white'
@@ -211,7 +232,7 @@
 											? 'text-emerald-300'
 											: 'text-slate-300'}
 								>
-									{n}{i < melody.length - 1 ? ' ' : ''}
+									{item.note}{i < melody.length - 1 ? ' ' : ''}
 								</span>
 							{/each}
 						</p>

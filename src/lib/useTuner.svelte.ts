@@ -7,6 +7,7 @@ import {
 	noteNameFromMidi,
 	type Accidental
 } from '$lib';
+import { lengthToMs } from '$lib/config/rhythm';
 
 const FFT_SIZE = 2048;
 
@@ -20,6 +21,7 @@ export interface TunerState {
 	selectedDeviceId: string | null;
 	amplitude: number;
 	isNoteActive: boolean;
+	heldSixteenths: number; // how many 1/16 notes the current note has been held (can be fractional)
 }
 
 export interface TunerOptions {
@@ -28,6 +30,7 @@ export interface TunerOptions {
 	debounceTime?: number;
 	amplitudeThreshold?: number;
 	instrument?: 'violin' | 'guitar' | 'flute' | 'generic';
+	tempoBPM?: number; // for converting time held into 16th-note units
 }
 
 export function createTuner(options: TunerOptions = {}) {
@@ -52,7 +55,8 @@ export function createTuner(options: TunerOptions = {}) {
 		devices: [],
 		selectedDeviceId: null,
 		amplitude: 0,
-		isNoteActive: false
+		isNoteActive: false,
+		heldSixteenths: 0
 	});
 
 	const a4 = $state({ value: options.a4 ?? 442 });
@@ -60,6 +64,12 @@ export function createTuner(options: TunerOptions = {}) {
 	const debounceTime = $state({ value: options.debounceTime ?? 200 });
 	const amplitudeThreshold = $state({ value: options.amplitudeThreshold ?? 0.02 });
 	const instrument = $state({ value: options.instrument ?? 'generic' });
+	const tempoBPM = $state({ value: options.tempoBPM ?? 120 });
+
+	// Internal tracking for note hold duration
+	let lastTickAt: number | null = null;
+	let holdMs = 0;
+	let heldNote: string | null = null;
 
 	function calculateAmplitude(data: Float32Array): number {
 		let sum = 0;
@@ -147,6 +157,11 @@ export function createTuner(options: TunerOptions = {}) {
 			rafId = null;
 		}
 
+		lastTickAt = null;
+		holdMs = 0;
+		heldNote = null;
+		state.heldSixteenths = 0;
+
 		if (mediaStream) {
 			mediaStream.getTracks().forEach((track) => track.stop());
 			mediaStream = null;
@@ -171,6 +186,10 @@ export function createTuner(options: TunerOptions = {}) {
 		if (!analyser || !audioContext || !data) {
 			return;
 		}
+
+		const now = performance.now();
+		if (lastTickAt === null) lastTickAt = now;
+		const dt = now - lastTickAt;
 
 		const tempData = new Float32Array(analyser.fftSize) as Float32Array<ArrayBuffer>;
 		analyser.getFloatTimeDomainData(tempData);
@@ -223,6 +242,29 @@ export function createTuner(options: TunerOptions = {}) {
 			state.note = null;
 		}
 
+		// Update held duration in ms and convert to 16th notes using tempo
+		const current = state.note;
+		if (state.isNoteActive && current) {
+			if (heldNote === current) {
+				holdMs += dt;
+			} else {
+				heldNote = current;
+				holdMs = 0;
+			}
+			const tempo = Math.max(
+				1,
+				untrack(() => tempoBPM.value)
+			);
+			const sixteenthMs = lengthToMs(1, tempo);
+			state.heldSixteenths = sixteenthMs > 0 ? holdMs / sixteenthMs : 0;
+		} else {
+			heldNote = null;
+			holdMs = 0;
+			state.heldSixteenths = 0;
+		}
+
+		lastTickAt = now;
+
 		rafId = requestAnimationFrame(tick);
 	}
 
@@ -261,6 +303,12 @@ export function createTuner(options: TunerOptions = {}) {
 		},
 		set amplitudeThreshold(value: number) {
 			amplitudeThreshold.value = value;
+		},
+		get tempoBPM() {
+			return tempoBPM.value;
+		},
+		set tempoBPM(value: number) {
+			tempoBPM.value = value > 0 ? value : 1;
 		},
 		get instrument() {
 			return instrument.value;

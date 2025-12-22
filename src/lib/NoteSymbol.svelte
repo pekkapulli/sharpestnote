@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { lengthNoteMap } from './config/rhythm';
+
 	interface Props {
 		x: number;
 		y: number;
 		accidental?: { symbol: string; yOffset: number } | null;
+		length?: 1 | 2 | 4 | 8 | 16 | null;
 		fill?: string;
 		stroke?: string;
 		strokeWidth?: number;
@@ -15,6 +18,7 @@
 		x,
 		y,
 		accidental = null,
+		length = null,
 		fill = 'black',
 		stroke = 'none',
 		strokeWidth = 0,
@@ -25,15 +29,27 @@
 
 <g>
 	<!-- Note head circle -->
-	<circle
-		cx={x}
-		cy={y}
-		r={lineSpacing * 0.5}
-		{fill}
-		{stroke}
-		stroke-width={strokeWidth}
-		{opacity}
-	/>
+	{#if length}
+		<!-- Adjust size for different note lengths -->
+		<text
+			class="note"
+			x={x - lineSpacing * 0.7}
+			y={y + lineSpacing / 2}
+			{fill}
+			{opacity}
+			font-size={lineSpacing * 4}>{lengthNoteMap[length]}</text
+		>
+	{:else}
+		<circle
+			cx={x}
+			cy={y}
+			r={lineSpacing * 0.5}
+			{fill}
+			{stroke}
+			stroke-width={strokeWidth}
+			{opacity}
+		/>
+	{/if}
 
 	<!-- Accidental symbol if present -->
 	{#if accidental}
@@ -52,7 +68,4 @@
 </g>
 
 <style>
-	.note {
-		user-select: none;
-	}
 </style>

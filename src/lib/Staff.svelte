@@ -6,11 +6,13 @@
 	import ClefSymbol from './ClefSymbol.svelte';
 	import NoteSymbol from './NoteSymbol.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
+	import type { NoteLength } from './config/rhythm';
+
+	type SequenceItem = { note: string; length?: NoteLength };
 
 	interface Props {
-		note?: string | null;
-		// If provided, the staff will render multiple notes spaced horizontally.
-		notes?: string[] | null;
+		// Provide sequence as an array of { note, length }
+		sequence?: SequenceItem[];
 		// Index into `notes` indicating the currently active target note.
 		currentIndex?: number;
 		ghostNote?: string | null;
@@ -22,8 +24,7 @@
 	}
 
 	const {
-		note = null,
-		notes = null,
+		sequence = [],
 		currentIndex = 0,
 		ghostNote = null,
 		cents = null,
@@ -51,12 +52,12 @@
 
 	const lineSpacing = $derived(height / 12);
 	const centerY = $derived(height / 2);
-	// Support either single note or a sequence
+	const notes = $derived(sequence.map((s) => s.note));
 	const activeNote: string | null = $derived(
-		notes && notes.length ? notes[Math.min(Math.max(currentIndex, 0), notes.length - 1)] : note
+		notes.length ? notes[Math.min(Math.max(currentIndex, 0), notes.length - 1)] : null
 	);
 	const renderedNotes = $derived(
-		notes && notes.length ? notes.map((n) => renderNote(n, keySignature, clef)) : null
+		notes.length ? notes.map((n) => renderNote(n, keySignature, clef)) : null
 	);
 	const noteRendered = $derived(activeNote ? renderNote(activeNote, keySignature, clef) : null);
 	const ghostNoteRendered = $derived(ghostNote ? renderNote(ghostNote, keySignature, clef) : null);
@@ -66,24 +67,36 @@
 	const ghostAccidental = $derived(ghostNoteRendered?.accidental ?? null);
 	const isHit = $derived(activeNote !== null && ghostNote !== null && activeNote === ghostNote);
 
-	// Horizontal layout for multi-note melodies
+	// Horizontal layout for multi-note melodies, spaced by note lengths
 	const startX = 100;
 	const endX = 360;
-	const slots = $derived(notes && notes.length ? Math.max(notes.length - 1, 1) : 1);
 	const available = $derived(endX - startX);
-	const spacing = $derived(notes && notes.length ? Math.min(60, available / slots) : 0);
-	const groupWidth = $derived(notes && notes.length ? spacing * (notes.length - 1) : 0);
-	const firstX = $derived(notes && notes.length ? startX + (available - groupWidth) / 2 : 0);
-	const noteXs = $derived(notes && notes.length ? notes.map((_, i) => firstX + spacing * i) : null);
-	const currentGhostX = $derived(
-		noteXs && notes && notes.length
-			? noteXs[Math.min(Math.max(currentIndex, 0), notes.length - 1)]
+	const basePixelsPerSixteenth = 15; // 60px per quarter note (4 sixteenths)
+	const lengthBasedSpacing = $derived(
+		sequence && sequence.length
+			? (() => {
+					const positions = [0]; // first note at 0
+					let cumulativeX = 0;
+					for (let i = 1; i < sequence.length; i++) {
+						const prevLength = sequence[i - 1]?.length ?? 4;
+						cumulativeX += prevLength * basePixelsPerSixteenth;
+						positions.push(cumulativeX);
+					}
+					const totalWidth = cumulativeX;
+					const scale = totalWidth > available ? available / totalWidth : 1;
+					const scaledPositions = positions.map((p) => p * scale);
+					const groupWidth = scaledPositions[scaledPositions.length - 1] ?? 0;
+					const centerOffset = startX + (available - groupWidth) / 2;
+					return scaledPositions.map((p) => centerOffset + p);
+				})()
 			: null
 	);
-
-	$effect(() => {
-		console.log({ note, notes, ghostNote });
-	});
+	const noteXs = $derived(lengthBasedSpacing);
+	const currentGhostX = $derived(
+		lengthBasedSpacing && sequence && sequence.length
+			? lengthBasedSpacing[Math.min(Math.max(currentIndex, 0), sequence.length - 1)]
+			: null
+	);
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -131,7 +144,7 @@
 			<!-- Key signature -->
 			<KeySignatureSymbol {clef} {keySignature} {lineSpacing} {centerY} />
 
-			{#if notes && notes.length}
+			{#if notes.length}
 				<!-- Space notes within [startX, endX] with max 60px gap, centered -->
 				{#key notes.length}
 					{#each notes as n, i}
@@ -142,6 +155,7 @@
 								{x}
 								y={centerY - (rn.position ?? 0) * lineSpacing}
 								accidental={rn.accidental}
+								length={sequence?.[i]?.length}
 								fill={i < currentIndex ? '#16a34a' : i === currentIndex ? 'black' : '#9ca3af'}
 								stroke={i < currentIndex ? '#22c55e' : 'none'}
 								strokeWidth={i < currentIndex ? 2 : 0}
@@ -166,7 +180,7 @@
 				{/if}
 			{:else}
 				<!-- Single-note mode -->
-				{#if ghostNotePosition !== null && ghostNote !== note}
+				{#if ghostNotePosition !== null && ghostNote !== activeNote}
 					<NoteSymbol
 						x={200}
 						y={centerY - ghostNotePosition * lineSpacing}
