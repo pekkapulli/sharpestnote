@@ -137,9 +137,9 @@
 		<header class="text-center">
 			<div class="flex flex-col items-center justify-center gap-2">
 				<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Sight reading game</p>
-				<h1 class="mt-1">Read the note</h1>
+				<h1 class="mt-1">Read the melody</h1>
 				<p class="mx-auto mt-2 max-w-2xl text-center text-slate-700">
-					Play the note shown on the {selectedConfig.clef} staff with your {instrument}.
+					Play the notes shown on the {selectedConfig.clef} staff with your {instrument}.
 					{#if keySignature}
 						<span class="mt-1 block text-center text-sm text-slate-600">
 							Key: {keyNote}
