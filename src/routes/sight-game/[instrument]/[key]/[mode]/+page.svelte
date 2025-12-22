@@ -36,7 +36,8 @@
 		}
 	});
 
-	let currentNote = $state<string | null>(null);
+	let melody = $state<string[] | null>(null);
+	let currentIndex = $state(0);
 	let streak = $state(0);
 	let showSuccess = $state(false);
 
@@ -44,19 +45,18 @@
 
 	// Watch for correct note detection
 	$effect(() => {
-		console.log(tuner.state.note, currentNote, showSuccess);
-		if (tuner.state.note && currentNote && !showSuccess) {
+		console.log('detected', tuner.state.note, 'melody', melody, 'idx', currentIndex);
+		if (tuner.state.note && melody && melody.length && !showSuccess) {
+			const target = melody[currentIndex];
 			const expectedNote = selectedConfig
 				? transposeForTransposition(
-						currentNote,
+						target,
 						selectedConfig.transpositionSemitones,
 						keySignature.preferredAccidental
 					)
-				: currentNote;
+				: target;
 			if (expectedNote && tuner.state.note === expectedNote) {
 				handleCorrectNote();
-			} else {
-				streak = 0;
 			}
 		}
 	});
@@ -69,19 +69,30 @@
 		return list[Math.floor(Math.random() * list.length)];
 	}
 
-	function nextNote() {
-		currentNote = getRandomNote();
+	function newMelody() {
+		const length = Math.floor(Math.random() * 4) + 1; // 1..4
+		const arr: string[] = [];
+		for (let i = 0; i < length; i += 1) arr.push(getRandomNote());
+		melody = arr;
+		currentIndex = 0;
 		showSuccess = false;
 	}
 
 	function handleCorrectNote() {
+		// Advance within melody first
+		if (melody) {
+			if (currentIndex < melody.length - 1) {
+				currentIndex += 1;
+				return;
+			}
+		}
+
+		// Melody completed
 		showSuccess = true;
 		streak += 1;
-
-		// Wait for animation then show next note
 		setTimeout(() => {
-			nextNote();
-		}, 1000);
+			newMelody();
+		}, 800);
 	}
 
 	onMount(() => {
@@ -91,9 +102,7 @@
 
 	function startListening() {
 		tuner.start();
-		if (!currentNote) {
-			nextNote();
-		}
+		if (!melody) newMelody();
 	}
 
 	function handleDeviceChange(deviceId: string) {
@@ -131,7 +140,7 @@
 			/>
 		{/if}
 
-		{#if currentNote}
+		{#if melody}
 			<!-- Streak -->
 			<!-- <div class="flex justify-center">
 				<div class="rounded-2xl bg-white p-6 text-center shadow-sm">
@@ -149,7 +158,8 @@
 				}`}
 			>
 				<Staff
-					note={currentNote}
+					notes={melody}
+					{currentIndex}
 					ghostNote={selectedConfig
 						? transposeDetectedForDisplay(
 								tuner.state.note,
@@ -173,8 +183,20 @@
 						Show note names
 					</summary>
 					<div class="mt-3">
-						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current note</p>
-						<p class="mt-1 text-3xl font-bold text-white">{currentNote}</p>
+						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current melody</p>
+						<p class="mt-1 text-xl font-bold text-white">
+							{#each melody as n, i}
+								<span
+									class={i === currentIndex
+										? 'text-white'
+										: i < currentIndex
+											? 'text-emerald-300'
+											: 'text-slate-300'}
+								>
+									{n}{i < melody.length - 1 ? ' ' : ''}
+								</span>
+							{/each}
+						</p>
 						<div class="my-2 border-t border-slate-600"></div>
 						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Detected</p>
 						<p class="mt-1 text-2xl font-bold text-slate-300">{tuner.state.note ?? '--'}</p>
@@ -195,7 +217,7 @@
 
 				<div class="mt-4 flex justify-center gap-2">
 					<button
-						onclick={nextNote}
+						onclick={newMelody}
 						class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-px hover:bg-slate-200 hover:shadow"
 					>
 						Skip
