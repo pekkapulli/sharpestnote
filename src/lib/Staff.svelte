@@ -2,42 +2,34 @@
 	import type { Accidental } from '$lib';
 	import type { Clef } from '$lib/config/types';
 	import { staffLayouts } from '$lib/config/staffs';
+	import type { KeySignature, Mode } from '$lib/config/keys';
+	import { renderNote } from './noteRenderer';
 	import ClefSymbol from './ClefSymbol.svelte';
+	import NoteSymbol from './NoteSymbol.svelte';
+	import KeySignatureSymbol from './KeySignature.svelte';
 
 	interface Props {
 		note?: string | null;
 		ghostNote?: string | null;
 		cents?: number | null;
-		accidental?: Accidental;
 		height?: number;
 		clef?: Clef;
+		keySignature: KeySignature;
+		mode?: Mode;
 	}
 
 	const {
 		note = null,
 		ghostNote = null,
-		accidental = 'sharp',
+		cents = null,
 		height = 150,
-		clef = 'treble'
+		clef = 'treble',
+		keySignature
 	}: Props = $props();
 
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
 	const referenceOctave = $derived(clef === 'bass' ? 2 : clef === 'alto' ? 3 : 4);
-
-	// Calculate Y position on staff (handles accidentals and octaves)
-	function getNotePosition(noteName: string): number | null {
-		const match = /^([A-G])([#b]?)(\d)$/.exec(noteName);
-		if (!match) return null;
-
-		const [, letter, accidentalSign, octaveStr] = match;
-		const base = layout.basePositions[letter];
-		const octave = Number(octaveStr);
-		const accidentalOffset = accidentalSign === '#' ? 0.5 : accidentalSign === 'b' ? -0.5 : 0;
-		const octaveOffset = (octave - referenceOctave) * 3.5; // each octave shifts 7 staff steps (3.5 lines)
-
-		return base + octaveOffset + accidentalOffset;
-	}
 
 	// Get natural note position without accidental offset (for rendering accidental symbol)
 	function getNaturalNotePosition(noteName: string): number | null {
@@ -51,26 +43,20 @@
 
 		return base + octaveOffset;
 	}
-	// Calculate scaling based on height
-	// Total vertical span: 6 units above + 6 units below = 12 units
-	// With some padding, we fit everything in height
+
 	const lineSpacing = $derived(height / 12);
 	const centerY = $derived(height / 2);
-	const notePosition = $derived(note ? getNotePosition(note) : null);
-	const ghostNotePosition = $derived(ghostNote ? getNotePosition(ghostNote) : null);
-	const ghostNaturalPosition = $derived(ghostNote ? getNaturalNotePosition(ghostNote) : null);
-	const ghostHasAccidental = $derived(ghostNote ? getAccidental(ghostNote) !== '' : false);
-	const isHit = $derived(
-		notePosition !== null && ghostNotePosition !== null && notePosition === ghostNotePosition
-	);
-	const displayNote = $derived(note || 'Rest');
+	const noteRendered = $derived(note ? renderNote(note, keySignature, clef) : null);
+	const ghostNoteRendered = $derived(ghostNote ? renderNote(ghostNote, keySignature, clef) : null);
+	const notePosition = $derived(noteRendered?.position ?? null);
+	const ghostNotePosition = $derived(ghostNoteRendered?.position ?? null);
+	const noteAccidental = $derived(noteRendered?.accidental ?? null);
+	const ghostAccidental = $derived(ghostNoteRendered?.accidental ?? null);
+	const isHit = $derived(note !== null && ghostNote !== null && note === ghostNote);
 
-	// Extract accidental from note name
-	function getAccidental(noteName: string): string {
-		const match = /^[A-G](#|b)?/.exec(noteName);
-		if (!match) return '';
-		return match[1] || '';
-	}
+	$effect(() => {
+		console.log({ note, ghostNote });
+	});
 </script>
 
 <div class="flex flex-col items-center gap-4">
@@ -115,46 +101,31 @@
 				/>
 			{/each}
 
+			<!-- Key signature -->
+			<KeySignatureSymbol {clef} {keySignature} {lineSpacing} {centerY} />
+
 			<!-- Ghost note (detected note) -->
-			{#if ghostNotePosition !== null && ghostNotePosition !== notePosition}
-				<g>
-					<circle
-						cx="200"
-						cy={centerY -
-							((ghostHasAccidental
-								? (ghostNaturalPosition ?? ghostNotePosition)
-								: ghostNotePosition) as number) *
-								lineSpacing}
-						r="8"
-						fill="#6b7280"
-						opacity="0.4"
-					/>
-					{#if getAccidental(ghostNote || '')}
-						<text
-							x="215"
-							y={centerY -
-								(getNaturalNotePosition(ghostNote || '') ?? ghostNotePosition) * lineSpacing +
-								4}
-							font-size={lineSpacing * 2}
-							fill="#6b7280"
-							opacity="0.4"
-							class="note"
-						>
-							{getAccidental(ghostNote || '') === '#' ? '♯' : '♭'}
-						</text>
-					{/if}
-				</g>
+			{#if ghostNotePosition !== null && ghostNote !== note}
+				<NoteSymbol
+					x={200}
+					y={centerY - ghostNotePosition * lineSpacing}
+					accidental={ghostAccidental}
+					fill={ghostNotePosition === notePosition ? '#16a34a' : '#6b7280'}
+					opacity={ghostNotePosition === notePosition ? 0.8 : 0.4}
+					stroke={ghostNotePosition === notePosition ? '#22c55e' : 'none'}
+					strokeWidth={ghostNotePosition === notePosition ? 2 : 0}
+				/>
 			{/if}
 
 			<!-- Target note head -->
 			{#if notePosition !== null}
-				<circle
-					cx="200"
-					cy={centerY - notePosition * lineSpacing}
-					r="8"
+				<NoteSymbol
+					x={200}
+					y={centerY - notePosition * lineSpacing}
+					accidental={noteAccidental}
 					fill={isHit ? '#16a34a' : 'black'}
 					stroke={isHit ? '#22c55e' : 'none'}
-					stroke-width={isHit ? '2' : '0'}
+					strokeWidth={isHit ? 2 : 0}
 				/>
 			{/if}
 		</svg>

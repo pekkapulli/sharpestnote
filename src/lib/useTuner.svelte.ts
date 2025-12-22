@@ -133,7 +133,9 @@ export function createTuner(options: TunerOptions = {}) {
 
 	function tick() {
 		const data = buffer;
-		if (!analyser || !audioContext || !data) return;
+		if (!analyser || !audioContext || !data) {
+			return;
+		}
 
 		const tempData = new Float32Array(analyser.fftSize) as Float32Array<ArrayBuffer>;
 		analyser.getFloatTimeDomainData(tempData);

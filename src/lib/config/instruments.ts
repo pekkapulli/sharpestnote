@@ -5,7 +5,8 @@ export interface InstrumentConfig {
 	label: string;
 	clef: Clef;
 	transpositionSemitones: number; // written -> sounding
-	writtenRange: string[]; // note names (written)
+	bottomNote: string; // lowest written note
+	topNote: string; // highest written note
 }
 
 export const instrumentConfigs: InstrumentConfig[] = [
@@ -14,104 +15,40 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		label: 'Violin',
 		clef: 'treble',
 		transpositionSemitones: 0,
-		writtenRange: [
-			'G3',
-			'A3',
-			'B3',
-			'C4',
-			'D4',
-			'E4',
-			'F4',
-			'G4',
-			'A4',
-			'B4',
-			'C5',
-			'D5',
-			'E5',
-			'F5',
-			'G5'
-		]
+		bottomNote: 'G3',
+		topNote: 'G5'
 	},
 	{
 		id: 'guitar',
 		label: 'Guitar',
 		clef: 'treble',
 		transpositionSemitones: -12, // sounds an octave lower than written
-		writtenRange: [
-			'E3',
-			'F3',
-			'G3',
-			'A3',
-			'B3',
-			'C4',
-			'D4',
-			'E4',
-			'F4',
-			'G4',
-			'A4',
-			'B4',
-			'C5',
-			'D5',
-			'E5'
-		]
+		bottomNote: 'E3',
+		topNote: 'E5'
 	},
 	{
 		id: 'viola',
 		label: 'Viola',
 		clef: 'alto',
 		transpositionSemitones: 0,
-		writtenRange: [
-			'C3',
-			'D3',
-			'E3',
-			'F3',
-			'G3',
-			'A3',
-			'B3',
-			'C4',
-			'D4',
-			'E4',
-			'F4',
-			'G4',
-			'A4',
-			'B4',
-			'C5',
-			'D5'
-		]
+		bottomNote: 'C3',
+		topNote: 'D5'
 	},
 	{
 		id: 'cello',
 		label: 'Cello',
 		clef: 'bass',
 		transpositionSemitones: 0,
-		writtenRange: [
-			'C2',
-			'D2',
-			'E2',
-			'F2',
-			'G2',
-			'A2',
-			'B2',
-			'C3',
-			'D3',
-			'E3',
-			'F3',
-			'G3',
-			'A3',
-			'B3',
-			'C4',
-			'D4',
-			'E4',
-			'F4',
-			'G4'
-		]
+		bottomNote: 'C2',
+		topNote: 'G4'
 	},
 	{
 		id: 'recorder',
 		label: 'Recorder',
 		clef: 'treble',
 		transpositionSemitones: 12, // sounds an octave higher than written
-		writtenRange: ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
+		bottomNote: 'C4',
+		topNote: 'C5'
 	}
 ];
 
