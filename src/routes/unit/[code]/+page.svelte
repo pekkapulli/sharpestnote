@@ -13,10 +13,7 @@
 		<p class="mt-2 text-slate-700">{unit.description}</p>
 		<p class="mt-1 text-xs text-slate-500">Code: {code}</p>
 
-		<section class="mt-8">
-			<p class="mb-4 text-sm font-semibold text-slate-800">Listen & practice</p>
-			<AudioPlayer unit={code} tracks={unit.tracks} />
-		</section>
+		<AudioPlayer unit={code} tracks={unit.tracks} />
 
 		{#if hasExtras}
 			<section class="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-4">

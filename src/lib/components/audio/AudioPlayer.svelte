@@ -178,86 +178,80 @@
 	});
 </script>
 
-<div class="player-container">
-	<div class="space-y-6">
-		<!-- Custom Audio Player -->
-		<div>
-			<p class="mb-3 text-sm font-semibold text-dark-blue">Player</p>
-			<div class="player-box">
-				<!-- Play/Pause and Repeat Buttons -->
-				<div class="mb-3 flex items-center justify-center gap-4">
-					<button
-						onclick={togglePlay}
-						class="play-button"
-						aria-label={isPlaying ? 'Pause' : 'Play'}
-					>
-						{#if isPlaying}
-							<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-								<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-							</svg>
-						{:else}
-							<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-								<path d="M8 5v14l11-7z" />
-							</svg>
-						{/if}
-					</button>
-					<button
-						onclick={toggleRepeat}
-						class="repeat-button {isRepeat ? 'active' : ''}"
-						aria-label="Toggle repeat"
-					>
-						<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-							<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+<div class="space-y-6">
+	<!-- Custom Audio Player -->
+	<div>
+		<h3 class="mb-3 text-sm font-semibold text-dark-blue">Listen and practice</h3>
+		<div class="player-box">
+			<!-- Play/Pause and Repeat Buttons -->
+			<div class="mb-3 flex items-center justify-center gap-4">
+				<button onclick={togglePlay} class="play-button" aria-label={isPlaying ? 'Pause' : 'Play'}>
+					{#if isPlaying}
+						<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
 						</svg>
-					</button>
-				</div>
+					{:else}
+						<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M8 5v14l11-7z" />
+						</svg>
+					{/if}
+				</button>
+				<button
+					onclick={toggleRepeat}
+					class="repeat-button {isRepeat ? 'active' : ''}"
+					aria-label="Toggle repeat"
+				>
+					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+						<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+					</svg>
+				</button>
+			</div>
 
-				<!-- Progress Bar -->
-				<div class="mb-2">
-					<input
-						type="range"
-						min="0"
-						max={duration || 100}
-						step="0.1"
-						value={displayTime}
-						oninput={(e) => seek(parseFloat(e.currentTarget.value))}
-						class="progress-bar"
-						style="--progress: {(displayTime / duration) * 100}%"
+			<!-- Progress Bar -->
+			<div class="mb-2">
+				<input
+					type="range"
+					min="0"
+					max={duration || 100}
+					step="0.1"
+					value={displayTime}
+					oninput={(e) => seek(parseFloat(e.currentTarget.value))}
+					class="progress-bar"
+					style="--progress: {(displayTime / duration) * 100}%"
+				/>
+			</div>
+
+			<!-- Time Display -->
+			<div class="flex justify-between text-xs text-slate-600">
+				<span>{formatTime(displayTime)}</span>
+				<span>{formatTime(duration)}</span>
+			</div>
+
+			<!-- Speed + Track Selection -->
+			<div class="selectors">
+				<div class="selector-item">
+					<p class="mb-3 text-sm font-semibold text-dark-blue">Speed</p>
+					<PillSelector
+						options={[
+							{ value: 'slow', label: `Slow` },
+							{ value: 'medium', label: `Medium` },
+							{ value: 'fast', label: `Fast` }
+						]}
+						selected={selectedSpeed}
+						onSelect={(speed) => handleSpeedChange(speed)}
 					/>
 				</div>
 
-				<!-- Time Display -->
-				<div class="flex justify-between text-xs text-slate-600">
-					<span>{formatTime(displayTime)}</span>
-					<span>{formatTime(duration)}</span>
-				</div>
-
-				<!-- Speed + Track Selection -->
-				<div class="selectors">
-					<div class="selector-item">
-						<p class="mb-3 text-sm font-semibold text-dark-blue">Speed</p>
-						<PillSelector
-							options={[
-								{ value: 'slow', label: `Slow` },
-								{ value: 'medium', label: `Medium` },
-								{ value: 'fast', label: `Fast` }
-							]}
-							selected={selectedSpeed}
-							onSelect={(speed) => handleSpeedChange(speed)}
-						/>
-					</div>
-
-					<div class="selector-item">
-						<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
-						<PillSelector
-							options={[
-								{ value: 'full', label: 'Full track' },
-								{ value: 'backing', label: 'Backing track' }
-							]}
-							selected={selectedTrack}
-							onSelect={(track) => handleTrackChange(track)}
-						/>
-					</div>
+				<div class="selector-item">
+					<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
+					<PillSelector
+						options={[
+							{ value: 'full', label: 'Full track' },
+							{ value: 'backing', label: 'Backing track' }
+						]}
+						selected={selectedTrack}
+						onSelect={(track) => handleTrackChange(track)}
+					/>
 				</div>
 			</div>
 		</div>
@@ -265,13 +259,6 @@
 </div>
 
 <style>
-	.player-container {
-		border-radius: 1rem;
-		background-color: white;
-		padding: 2rem;
-		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-	}
-
 	.text-dark-blue {
 		color: var(--color-dark-blue);
 	}

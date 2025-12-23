@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { createTuner } from '$lib/useTuner.svelte';
-	import { DEFAULT_A4 } from '$lib';
+	import { createTuner } from '$lib/tuner/useTuner.svelte';
+	import { DEFAULT_A4 } from '$lib/tuner/tune';
 
 	const a4Options = [440, 442];
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });

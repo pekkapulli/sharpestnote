@@ -6,7 +6,7 @@ import {
 	noteFromPitch,
 	noteNameFromMidi,
 	type Accidental
-} from '$lib';
+} from '$lib/tuner/tune';
 import {
 	genericDetectionConfig,
 	instrumentMap,

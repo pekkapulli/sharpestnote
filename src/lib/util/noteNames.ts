@@ -1,5 +1,5 @@
-import { noteNameFromMidi } from '$lib';
-import type { Accidental } from '$lib';
+import { noteNameFromMidi } from '$lib/tuner/tune';
+import type { Accidental } from '$lib/tuner/tune';
 
 export const LETTER_TO_SEMITONE: Record<string, number> = {
 	C: 0,

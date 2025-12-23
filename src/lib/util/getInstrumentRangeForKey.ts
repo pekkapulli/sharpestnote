@@ -1,4 +1,4 @@
-import { noteNameFromMidi } from '$lib';
+import { noteNameFromMidi } from '$lib/tuner/tune';
 import { instrumentMap } from '$lib/config/instruments';
 import { getKeySignature, type Mode } from '$lib/config/keys';
 import type { InstrumentId } from '$lib/config/types';

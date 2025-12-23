@@ -2,7 +2,7 @@
 	import type { Clef } from '$lib/config/types';
 	import { staffLayouts } from '$lib/config/staffs';
 	import type { KeySignature, Mode } from '$lib/config/keys';
-	import { renderNote } from '$lib/noteRenderer';
+	import { renderNote } from '$lib/components/music/noteRenderer';
 	import ClefSymbol from './ClefSymbol.svelte';
 	import NoteSymbol from './NoteSymbol.svelte';
 	import GhostNote from './GhostNote.svelte';

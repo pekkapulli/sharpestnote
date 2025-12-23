@@ -2,7 +2,7 @@
 	import { instrumentConfigs, defaultInstrumentId } from '$lib/config/instruments';
 	import { keyOptions, modeOptions } from '$lib/config/keys';
 	import type { InstrumentId } from '$lib/config/types';
-	import { createTuner } from '$lib/useTuner.svelte';
+	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { onMount } from 'svelte';
 
 	let selectedInstrument = $state<InstrumentId>(defaultInstrumentId);

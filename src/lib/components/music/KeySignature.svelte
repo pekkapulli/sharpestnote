@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Clef } from '$lib/config/types';
 	import type { KeySignature } from '$lib/config/keys';
-	import { renderNote } from '$lib/noteRenderer';
+	import { renderNote } from '$lib/components/music/noteRenderer';
 
 	interface Props {
 		clef?: Clef;
