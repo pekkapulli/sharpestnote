@@ -15,6 +15,19 @@
 
 		<AudioPlayer unit={code} tracks={unit.tracks} />
 
+		<section class="mt-8">
+			<p class="text-sm font-semibold text-slate-800">Games</p>
+			<div class="game-grid">
+				<a href={`/unit/${code}/blocks`} class="game-card">
+					<div class="game-card__content">
+						<span class="text-6xl sm:text-7xl" aria-hidden="true">🧩</span>
+						<span class="mt-3 text-sm font-semibold text-slate-900">Blocks</span>
+						<span class="mt-1 text-xs text-slate-600">Practice random phrases</span>
+					</div>
+				</a>
+			</div>
+		</section>
+
 		{#if hasExtras}
 			<section class="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-4">
 				<p class="text-sm font-semibold text-slate-800">Extras</p>
@@ -47,3 +60,51 @@
 		</section>
 	</article>
 </div>
+
+<style>
+	.game-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+		margin-top: 0.75rem;
+	}
+	@media (min-width: 640px) {
+		.game-grid {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 1rem;
+		}
+	}
+	.game-card {
+		position: relative;
+		display: block;
+		border-radius: 0.75rem;
+		background: white;
+		border: 1px solid rgb(226 232 240);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+		overflow: hidden;
+		transition:
+			transform 150ms ease,
+			box-shadow 150ms ease,
+			background-color 150ms ease;
+	}
+	.game-card::before {
+		content: '';
+		display: block;
+		padding-bottom: 100%; /* square */
+	}
+	.game-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+		background: rgb(248 250 252);
+	}
+	.game-card__content {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0.75rem;
+		text-align: center;
+	}
+</style>

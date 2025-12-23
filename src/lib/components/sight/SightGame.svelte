@@ -126,7 +126,8 @@
 
 	function refreshMelody() {
 		const nextMelody = newMelody ? newMelody() : [];
-		melody = nextMelody;
+		// Deep copy to guarantee a new reference and avoid stale reactivity
+		melody = nextMelody.map((i) => ({ ...i }));
 		currentIndex = 0;
 		showSuccess = false;
 		requireFreshAttack = false;
