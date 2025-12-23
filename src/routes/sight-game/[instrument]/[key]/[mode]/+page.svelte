@@ -3,6 +3,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import Staff from '$lib/Staff.svelte';
 	import MicrophoneSelector from '$lib/MicrophoneSelector.svelte';
+	import AmplitudeBar from '$lib/AmplitudeBar.svelte';
 	import { createTuner } from '$lib/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib';
 	import { instrumentMap } from '$lib/config/instruments';
@@ -21,15 +22,11 @@
 	const keyNote = $derived(params.key ?? 'C');
 	const mode = $derived((params.mode as Mode) ?? 'major');
 
-	const selectedConfig = $derived(instrumentMap[instrument]);
+	const selectedInstrument = $derived(instrumentMap[instrument]);
 	const keySignature = $derived(getKeySignature(keyNote, mode));
 	const availableNotes = $derived(
-		selectedConfig ? getInstrumentRangeForKey(instrument, keyNote, mode) : []
+		selectedInstrument ? getInstrumentRangeForKey(instrument, keyNote, mode) : []
 	);
-
-	$effect(() => {
-		console.log('Available notes:', availableNotes);
-	});
 
 	// Keep tuner accidental aligned with the current key signature
 	$effect(() => {
@@ -38,31 +35,90 @@
 		}
 	});
 
+	function getRequiredHoldLength(instrumentId: InstrumentId, length: NoteLength): number {
+		// Sustaining instruments can hold notes full length
+		if (selectedInstrument?.sustaining) {
+			return Math.ceil(length * 0.8);
+		}
+		// Plucked/non-sustained instruments: require only 50% of note length
+		return Math.ceil(length * 0.3);
+	}
+
 	type MelodyItem = { note: string; length: NoteLength };
 	let melody = $state<MelodyItem[] | null>(null);
 	let currentIndex = $state(0);
 	let streak = $state(0);
 	let showSuccess = $state(false);
+	let requireFreshAttack = $state(false);
+	let hadPauseSinceLastSuccess = $state(true);
+	let lastSuccessNote = $state<string | null>(null);
+	const MIN_INACTIVE_MS = 120;
+	let inactiveSince = $state<number | null>(null);
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
-		tempoBPM: 60
+		tempoBPM: 100,
+		debounceTime: 50
+	});
+
+	// Check if current note matches and fresh attack requirement is satisfied
+	const isCurrentNoteHit = $derived(() => {
+		if (!tuner.state.note || !melody || !melody.length) return false;
+		const target = melody[currentIndex].note;
+		const expectedNote = selectedInstrument
+			? transposeForTransposition(
+					target,
+					selectedInstrument.transpositionSemitones,
+					keySignature.preferredAccidental
+				)
+			: target;
+		if (expectedNote !== tuner.state.note) return false;
+		// If fresh attack is required, check that we've had a pause
+		if (requireFreshAttack && !hadPauseSinceLastSuccess) return false;
+		return true;
+	});
+
+	// Track when note becomes inactive (amplitude drops) or note changes to detect fresh attacks
+	// Require a short inactive window to avoid flicker-based pauses on sustained instruments
+	$effect(() => {
+		const now = performance.now();
+
+		if (!tuner.state.isNoteActive) {
+			if (inactiveSince === null) {
+				inactiveSince = now;
+			}
+			if (now - inactiveSince >= MIN_INACTIVE_MS) {
+				hadPauseSinceLastSuccess = true;
+			}
+		} else {
+			inactiveSince = null;
+			if (tuner.state.note !== lastSuccessNote) {
+				hadPauseSinceLastSuccess = true;
+			}
+		}
 	});
 
 	// Watch for correct note detection
 	$effect(() => {
-		console.log(tuner.state.heldSixteenths);
 		if (tuner.state.note && melody && melody.length && !showSuccess) {
 			const target = melody[currentIndex].note;
-			const expectedNote = selectedConfig
+			const expectedNote = selectedInstrument
 				? transposeForTransposition(
 						target,
-						selectedConfig.transpositionSemitones,
+						selectedInstrument.transpositionSemitones,
 						keySignature.preferredAccidental
 					)
 				: target;
 			if (expectedNote && tuner.state.note === expectedNote) {
-				handleCorrectNote();
+				// Require a fresh attack after each successful note
+				if (requireFreshAttack && !hadPauseSinceLastSuccess) {
+					return; // Don't count this note until there's a fresh attack
+				}
+
+				const requiredLength = getRequiredHoldLength(instrument, melody[currentIndex].length ?? 4);
+				if (tuner.state.heldSixteenths >= requiredLength) {
+					handleCorrectNote();
+				}
 			}
 		}
 	});
@@ -70,7 +126,7 @@
 	function getRandomNote(previous?: string | null) {
 		const list = availableNotes;
 		if (!list || list.length === 0) {
-			return selectedConfig?.bottomNote ?? 'C4';
+			return selectedInstrument?.bottomNote ?? 'C4';
 		}
 
 		if (previous) {
@@ -78,7 +134,7 @@
 			if (prevMidi !== null) {
 				const filtered = list.filter((n) => {
 					const midi = noteNameToMidi(n);
-					return midi !== null && Math.abs(midi - prevMidi) <= 5;
+					return midi !== null && Math.abs(midi - prevMidi) <= 2;
 				});
 				if (filtered.length) {
 					return filtered[Math.floor(Math.random() * filtered.length)];
@@ -105,7 +161,7 @@
 	}
 
 	function newMelody() {
-		const length = Math.floor(Math.random() * 4) + 1; // 1..4
+		const length = Math.floor(Math.random() * 1) + 3; // 3..4
 		const notes: string[] = [];
 		for (let i = 0; i < length; i += 1) {
 			const prev = i > 0 ? notes[i - 1] : null;
@@ -115,9 +171,22 @@
 		melody = notes.map((n, i) => ({ note: n, length: lens[i] }));
 		currentIndex = 0;
 		showSuccess = false;
+		requireFreshAttack = false;
+		hadPauseSinceLastSuccess = true;
+		lastSuccessNote = null;
 	}
 
 	function handleCorrectNote() {
+		// Store the note that just succeeded
+		lastSuccessNote = tuner.state.note;
+
+		// Reset hold duration so player must start a fresh note
+		tuner.resetHoldDuration();
+
+		// Require a fresh attack on the next note
+		requireFreshAttack = true;
+		hadPauseSinceLastSuccess = false;
+
 		// Advance within melody first
 		if (melody) {
 			if (currentIndex < melody.length - 1) {
@@ -160,7 +229,7 @@
 				<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Sight reading game</p>
 				<h1 class="mt-1">Read the melody</h1>
 				<p class="mx-auto mt-2 max-w-2xl text-center text-slate-700">
-					Play the notes shown on the {selectedConfig.clef} staff with your {instrument}.
+					Play the notes shown on the {selectedInstrument.clef} staff with your {instrument}.
 					{#if keySignature}
 						<span class="mt-1 block text-center text-sm text-slate-600">
 							Key: {keyNote}
@@ -199,17 +268,22 @@
 				<Staff
 					sequence={melody}
 					{currentIndex}
-					ghostNote={selectedConfig
-						? transposeDetectedForDisplay(
-								tuner.state.note,
-								selectedConfig.transpositionSemitones,
-								keySignature.preferredAccidental
-							)
-						: tuner.state.note}
+					heldSixteenths={tuner.state.heldSixteenths}
+					ghostNote={requireFreshAttack && !hadPauseSinceLastSuccess
+						? null
+						: selectedInstrument
+							? transposeDetectedForDisplay(
+									tuner.state.note,
+									selectedInstrument.transpositionSemitones,
+									keySignature.preferredAccidental
+								)
+							: tuner.state.note}
 					cents={tuner.state.cents}
 					height={150}
-					clef={selectedConfig.clef}
+					clef={selectedInstrument.clef}
 					{keySignature}
+					isCurrentNoteHit={isCurrentNoteHit()}
+					isSequenceComplete={showSuccess}
 				/>
 			</div>
 
@@ -238,7 +312,10 @@
 						</p>
 						<div class="my-2 border-t border-slate-600"></div>
 						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Detected</p>
-						<p class="mt-1 text-2xl font-bold text-slate-300">{tuner.state.note ?? '--'}</p>
+						<div class="mt-2 flex flex-col items-center gap-2">
+							<p class="text-2xl font-bold text-slate-300">{tuner.state.note ?? '--'}</p>
+							<AmplitudeBar amplitude={tuner.state.amplitude} width={180} height={16} />
+						</div>
 					</div>
 				</details>
 			</div>

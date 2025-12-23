@@ -6,12 +6,12 @@
 		y: number;
 		accidental?: { symbol: string; yOffset: number } | null;
 		length?: 1 | 2 | 4 | 8 | 16 | null;
+		heldSixteenths?: number | null;
 		fill?: string;
 		stroke?: string;
 		strokeWidth?: number;
 		opacity?: number;
 		lineSpacing?: number;
-		cents?: number;
 	}
 
 	const {
@@ -19,6 +19,7 @@
 		y,
 		accidental = null,
 		length = null,
+		heldSixteenths = null,
 		fill = 'black',
 		stroke = 'none',
 		strokeWidth = 0,
@@ -30,15 +31,17 @@
 <g>
 	<!-- Note head circle -->
 	{#if length}
-		<!-- Adjust size for different note lengths -->
 		<text
 			class="note"
-			x={x - lineSpacing * 0.7}
+			{x}
 			y={y + lineSpacing / 2}
 			{fill}
 			{opacity}
-			font-size={lineSpacing * 4}>{lengthNoteMap[length]}</text
+			font-size={lineSpacing * 4}
+			text-anchor="middle"
 		>
+			{lengthNoteMap[length]}
+		</text>
 	{:else}
 		<circle
 			cx={x}
@@ -48,6 +51,19 @@
 			{stroke}
 			stroke-width={strokeWidth}
 			{opacity}
+		/>
+	{/if}
+	{#if heldSixteenths !== null && length !== null}
+		<!-- Note hold duration indicator -->
+		<rect
+			class="note"
+			x={x - lineSpacing}
+			y={y + lineSpacing}
+			width={Math.min((heldSixteenths / length) * lineSpacing * 2, lineSpacing * 2)}
+			height={lineSpacing / 4}
+			{fill}
+			font-size={lineSpacing * 1.5}
+			text-anchor="middle"
 		/>
 	{/if}
 
@@ -66,6 +82,3 @@
 		</text>
 	{/if}
 </g>
-
-<style>
-</style>

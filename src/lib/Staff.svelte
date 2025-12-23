@@ -5,6 +5,7 @@
 	import { renderNote } from './noteRenderer';
 	import ClefSymbol from './ClefSymbol.svelte';
 	import NoteSymbol from './NoteSymbol.svelte';
+	import GhostNote from './GhostNote.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
 	import type { NoteLength } from './config/rhythm';
 
@@ -21,16 +22,22 @@
 		clef?: Clef;
 		keySignature: KeySignature;
 		mode?: Mode;
+		heldSixteenths?: number | null;
+		isCurrentNoteHit?: boolean;
+		isSequenceComplete?: boolean;
 	}
 
 	const {
 		sequence = [],
 		currentIndex = 0,
+		heldSixteenths = null,
 		ghostNote = null,
 		cents = null,
 		height = 150,
 		clef = 'treble',
-		keySignature
+		keySignature,
+		isCurrentNoteHit = false,
+		isSequenceComplete = false
 	}: Props = $props();
 
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
@@ -65,7 +72,7 @@
 	const ghostNotePosition = $derived(ghostNoteRendered?.position ?? null);
 	const noteAccidental = $derived(noteRendered?.accidental ?? null);
 	const ghostAccidental = $derived(ghostNoteRendered?.accidental ?? null);
-	const isHit = $derived(activeNote !== null && ghostNote !== null && activeNote === ghostNote);
+	const isHit = $derived(isCurrentNoteHit || isSequenceComplete);
 
 	// Horizontal layout for multi-note melodies, spaced by note lengths
 	const startX = 100;
@@ -145,7 +152,7 @@
 			<KeySignatureSymbol {clef} {keySignature} {lineSpacing} {centerY} />
 
 			{#if notes.length}
-				<!-- Space notes within [startX, endX] with max 60px gap, centered -->
+				<!-- Space notes by their lengths, works for single or multiple notes -->
 				{#key notes.length}
 					{#each notes as n, i}
 						{@const x = noteXs?.[i] ?? 0}
@@ -156,10 +163,21 @@
 								y={centerY - (rn.position ?? 0) * lineSpacing}
 								accidental={rn.accidental}
 								length={sequence?.[i]?.length}
-								fill={i < currentIndex ? '#16a34a' : i === currentIndex ? 'black' : '#9ca3af'}
-								stroke={i < currentIndex ? '#22c55e' : 'none'}
-								strokeWidth={i < currentIndex ? 2 : 0}
+								fill={i < currentIndex || (isSequenceComplete && i === currentIndex)
+									? '#16a34a'
+									: i === currentIndex
+										? isHit
+											? '#16a34a'
+											: 'black'
+										: '#9ca3af'}
+								stroke={i < currentIndex || (isSequenceComplete && i === currentIndex)
+									? '#22c55e'
+									: 'none'}
+								strokeWidth={i < currentIndex || (isSequenceComplete && i === currentIndex) ? 2 : 0}
 								{lineSpacing}
+								heldSixteenths={i === currentIndex && !isSequenceComplete && isHit
+									? heldSixteenths
+									: null}
 							/>
 						{/if}
 					{/each}
@@ -167,40 +185,14 @@
 
 				<!-- Ghost note aligned to current note's x -->
 				{#if ghostNotePosition !== null && notes[currentIndex] !== undefined && currentGhostX !== null}
-					<NoteSymbol
+					<GhostNote
 						x={currentGhostX}
 						y={centerY - ghostNotePosition * lineSpacing}
 						accidental={ghostAccidental}
-						fill={ghostNotePosition === notePosition ? '#16a34a' : '#6b7280'}
-						opacity={ghostNotePosition === notePosition ? 0.8 : 0.4}
-						stroke={ghostNotePosition === notePosition ? '#22c55e' : 'none'}
-						strokeWidth={ghostNotePosition === notePosition ? 2 : 0}
-						{lineSpacing}
-					/>
-				{/if}
-			{:else}
-				<!-- Single-note mode -->
-				{#if ghostNotePosition !== null && ghostNote !== activeNote}
-					<NoteSymbol
-						x={200}
-						y={centerY - ghostNotePosition * lineSpacing}
-						accidental={ghostAccidental}
-						fill={ghostNotePosition === notePosition ? '#16a34a' : '#6b7280'}
-						opacity={ghostNotePosition === notePosition ? 0.8 : 0.4}
-						stroke={ghostNotePosition === notePosition ? '#22c55e' : 'none'}
-						strokeWidth={ghostNotePosition === notePosition ? 2 : 0}
-						{lineSpacing}
-					/>
-				{/if}
-
-				{#if notePosition !== null}
-					<NoteSymbol
-						x={200}
-						y={centerY - notePosition * lineSpacing}
-						accidental={noteAccidental}
-						fill={isHit ? '#16a34a' : 'black'}
-						stroke={isHit ? '#22c55e' : 'none'}
-						strokeWidth={isHit ? 2 : 0}
+						fill={isHit ? 'none' : '#6b7280'}
+						opacity={1}
+						strokeWidth={0}
+						{cents}
 						{lineSpacing}
 					/>
 				{/if}
