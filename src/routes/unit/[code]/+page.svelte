@@ -1,5 +1,8 @@
 <script lang="ts">
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
+	import blocksIcon from '$lib/assets/blocks_icon.png';
+	import scalesIcon from '$lib/assets/scales_icon.png';
+	import stepsIcon from '$lib/assets/steps_icon.png';
 
 	const { data } = $props();
 	const { unit, code } = $derived(data);
@@ -20,16 +23,23 @@
 			<div class="game-grid">
 				<a href={`/unit/${code}/blocks`} class="game-card">
 					<div class="game-card__content">
-						<span class="text-6xl sm:text-7xl" aria-hidden="true">🧩</span>
-						<span class="mt-3 text-sm font-semibold text-slate-900">Blocks</span>
-						<span class="mt-1 text-xs text-slate-600">Practice random phrases</span>
+						<img src={blocksIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
+						<span class="mt-3 font-semibold text-slate-900">Blocks</span>
+						<span class="mt-1 text-sm text-slate-600">Practice random phrases</span>
 					</div>
 				</a>
 				<a href={`/unit/${code}/scales`} class="game-card">
 					<div class="game-card__content">
-						<span class="text-6xl sm:text-7xl" aria-hidden="true">🎼</span>
-						<span class="mt-3 text-sm font-semibold text-slate-900">Scales</span>
-						<span class="mt-1 text-xs text-slate-600">Up and down</span>
+						<img src={scalesIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
+						<span class="mt-3 font-semibold text-slate-900">Scales</span>
+						<span class="mt-1 text-sm text-slate-600">Climb up and down the scale</span>
+					</div>
+				</a>
+				<a href={`/unit/${code}/steps`} class="game-card">
+					<div class="game-card__content">
+						<img src={stepsIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
+						<span class="mt-3 font-semibold text-slate-900">Steps</span>
+						<span class="mt-1 text-sm text-slate-600">Play note pairs</span>
 					</div>
 				</a>
 			</div>

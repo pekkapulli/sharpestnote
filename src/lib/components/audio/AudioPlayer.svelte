@@ -69,7 +69,9 @@
 		if (isPlaying) {
 			audioElement?.pause();
 		} else {
+			isLoading = true;
 			await audioElement?.play();
+			isLoading = false;
 		}
 	}
 
@@ -185,8 +187,29 @@
 		<div class="player-box">
 			<!-- Play/Pause and Repeat Buttons -->
 			<div class="mb-3 flex items-center justify-center gap-4">
-				<button onclick={togglePlay} class="play-button" aria-label={isPlaying ? 'Pause' : 'Play'}>
-					{#if isPlaying}
+				<button
+					onclick={togglePlay}
+					class="play-button"
+					aria-label={isPlaying ? 'Pause' : 'Play'}
+					disabled={isLoading}
+				>
+					{#if isLoading}
+						<svg class="h-6 w-6 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+					{:else if isPlaying}
 						<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
 							<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
 						</svg>
@@ -309,13 +332,27 @@
 	}
 
 	.play-button:hover {
-		background-color: var(--color-yellow);
-		color: var(--color-dark-blue);
+		background-color: var(--color-dark-blue-highlight);
+		color: var(--color-off-white);
 		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 	}
 
 	.play-button:active {
 		transform: scale(0.95);
+	}
+
+	.play-button:disabled {
+		cursor: not-allowed;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	:global(.animate-spin) {
+		animation: spin 1s linear infinite;
 	}
 
 	.repeat-button {
