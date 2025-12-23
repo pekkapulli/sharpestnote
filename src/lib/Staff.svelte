@@ -7,9 +7,9 @@
 	import NoteSymbol from './NoteSymbol.svelte';
 	import GhostNote from './GhostNote.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
-	import type { NoteLength } from './config/rhythm';
+	import type { NoteLength } from './config/melody';
 
-	type SequenceItem = { note: string; length?: NoteLength };
+	type SequenceItem = { note: string | null; length?: NoteLength };
 
 	interface Props {
 		// Provide sequence as an array of { note, length }

@@ -4,6 +4,10 @@
 export type SixteenthCount = number;
 export type NoteLength = 1 | 2 | 4 | 8 | 16;
 export type RhythmTemplate = SixteenthCount[];
+export interface MelodyItem {
+	note: string | null;
+	length: NoteLength;
+}
 
 // Common 4/4 bar rhythm templates (sum of values = 16 sixteenths)
 export const RHYTHM_TEMPLATES: Record<string, RhythmTemplate> = {

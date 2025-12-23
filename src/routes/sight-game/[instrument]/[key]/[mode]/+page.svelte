@@ -15,7 +15,7 @@
 		transposeDetectedNoteForDisplay as transposeDetectedForDisplay,
 		noteNameToMidi
 	} from '$lib/util/noteNames';
-	import type { NoteLength } from '$lib/config/rhythm';
+	import type { MelodyItem, NoteLength } from '$lib/config/melody';
 
 	const params = $derived(page.params);
 	const instrument = $derived(params.instrument as InstrumentId);
@@ -44,7 +44,6 @@
 		return Math.ceil(length * 0.3);
 	}
 
-	type MelodyItem = { note: string; length: NoteLength };
 	let melody = $state<MelodyItem[] | null>(null);
 	let currentIndex = $state(0);
 	let streak = $state(0);
@@ -58,7 +57,9 @@
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
 		tempoBPM: 100,
-		debounceTime: 50
+		debounceTime: 50,
+		// svelte-ignore state_referenced_locally
+		instrument
 	});
 
 	// Check if current note matches and fresh attack requirement is satisfied

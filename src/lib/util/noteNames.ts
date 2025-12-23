@@ -37,10 +37,11 @@ export function transposeNoteName(
 }
 
 export function transposeForTransposition(
-	note: string,
+	note: string | null,
 	transpositionSemitones: number,
 	accidental: Accidental
 ): string | null {
+	if (!note) return null;
 	return transposeNoteName(note, transpositionSemitones, accidental);
 }
 

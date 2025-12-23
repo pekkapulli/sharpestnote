@@ -8,10 +8,11 @@ export interface RenderedNote {
 }
 
 export function renderNote(
-	noteName: string,
+	noteName: string | null,
 	keySignature: KeySignature,
 	clef: Clef
 ): RenderedNote | null {
+	if (!noteName) return null;
 	const match = /^([A-G])([#b]?)(\d)$/.exec(noteName);
 	if (!match) return null;
 

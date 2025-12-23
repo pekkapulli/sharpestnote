@@ -7,9 +7,17 @@ import {
 	noteNameFromMidi,
 	type Accidental
 } from '$lib';
-import { lengthToMs } from '$lib/config/rhythm';
+import {
+	genericDetectionConfig,
+	instrumentMap,
+	type DetectionConfig
+} from '$lib/config/instruments';
+import type { InstrumentId } from '$lib/config/types';
+import { lengthToMs } from '$lib/config/melody';
 
 const FFT_SIZE = 2048;
+
+type InstrumentKind = InstrumentId | 'generic';
 
 export interface TunerState {
 	isListening: boolean;
@@ -29,7 +37,7 @@ export interface TunerOptions {
 	accidental?: Accidental;
 	debounceTime?: number;
 	amplitudeThreshold?: number;
-	instrument?: 'violin' | 'guitar' | 'flute' | 'generic';
+	instrument?: InstrumentKind;
 	tempoBPM?: number; // for converting time held into 16th-note units
 	gain?: number; // amplification multiplier (1.0 = no change, 2.0 = 2x boost)
 	autoGain?: boolean; // auto adjust gain to target amplitude
@@ -93,14 +101,8 @@ export function createTuner(options: TunerOptions = {}) {
 	let amplitudeAtDropStart = 0; // track amplitude when drop begins
 	let previousSpectrum: Float32Array | null = null; // for spectral flux calculation
 	let highSpectralFluxFrames = 0;
-	const SPECTRAL_FLUX_THRESHOLD = 0.15; // very aggressive - catch even subtle spectral shifts
-	const HIGH_FLUX_THRESHOLD = 1; // fire after 1 frame of high flux detection (fastest)
 	let amplitudeDropFrames = 0; // count consecutive frames with amplitude drop
-	const AMPLITUDE_DROP_THRESHOLD = 2; // require just 2 frames of consistent drop
-	const AMPLITUDE_RECOVERY_THRESHOLD = 0.7; // if drops below 70% of peak, it's permanent
 	let highFreqBurstFrames = 0; // count frames with high-frequency burst (bow scrape/attack noise)
-	const HIGH_FREQ_BURST_THRESHOLD = 0.8; // lower threshold for better sensitivity to bow interactions
-	const HIGH_FREQ_BURST_FRAME_THRESHOLD = 2; // require 1+ frames of burst
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
@@ -338,6 +340,11 @@ export function createTuner(options: TunerOptions = {}) {
 		const spectrum = new Float32Array(fftData);
 
 		state.amplitude = amplitude;
+		const instrumentType = untrack(() => instrument.value as InstrumentKind);
+		const tuning: DetectionConfig =
+			instrumentType === 'generic'
+				? genericDetectionConfig
+				: (instrumentMap[instrumentType]?.detectionConfig ?? genericDetectionConfig);
 
 		// Track frequency and amplitude history
 		frequencyHistory.push(freq);
@@ -352,11 +359,11 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// Detect high-frequency burst (bow scrape/attack noise = bow interacting with string)
 		const highFreqBurst = calculateHighFrequencyBurst(spectrum, previousSpectrum);
-		if (highFreqBurst > HIGH_FREQ_BURST_THRESHOLD) {
+		if (highFreqBurst > tuning.highFreqBurstThreshold) {
 			highFreqBurstFrames++;
 			if (highFreqBurstFrames === 1) {
 				console.log(
-					`High-freq burst detected: ${highFreqBurst.toFixed(3)} (threshold: ${HIGH_FREQ_BURST_THRESHOLD}), freq: ${freq.toFixed(1)}, amp: ${amplitude.toFixed(4)}`
+					`High-freq burst detected: ${highFreqBurst.toFixed(3)} (threshold: ${tuning.highFreqBurstThreshold}), freq: ${freq.toFixed(1)}, amp: ${amplitude.toFixed(4)}`
 				);
 			}
 		} else {
@@ -367,8 +374,13 @@ export function createTuner(options: TunerOptions = {}) {
 			}
 			highFreqBurstFrames = 0;
 		}
-		const hasHighFreqBurst = highFreqBurstFrames >= HIGH_FREQ_BURST_FRAME_THRESHOLD;
-		if (hasHighFreqBurst && currentActive) {
+		const hasHighFreqBurst = highFreqBurstFrames >= tuning.highFreqBurstFrameThreshold;
+		const burstEndsNote = tuning.burstRequiresDecay
+			? hasHighFreqBurst &&
+				peakAmplitude > 0 &&
+				amplitude / peakAmplitude < tuning.burstMinDecayRatio
+			: hasHighFreqBurst;
+		if (burstEndsNote && currentActive) {
 			console.log(`High-freq burst triggered note end (${highFreqBurstFrames} frames)`);
 		}
 
@@ -384,13 +396,13 @@ export function createTuner(options: TunerOptions = {}) {
 		}
 
 		// Detect high spectral flux (spectrum changing significantly = note ending or changing)
-		const hasHighSpectralFlux = spectralFlux > SPECTRAL_FLUX_THRESHOLD;
+		const hasHighSpectralFlux = spectralFlux > tuning.spectralFluxThreshold;
 		if (hasHighSpectralFlux) {
 			highSpectralFluxFrames++;
 		} else {
 			highSpectralFluxFrames = 0;
 		}
-		const hasSpectralChange = highSpectralFluxFrames >= HIGH_FLUX_THRESHOLD;
+		const hasSpectralChange = highSpectralFluxFrames >= tuning.highFluxFrameThreshold;
 
 		// Detect sustained amplitude drop (bow lifting off)
 		// First, check if amplitude is currently dropping
@@ -410,9 +422,9 @@ export function createTuner(options: TunerOptions = {}) {
 				// Drop was detected but amplitude isn't dropping anymore
 				// Check if it stayed low (didn't recover much)
 				const recoveryRatio = amplitude / amplitudeAtDropStart;
-				if (recoveryRatio < AMPLITUDE_RECOVERY_THRESHOLD) {
+				if (recoveryRatio < tuning.amplitudeRecoveryThreshold) {
 					// Amplitude dropped and barely recovered - permanent change
-					amplitudeDropFrames = AMPLITUDE_DROP_THRESHOLD; // trigger the drop detection
+					amplitudeDropFrames = tuning.amplitudeDropThreshold; // trigger the drop detection
 				} else {
 					// It recovered - was just a fluctuation
 					amplitudeDropFrames = 0;
@@ -421,7 +433,7 @@ export function createTuner(options: TunerOptions = {}) {
 		}
 
 		// Only consider it a permanent drop if sustained long enough
-		const hasAmplitudeDrop = amplitudeDropFrames >= AMPLITUDE_DROP_THRESHOLD;
+		const hasAmplitudeDrop = amplitudeDropFrames >= tuning.amplitudeDropThreshold;
 
 		if (currentActive) {
 			const frequencyLost = !meetsFrequency;
@@ -433,7 +445,7 @@ export function createTuner(options: TunerOptions = {}) {
 			// - Amplitude drops to near silence
 			const spectralChangeWithDrop = hasSpectralChange && hasAmplitudeDrop;
 			state.isNoteActive = !(
-				hasHighFreqBurst ||
+				burstEndsNote ||
 				spectralChangeWithDrop ||
 				frequencyLost ||
 				amplitudeCriticallyLow
@@ -625,7 +637,7 @@ export function createTuner(options: TunerOptions = {}) {
 		get instrument() {
 			return instrument.value;
 		},
-		set instrument(value: 'violin' | 'guitar' | 'flute' | 'generic') {
+		set instrument(value: InstrumentKind) {
 			instrument.value = value;
 		},
 		start,
