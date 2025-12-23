@@ -99,8 +99,8 @@ export function createTuner(options: TunerOptions = {}) {
 	const AMPLITUDE_DROP_THRESHOLD = 2; // require just 2 frames of consistent drop
 	const AMPLITUDE_RECOVERY_THRESHOLD = 0.7; // if drops below 70% of peak, it's permanent
 	let highFreqBurstFrames = 0; // count frames with high-frequency burst (bow scrape/attack noise)
-	const HIGH_FREQ_BURST_THRESHOLD = 0.6; // lower threshold for better sensitivity to bow interactions
-	const HIGH_FREQ_BURST_FRAME_THRESHOLD = 1; // require 1+ frames of burst
+	const HIGH_FREQ_BURST_THRESHOLD = 0.8; // lower threshold for better sensitivity to bow interactions
+	const HIGH_FREQ_BURST_FRAME_THRESHOLD = 2; // require 1+ frames of burst
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
