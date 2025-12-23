@@ -291,10 +291,7 @@
 	}
 
 	.selector-item {
-		background-color: white;
-		border-radius: 0.5rem;
-		padding: 1rem;
-		border: 1px solid rgb(226 232 240);
+		padding: 0;
 	}
 
 	@media (min-width: 640px) {

@@ -142,7 +142,7 @@
 	.pill-group {
 		position: relative;
 		display: inline-flex;
-		background-color: rgb(241 245 249);
+		background-color: rgb(255, 255, 255);
 		border: 1px solid rgb(226 232 240);
 		border-radius: 0.75rem;
 		padding: 0.25rem;
