@@ -7,19 +7,15 @@
 	const { unit, code } = $derived(data);
 
 	function newMelody(): MelodyItem[] {
-		const pool = unit.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? [];
-		if (pool.length === 0) return [];
-		const index = Math.floor(Math.random() * pool.length);
-		const phrase = pool[index] ?? [];
-		// Trim trailing rests to avoid blocking completion
-		let end = phrase.length - 1;
-		while (end >= 0 && phrase[end]?.note == null) end -= 1;
-		const trimmed = phrase.slice(0, end + 1);
-		const result = (
-			trimmed.length ? trimmed : phrase.filter((p) => p.note != null)
-		) as MelodyItem[];
-		// Return a deep copy to ensure reactivity when the same phrase repeats
-		return result.map((i) => ({ ...i }));
+		const scale = unit.scale.filter((s) => s.note != null) ?? [];
+		if (scale.length === 0) return [];
+
+		// Alternate between ascending and descending for variety
+		const isAscending = Math.random() > 0.5;
+		const sequence = isAscending ? scale : [...scale].reverse();
+
+		// Return a deep copy to ensure reactivity
+		return sequence.map((i) => ({ ...i }));
 	}
 </script>
 

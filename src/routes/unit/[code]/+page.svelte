@@ -16,13 +16,20 @@
 		<AudioPlayer unit={code} tracks={unit.tracks} />
 
 		<section class="mt-8">
-			<p class="text-sm font-semibold text-slate-800">Games</p>
+			<h3 class="text-sm font-semibold text-slate-800">Games</h3>
 			<div class="game-grid">
 				<a href={`/unit/${code}/blocks`} class="game-card">
 					<div class="game-card__content">
 						<span class="text-6xl sm:text-7xl" aria-hidden="true">🧩</span>
 						<span class="mt-3 text-sm font-semibold text-slate-900">Blocks</span>
 						<span class="mt-1 text-xs text-slate-600">Practice random phrases</span>
+					</div>
+				</a>
+				<a href={`/unit/${code}/scales`} class="game-card">
+					<div class="game-card__content">
+						<span class="text-6xl sm:text-7xl" aria-hidden="true">🎼</span>
+						<span class="mt-3 text-sm font-semibold text-slate-900">Scales</span>
+						<span class="mt-1 text-xs text-slate-600">Up and down</span>
 					</div>
 				</a>
 			</div>
