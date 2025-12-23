@@ -180,35 +180,6 @@
 
 <div class="player-container">
 	<div class="space-y-6">
-		<!-- Speed Selection -->
-		<div>
-			<p class="mb-3 text-sm font-semibold text-dark-blue">
-				Speed: {currentVariant.tempo} BPM
-			</p>
-			<PillSelector
-				options={[
-					{ value: 'slow', label: `Slow (${tracks.slow.tempo} BPM)` },
-					{ value: 'medium', label: `Medium (${tracks.medium.tempo} BPM)` },
-					{ value: 'fast', label: `Fast (${tracks.fast.tempo} BPM)` }
-				]}
-				selected={selectedSpeed}
-				onSelect={(speed) => handleSpeedChange(speed)}
-			/>
-		</div>
-
-		<!-- Track Selection -->
-		<div>
-			<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
-			<PillSelector
-				options={[
-					{ value: 'full', label: 'Full track' },
-					{ value: 'backing', label: 'Backing track' }
-				]}
-				selected={selectedTrack}
-				onSelect={(track) => handleTrackChange(track)}
-			/>
-		</div>
-
 		<!-- Custom Audio Player -->
 		<div>
 			<p class="mb-3 text-sm font-semibold text-dark-blue">Player</p>
@@ -260,6 +231,34 @@
 					<span>{formatTime(displayTime)}</span>
 					<span>{formatTime(duration)}</span>
 				</div>
+
+				<!-- Speed + Track Selection -->
+				<div class="selectors">
+					<div class="selector-item">
+						<p class="mb-3 text-sm font-semibold text-dark-blue">Speed</p>
+						<PillSelector
+							options={[
+								{ value: 'slow', label: `Slow` },
+								{ value: 'medium', label: `Medium` },
+								{ value: 'fast', label: `Fast` }
+							]}
+							selected={selectedSpeed}
+							onSelect={(speed) => handleSpeedChange(speed)}
+						/>
+					</div>
+
+					<div class="selector-item">
+						<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
+						<PillSelector
+							options={[
+								{ value: 'full', label: 'Full track' },
+								{ value: 'backing', label: 'Backing track' }
+							]}
+							selected={selectedTrack}
+							onSelect={(track) => handleTrackChange(track)}
+						/>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -282,6 +281,32 @@
 		border: 1px solid rgb(226 232 240);
 		background-color: rgb(248 250 252);
 		padding: 1rem;
+	}
+
+	.selectors {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		margin-top: 1.5rem;
+	}
+
+	.selector-item {
+		background-color: white;
+		border-radius: 0.5rem;
+		padding: 1rem;
+		border: 1px solid rgb(226 232 240);
+	}
+
+	@media (min-width: 640px) {
+		.selectors {
+			flex-direction: row;
+			align-items: stretch;
+			gap: 1rem;
+		}
+
+		.selector-item {
+			flex: 1;
+		}
 	}
 
 	.play-button {
