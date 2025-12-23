@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AudioPlayer from '$lib/AudioPlayer.svelte';
+	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 
 	const { data } = $props();
 	const { unit, code } = $derived(data);

@@ -361,17 +361,17 @@ export function createTuner(options: TunerOptions = {}) {
 		const highFreqBurst = calculateHighFrequencyBurst(spectrum, previousSpectrum);
 		if (highFreqBurst > tuning.highFreqBurstThreshold) {
 			highFreqBurstFrames++;
-			if (highFreqBurstFrames === 1) {
-				console.log(
-					`High-freq burst detected: ${highFreqBurst.toFixed(3)} (threshold: ${tuning.highFreqBurstThreshold}), freq: ${freq.toFixed(1)}, amp: ${amplitude.toFixed(4)}`
-				);
-			}
+			// if (highFreqBurstFrames === 1) {
+			// 	console.log(
+			// 		`High-freq burst detected: ${highFreqBurst.toFixed(3)} (threshold: ${tuning.highFreqBurstThreshold}), freq: ${freq.toFixed(1)}, amp: ${amplitude.toFixed(4)}`
+			// 	);
+			// }
 		} else {
-			if (highFreqBurstFrames > 0) {
-				console.log(
-					`Burst ended after ${highFreqBurstFrames} frames, burst value was ${highFreqBurst.toFixed(3)}`
-				);
-			}
+			// if (highFreqBurstFrames > 0) {
+			// 	console.log(
+			// 		`Burst ended after ${highFreqBurstFrames} frames, burst value was ${highFreqBurst.toFixed(3)}`
+			// 	);
+			// }
 			highFreqBurstFrames = 0;
 		}
 		const hasHighFreqBurst = highFreqBurstFrames >= tuning.highFreqBurstFrameThreshold;
@@ -380,9 +380,9 @@ export function createTuner(options: TunerOptions = {}) {
 				peakAmplitude > 0 &&
 				amplitude / peakAmplitude < tuning.burstMinDecayRatio
 			: hasHighFreqBurst;
-		if (burstEndsNote && currentActive) {
-			console.log(`High-freq burst triggered note end (${highFreqBurstFrames} frames)`);
-		}
+		// if (burstEndsNote && currentActive) {
+		// 	console.log(`High-freq burst triggered note end (${highFreqBurstFrames} frames)`);
+		// }
 
 		previousSpectrum = new Float32Array(spectrum);
 

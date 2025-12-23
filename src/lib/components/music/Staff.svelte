@@ -2,12 +2,12 @@
 	import type { Clef } from '$lib/config/types';
 	import { staffLayouts } from '$lib/config/staffs';
 	import type { KeySignature, Mode } from '$lib/config/keys';
-	import { renderNote } from './noteRenderer';
+	import { renderNote } from '$lib/noteRenderer';
+	import ClefSymbol from './ClefSymbol.svelte';
 	import NoteSymbol from './NoteSymbol.svelte';
 	import GhostNote from './GhostNote.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
-	import type { NoteLength } from './config/melody';
-	import ClefSymbol from './components/music/ClefSymbol.svelte';
+	import type { NoteLength } from '$lib/config/melody';
 
 	type SequenceItem = { note: string | null; length?: NoteLength };
 

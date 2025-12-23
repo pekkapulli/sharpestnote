@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fileStore, type Speed, type TrackVariant } from '$lib/config/units';
 	import { onMount, onDestroy } from 'svelte';
+	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 
 	interface Props {
 		unit: string;
@@ -12,10 +13,10 @@
 	let selectedTrack: 'full' | 'backing' = $state('full');
 	let isPlaying: boolean = $state(false);
 	let isLoading: boolean = $state(false);
+	let isRepeat: boolean = $state(false);
 	let currentTime: number = $state(0);
 	let displayTime: number = $state(0);
 	let duration: number = $state(0);
-	let volume: number = $state(1);
 
 	let audioElement: HTMLAudioElement | null = null;
 
@@ -29,7 +30,8 @@
 			audioElement = new Audio();
 			audioElement.crossOrigin = 'anonymous';
 			audioElement.preload = 'metadata';
-			audioElement.volume = volume;
+			audioElement.volume = 1;
+			audioElement.loop = isRepeat;
 
 			audioElement.addEventListener('loadedmetadata', () => {
 				duration = audioElement!.duration;
@@ -151,10 +153,10 @@
 		}
 	}
 
-	function handleVolumeChange(vol: number) {
-		volume = vol;
+	function toggleRepeat() {
+		isRepeat = !isRepeat;
 		if (audioElement) {
-			audioElement.volume = vol;
+			audioElement.loop = isRepeat;
 		}
 	}
 
@@ -177,59 +179,42 @@
 </script>
 
 <div class="player-container">
-	<div class="space-y-4">
+	<div class="space-y-6">
 		<!-- Speed Selection -->
 		<div>
 			<p class="mb-3 text-sm font-semibold text-dark-blue">
 				Speed: {currentVariant.tempo} BPM
 			</p>
-			<div class="flex gap-2 sm:gap-3">
-				<button
-					class="button-speed {selectedSpeed === 'slow' ? 'button-active' : 'button-inactive'}"
-					onclick={() => handleSpeedChange('slow')}
-				>
-					Slow ({tracks.slow.tempo} BPM)
-				</button>
-				<button
-					class="button-speed {selectedSpeed === 'medium' ? 'button-active' : 'button-inactive'}"
-					onclick={() => handleSpeedChange('medium')}
-				>
-					Medium ({tracks.medium.tempo} BPM)
-				</button>
-				<button
-					class="button-speed {selectedSpeed === 'fast' ? 'button-active' : 'button-inactive'}"
-					onclick={() => handleSpeedChange('fast')}
-				>
-					Fast ({tracks.fast.tempo} BPM)
-				</button>
-			</div>
+			<PillSelector
+				options={[
+					{ value: 'slow', label: `Slow (${tracks.slow.tempo} BPM)` },
+					{ value: 'medium', label: `Medium (${tracks.medium.tempo} BPM)` },
+					{ value: 'fast', label: `Fast (${tracks.fast.tempo} BPM)` }
+				]}
+				selected={selectedSpeed}
+				onSelect={(speed) => handleSpeedChange(speed)}
+			/>
 		</div>
 
 		<!-- Track Selection -->
 		<div>
 			<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
-			<div class="flex gap-2 sm:gap-3">
-				<button
-					class="button-track {selectedTrack === 'full' ? 'button-active' : 'button-inactive'}"
-					onclick={() => handleTrackChange('full')}
-				>
-					Full track
-				</button>
-				<button
-					class="button-track {selectedTrack === 'backing' ? 'button-active' : 'button-inactive'}"
-					onclick={() => handleTrackChange('backing')}
-				>
-					Backing track
-				</button>
-			</div>
+			<PillSelector
+				options={[
+					{ value: 'full', label: 'Full track' },
+					{ value: 'backing', label: 'Backing track' }
+				]}
+				selected={selectedTrack}
+				onSelect={(track) => handleTrackChange(track)}
+			/>
 		</div>
 
 		<!-- Custom Audio Player -->
 		<div>
 			<p class="mb-3 text-sm font-semibold text-dark-blue">Player</p>
 			<div class="player-box">
-				<!-- Play/Pause Button -->
-				<div class="mb-3 flex items-center justify-center">
+				<!-- Play/Pause and Repeat Buttons -->
+				<div class="mb-3 flex items-center justify-center gap-4">
 					<button
 						onclick={togglePlay}
 						class="play-button"
@@ -244,6 +229,15 @@
 								<path d="M8 5v14l11-7z" />
 							</svg>
 						{/if}
+					</button>
+					<button
+						onclick={toggleRepeat}
+						class="repeat-button {isRepeat ? 'active' : ''}"
+						aria-label="Toggle repeat"
+					>
+						<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+						</svg>
 					</button>
 				</div>
 
@@ -268,75 +262,25 @@
 				</div>
 			</div>
 		</div>
-
-		<!-- Volume Control -->
-		<div>
-			<div class="mb-3 flex items-end justify-between">
-				<p class="text-sm font-semibold text-dark-blue">Volume</p>
-				<p class="text-sm font-semibold text-yellow">{Math.round(volume * 100)}%</p>
-			</div>
-			<input
-				type="range"
-				min="0"
-				max="1"
-				step="0.01"
-				value={volume}
-				oninput={(e) => handleVolumeChange(parseFloat(e.currentTarget.value))}
-				class="volume-slider"
-			/>
-		</div>
 	</div>
 </div>
 
 <style>
 	.player-container {
-		border-radius: 0.75rem;
-		border: 2px solid var(--color-dark-blue);
-		background-color: var(--color-off-white);
-		padding: 1.5rem;
+		border-radius: 1rem;
+		background-color: white;
+		padding: 2rem;
+		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 	}
 
 	.text-dark-blue {
 		color: var(--color-dark-blue);
 	}
 
-	.text-yellow {
-		color: var(--color-yellow);
-	}
-
-	.button-speed,
-	.button-track {
-		flex: 1;
-		border-radius: 0.5rem;
-		padding: 0.625rem 0.75rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		transition: all 150ms ease-in-out;
-		cursor: pointer;
-	}
-
-	.button-active {
-		background-color: var(--color-dark-blue);
-		color: var(--color-off-white);
-		box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-		border: 2px solid var(--color-dark-blue);
-	}
-
-	.button-inactive {
-		background-color: white;
-		color: var(--color-dark-blue);
-		border: 2px solid var(--color-dark-blue);
-	}
-
-	.button-inactive:hover {
-		background-color: color-mix(in srgb, var(--color-yellow) 20%, white);
-		border-color: var(--color-dark-blue);
-	}
-
 	.player-box {
 		border-radius: 0.75rem;
-		border: 2px solid var(--color-dark-blue);
-		background-color: white;
+		border: 1px solid rgb(226 232 240);
+		background-color: rgb(248 250 252);
 		padding: 1rem;
 	}
 
@@ -365,8 +309,36 @@
 		transform: scale(0.95);
 	}
 
-	.progress-bar,
-	.volume-slider {
+	.repeat-button {
+		display: flex;
+		height: 2.5rem;
+		width: 2.5rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.5rem;
+		background-color: rgb(241 245 249);
+		color: rgb(100 116 139);
+		border: 1px solid rgb(226 232 240);
+		transition: all 150ms ease-in-out;
+		cursor: pointer;
+	}
+
+	.repeat-button:hover {
+		background-color: rgb(226 232 240);
+		color: var(--color-dark-blue);
+	}
+
+	.repeat-button.active {
+		background-color: var(--color-dark-blue);
+		color: white;
+		border-color: var(--color-dark-blue);
+	}
+
+	.repeat-button:active {
+		transform: scale(0.95);
+	}
+
+	.progress-bar {
 		height: 0.5rem;
 		width: 100%;
 		cursor: pointer;
@@ -374,24 +346,16 @@
 		-webkit-appearance: none;
 		border-radius: 0.5rem;
 		outline: none;
-	}
-
-	.progress-bar {
 		background: linear-gradient(
 			to right,
 			var(--color-dark-blue) 0%,
 			var(--color-dark-blue) var(--progress, 0%),
-			#e5e5e5 var(--progress, 0%),
-			#e5e5e5 100%
+			rgb(226 232 240) var(--progress, 0%),
+			rgb(226 232 240) 100%
 		);
 	}
 
-	.volume-slider {
-		background: linear-gradient(to right, var(--color-yellow) 0%, var(--color-yellow) 100%);
-	}
-
-	.progress-bar::-webkit-slider-thumb,
-	.volume-slider::-webkit-slider-thumb {
+	.progress-bar::-webkit-slider-thumb {
 		appearance: none;
 		-webkit-appearance: none;
 		width: 1rem;
@@ -399,29 +363,26 @@
 		border-radius: 50%;
 		background: var(--color-dark-blue);
 		cursor: pointer;
-		border: 2px solid var(--color-off-white);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		border: 2px solid white;
+		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
 
-	.progress-bar::-webkit-slider-thumb:hover,
-	.volume-slider::-webkit-slider-thumb:hover {
+	.progress-bar::-webkit-slider-thumb:hover {
 		background: var(--color-yellow);
 		transform: scale(1.1);
 	}
 
-	.progress-bar::-moz-range-thumb,
-	.volume-slider::-moz-range-thumb {
+	.progress-bar::-moz-range-thumb {
 		width: 1rem;
 		height: 1rem;
 		border-radius: 50%;
 		background: var(--color-dark-blue);
 		cursor: pointer;
-		border: 2px solid var(--color-off-white);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		border: 2px solid white;
+		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
 
-	.progress-bar::-moz-range-thumb:hover,
-	.volume-slider::-moz-range-thumb:hover {
+	.progress-bar::-moz-range-thumb:hover {
 		background: var(--color-yellow);
 		transform: scale(1.1);
 	}

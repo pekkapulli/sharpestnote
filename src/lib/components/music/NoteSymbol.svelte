@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { lengthNoteMap } from './config/melody';
+	import { lengthNoteMap } from '$lib/config/melody';
 
 	interface Props {
 		x: number;

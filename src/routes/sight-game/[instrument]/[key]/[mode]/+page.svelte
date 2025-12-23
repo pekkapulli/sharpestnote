@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
-	import Staff from '$lib/Staff.svelte';
-	import MicrophoneSelector from '$lib/MicrophoneSelector.svelte';
-	import AmplitudeBar from '$lib/AmplitudeBar.svelte';
+	import Staff from '$lib/components/music/Staff.svelte';
+	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
+	import AmplitudeBar from '$lib/components/ui/AmplitudeBar.svelte';
 	import { createTuner } from '$lib/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib';
 	import { instrumentMap } from '$lib/config/instruments';
