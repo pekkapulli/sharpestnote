@@ -8,54 +8,22 @@ import {
 	type Accidental
 } from '$lib/tuner/tune';
 import {
-	genericDetectionConfig,
-	instrumentMap,
-	type DetectionConfig
-} from '$lib/config/instruments';
-import type { InstrumentId } from '$lib/config/types';
+	calculateAmplitude,
+	calculateHighFrequencyBurst,
+	calculateSpectralFlux,
+	getDetectionConfig,
+	isFrequencyStable
+} from './analysis';
+import { createAudioChain, teardownAudioChain, type AudioChain } from './audioGraph';
+import { genericDetectionConfig, instrumentMap } from '$lib/config/instruments';
 import { lengthToMs } from '$lib/config/melody';
+import type { InstrumentKind, TunerOptions, TunerState } from './types';
 
-const FFT_SIZE = 2048;
-
-type InstrumentKind = InstrumentId | 'generic';
-
-export interface TunerState {
-	isListening: boolean;
-	frequency: number | null;
-	cents: number | null;
-	note: string | null;
-	error: string | null;
-	devices: MediaDeviceInfo[];
-	selectedDeviceId: string | null;
-	amplitude: number;
-	isNoteActive: boolean;
-	heldSixteenths: number; // how many 1/16 notes the current note has been held (can be fractional)
-}
-
-export interface TunerOptions {
-	a4?: number;
-	accidental?: Accidental;
-	debounceTime?: number;
-	amplitudeThreshold?: number;
-	instrument?: InstrumentKind;
-	tempoBPM?: number; // for converting time held into 16th-note units
-	gain?: number; // amplification multiplier (1.0 = no change, 2.0 = 2x boost)
-	autoGain?: boolean; // auto adjust gain to target amplitude
-	targetAmplitude?: number; // desired RMS amplitude before compressor
-	maxGain?: number;
-	minGain?: number;
-	gainAdjustRate?: number; // fraction step per adjustment (e.g., 0.08 = 8%)
-	autoGainInterval?: number; // ms between auto-gain adjustments (e.g., 100)
-}
+export type { InstrumentKind, TunerOptions, TunerState } from './types';
 
 export function createTuner(options: TunerOptions = {}) {
 	let audioContext: AudioContext | null = null;
-	let analyser: AnalyserNode | null = null;
-	let mediaStream: MediaStream | null = null;
-	let mediaSource: MediaStreamAudioSourceNode | null = null;
-	let gainNode: GainNode | null = null;
-	let compressor: DynamicsCompressorNode | null = null;
-	let highpassFilter: BiquadFilterNode | null = null;
+	let audioChain: AudioChain | null = null;
 	let rafId: number | null = null;
 	let buffer: Float32Array | null = null;
 	let noteDebounceId: number | null = null;
@@ -108,79 +76,6 @@ export function createTuner(options: TunerOptions = {}) {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
 	}
 
-	function calculateAmplitude(data: Float32Array): number {
-		let sum = 0;
-		for (let i = 0; i < data.length; i++) {
-			sum += data[i] * data[i];
-		}
-		return Math.sqrt(sum / data.length);
-	}
-
-	function calculateSpectralFlux(
-		currentSpectrum: Float32Array,
-		previousSpectrum: Float32Array | null
-	): number {
-		if (!previousSpectrum || previousSpectrum.length !== currentSpectrum.length) {
-			return 0;
-		}
-
-		// Normalize both spectra
-		const normalize = (spec: Float32Array) => {
-			let sum = 0;
-			for (let i = 0; i < spec.length; i++) {
-				sum += spec[i] * spec[i];
-			}
-			const norm = Math.sqrt(sum);
-			return norm > 0 ? Array.from(spec).map((v) => v / norm) : Array.from(spec);
-		};
-
-		const currNorm = normalize(currentSpectrum);
-		const prevNorm = normalize(previousSpectrum);
-
-		// Euclidean distance (L2 norm) between normalized spectra
-		let squaredDist = 0;
-		for (let i = 0; i < currNorm.length; i++) {
-			const diff = currNorm[i] - prevNorm[i];
-			squaredDist += diff * diff;
-		}
-		return Math.sqrt(squaredDist);
-	}
-
-	function calculateHighFrequencyBurst(
-		spectrum: Float32Array,
-		previousSpectrum: Float32Array | null
-	): number {
-		if (!previousSpectrum || spectrum.length !== previousSpectrum.length) {
-			return 0;
-		}
-
-		// Look at mid-to-high frequencies (30% to 100% of spectrum = where bow scrape lives)
-		// This range captures the transient noise better than just the very top
-		const highFreqStart = Math.floor(spectrum.length * 0.3);
-		let highFreqNow = 0;
-		let highFreqPrev = 0;
-
-		for (let i = highFreqStart; i < spectrum.length; i++) {
-			highFreqNow += spectrum[i];
-			highFreqPrev += previousSpectrum[i];
-		}
-
-		// Calculate the surge in high-mid frequency content
-		const highFreqChange = (highFreqNow - highFreqPrev) / (highFreqPrev + 1); // +1 to avoid division by zero
-		return Math.max(0, highFreqChange); // only positive surges matter
-	}
-
-	function isFrequencyStable(freq: number, windowSize: number = 5): boolean {
-		if (frequencyHistory.length < windowSize) return false;
-		const recent = frequencyHistory.slice(-windowSize);
-		const avg = recent.reduce((a, b) => a + b) / recent.length;
-		const variance = recent.reduce((sum, f) => sum + Math.abs(f - avg), 0) / recent.length;
-		// Allow more variance for low frequencies (they naturally wobble more)
-		// Use 3-4% variance tolerance, higher for lower frequencies
-		const tolerancePercent = freq < 100 ? 0.04 : 0.03;
-		return variance < avg * tolerancePercent;
-	}
-
 	async function refreshDevices() {
 		try {
 			const list = await navigator.mediaDevices.enumerateDevices();
@@ -202,54 +97,9 @@ export function createTuner(options: TunerOptions = {}) {
 			audioContext = audioContext ?? new AudioContext();
 			await audioContext.resume();
 
-			analyser = audioContext.createAnalyser();
-			analyser.fftSize = FFT_SIZE;
-			buffer = new Float32Array(analyser.fftSize);
-
-			const constraints: MediaStreamConstraints = {
-				audio: state.selectedDeviceId
-					? {
-							deviceId: { exact: state.selectedDeviceId },
-							echoCancellation: false,
-							noiseSuppression: false,
-							autoGainControl: false,
-							channelCount: 1
-						}
-					: {
-							echoCancellation: false,
-							noiseSuppression: false,
-							autoGainControl: false,
-							channelCount: 1
-						},
-				video: false
-			};
-
-			mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-			mediaSource = audioContext.createMediaStreamSource(mediaStream);
-
-			// Create gain node for amplification
-			gainNode = audioContext.createGain();
 			gain.value = clampGain(gain.value);
-			gainNode.gain.value = gain.value;
-
-			// Create compressor for dynamic range compression
-			compressor = audioContext.createDynamicsCompressor();
-			compressor.threshold.value = -20; // dB - higher threshold lets natural dynamics through
-			compressor.knee.value = 30; // softer knee for more natural compression
-			compressor.ratio.value = 4; // moderate compression (1:4 not 1:100)
-			compressor.attack.value = 0.01; // 10ms attack (slower to preserve transients)
-			compressor.release.value = 0.1; // 100ms release (faster to reveal amplitude decay)
-
-			// Create highpass filter to reduce octave-hopping and rumble
-			highpassFilter = audioContext.createBiquadFilter();
-			highpassFilter.type = 'highpass';
-			highpassFilter.frequency.value = 40; // Hz - allow low cello C (65Hz) through while removing rumble
-
-			// Connect: mediaSource -> gain -> compressor -> highpass -> analyser
-			mediaSource.connect(gainNode);
-			gainNode.connect(compressor);
-			compressor.connect(highpassFilter);
-			highpassFilter.connect(analyser);
+			audioChain = await createAudioChain(audioContext, state.selectedDeviceId, gain.value);
+			buffer = audioChain.buffer;
 
 			state.isListening = true;
 			refreshDevices();
@@ -285,45 +135,21 @@ export function createTuner(options: TunerOptions = {}) {
 		highFreqBurstFrames = 0;
 		previousSpectrum = null;
 
-		if (mediaStream) {
-			mediaStream.getTracks().forEach((track) => track.stop());
-			mediaStream = null;
-		}
-
-		if (mediaSource) {
-			mediaSource.disconnect();
-			mediaSource = null;
-		}
-
-		if (gainNode) {
-			gainNode.disconnect();
-			gainNode = null;
-		}
-
-		if (compressor) {
-			compressor.disconnect();
-			compressor = null;
-		}
-
-		if (highpassFilter) {
-			highpassFilter.disconnect();
-			highpassFilter = null;
-		}
-
-		if (analyser) {
-			analyser.disconnect();
-			analyser = null;
-		}
-
+		teardownAudioChain(audioChain);
+		audioChain = null;
 		buffer = null;
 		state.isListening = false;
 	}
 
 	function tick() {
+		const chain = audioChain;
 		const data = buffer;
-		if (!analyser || !audioContext || !data) {
+		if (!chain || !audioContext || !data) {
 			return;
 		}
+
+		const analyser = chain.analyser;
+		const gainNode = chain.gainNode;
 
 		const now = performance.now();
 		if (lastTickAt === null) lastTickAt = now;
@@ -341,10 +167,7 @@ export function createTuner(options: TunerOptions = {}) {
 
 		state.amplitude = amplitude;
 		const instrumentType = untrack(() => instrument.value as InstrumentKind);
-		const tuning: DetectionConfig =
-			instrumentType === 'generic'
-				? genericDetectionConfig
-				: (instrumentMap[instrumentType]?.detectionConfig ?? genericDetectionConfig);
+		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
 
 		// Track frequency and amplitude history
 		frequencyHistory.push(freq);
@@ -388,7 +211,7 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// Use hysteresis so small reverbs/room noise don't require amplitude to hit zero
 		const activateThreshold = amplitudeThreshold.value;
-		const meetsFrequency = freq > 0 && isFrequencyStable(freq);
+		const meetsFrequency = freq > 0 && isFrequencyStable(freq, frequencyHistory);
 
 		// Track peak amplitude for decay detection
 		if (amplitude > peakAmplitude) {
@@ -614,7 +437,7 @@ export function createTuner(options: TunerOptions = {}) {
 		set gain(value: number) {
 			const clamped = clampGain(value);
 			gain.value = clamped;
-			if (gainNode) gainNode.gain.value = clamped;
+			if (audioChain) audioChain.gainNode.gain.value = clamped;
 		},
 		get autoGain() {
 			return autoGainEnabled.value;
