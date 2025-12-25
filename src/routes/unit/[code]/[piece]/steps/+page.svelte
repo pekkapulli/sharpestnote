@@ -4,12 +4,12 @@
 	import type { MelodyItem } from '$lib/config/melody';
 
 	const { data } = $props();
-	const { unit, code } = $derived(data);
+	const { unit, piece, code, pieceCode } = $derived(data);
 
 	// Extract unique intervals once when the page loads
 	const intervals = $derived.by(() => {
 		// Flatten all melodies into one continuous array of notes
-		const allNotes = (unit.melody ?? [])
+		const allNotes = (piece.melody ?? [])
 			.filter((m) => Array.isArray(m) && m.length > 0)
 			.flat()
 			.filter((item) => item.note != null);
@@ -47,17 +47,18 @@
 </script>
 
 <div class="min-h-screen bg-off-white py-8">
-	<div class="mx-auto w-full max-w-5xl px-4">
+	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
 		<nav class="mb-4">
-			<BackButton href={`/unit/${code}`}>← Back to unit</BackButton>
+			<BackButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</BackButton>
 		</nav>
 
 		<SightGame
 			instrument={unit.instrument}
-			keyNote={unit.key}
-			mode={unit.mode}
-			tempoBPM={unit.tracks?.medium?.tempo ?? 100}
+			keyNote={piece.key}
+			mode={piece.mode}
+			tempoBPM={piece.tracks?.medium?.tempo ?? 100}
 			{newMelody}
+			barLength={piece.barLength}
 		/>
 	</div>
 </div>

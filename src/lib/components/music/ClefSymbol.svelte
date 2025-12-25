@@ -18,7 +18,9 @@
 
 <span
 	class="note"
-	style="font-size: {size}; display: inline-block; {clef === 'bass' ? 'margin-top: -0.2em;' : ''}"
+	style="color: #333; font-size: {size}; display: inline-block; {clef === 'bass'
+		? 'margin-top: -0.2em;'
+		: ''}"
 >
 	{clefSymbols[clef]}
 </span>

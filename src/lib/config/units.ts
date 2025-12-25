@@ -18,12 +18,17 @@ export interface UnitMaterial {
 	instrument: InstrumentId;
 	title: string;
 	description: string;
-	tracks: Record<Speed, TrackVariant>;
+	pieces: {
+		code: string;
+		label: string;
+		tracks: Record<Speed, TrackVariant>;
+		mode: Mode;
+		key: NoteName;
+		barLength: number;
+		melody: MelodyItem[][];
+		scale: MelodyItem[];
+	}[];
 	extraLinks?: { label: string; url: string }[];
-	mode: Mode;
-	key: NoteName;
-	melody: MelodyItem[][];
-	scale: MelodyItem[];
 }
 
 export const fileStore = 'https://f002.backblazeb2.com/file/sharpestnote/unit';
@@ -32,96 +37,103 @@ export const units: Units = {
 	'tw-v': {
 		code: 'tw-v',
 		instrument: 'violin',
-		title: 'Demo Unit: Twinkle Twinkle Little Star for Violin',
+		title: 'Twinkle Twinkle Little Star for Violin',
 		description: 'See how the Sharpest Note materials work with a classic tune.',
-		tracks: {
-			slow: {
-				tempo: 60,
-				audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
-				backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
-			},
-			medium: {
-				tempo: 80,
-				audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
-				backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
-			},
-			fast: {
-				tempo: 100,
-				audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
-				backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+		pieces: [
+			{
+				code: 'twinkle-twinkle-little-star',
+				label: 'Twinkle Twinkle Little Star',
+				tracks: {
+					slow: {
+						tempo: 60,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+					},
+					medium: {
+						tempo: 80,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+					},
+					fast: {
+						tempo: 100,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+					}
+				},
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'D4', length: 4 },
+					{ note: 'E4', length: 4 },
+					{ note: 'F#4', length: 4 },
+					{ note: 'G4', length: 4 },
+					{ note: 'A4', length: 4 },
+					{ note: 'B4', length: 4 }
+				],
+				melody: [
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: null, length: 4 }
+					]
+				]
 			}
-		},
-		key: 'D',
-		mode: 'major',
-		scale: [
-			{ note: 'D4', length: 4 },
-			{ note: 'E4', length: 4 },
-			{ note: 'F#4', length: 4 },
-			{ note: 'G4', length: 4 },
-			{ note: 'A4', length: 4 },
-			{ note: 'B4', length: 4 }
-		],
-		melody: [
-			[
-				{ note: 'D4', length: 4 },
-				{ note: 'D4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: 'B4', length: 4 },
-				{ note: 'B4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: null, length: 4 }
-			],
-			[
-				{ note: 'G4', length: 4 },
-				{ note: 'G4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'E4', length: 4 },
-				{ note: 'E4', length: 4 },
-				{ note: 'D4', length: 4 },
-				{ note: null, length: 4 }
-			],
-			[
-				{ note: 'A4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: 'G4', length: 4 },
-				{ note: 'G4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'E4', length: 4 },
-				{ note: null, length: 4 }
-			],
-			[
-				{ note: 'A4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: 'G4', length: 4 },
-				{ note: 'G4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'E4', length: 4 },
-				{ note: null, length: 4 }
-			],
-			[
-				{ note: 'D4', length: 4 },
-				{ note: 'D4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: 'B4', length: 4 },
-				{ note: 'B4', length: 4 },
-				{ note: 'A4', length: 4 },
-				{ note: null, length: 4 }
-			],
-			[
-				{ note: 'G4', length: 4 },
-				{ note: 'G4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'F#4', length: 4 },
-				{ note: 'E4', length: 4 },
-				{ note: 'E4', length: 4 },
-				{ note: 'D4', length: 4 },
-				{ note: null, length: 4 }
-			]
 		]
 	}
 };

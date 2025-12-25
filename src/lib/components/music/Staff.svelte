@@ -8,6 +8,7 @@
 	import GhostNote from './GhostNote.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
 	import type { NoteLength } from '$lib/config/melody';
+	import { lengthRestMap } from '$lib/config/melody';
 
 	type SequenceItem = { note: string | null; length?: NoteLength };
 
@@ -18,14 +19,16 @@
 		currentIndex?: number;
 		ghostNote?: string | null;
 		cents?: number | null;
-		height?: number;
 		clef?: Clef;
 		keySignature: KeySignature;
 		mode?: Mode;
 		heldSixteenths?: number | null;
 		isCurrentNoteHit?: boolean;
 		isSequenceComplete?: boolean;
+		barLength?: number;
 	}
+
+	const HEIGHT = 150;
 
 	const {
 		sequence = [],
@@ -33,53 +36,39 @@
 		heldSixteenths = null,
 		ghostNote = null,
 		cents = null,
-		height = 150,
 		clef = 'treble',
 		keySignature,
 		isCurrentNoteHit = false,
-		isSequenceComplete = false
+		isSequenceComplete = false,
+		barLength
 	}: Props = $props();
 
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
-	const referenceOctave = $derived(clef === 'bass' ? 2 : clef === 'alto' ? 3 : 4);
 
-	// Get natural note position without accidental offset (for rendering accidental symbol)
-	function getNaturalNotePosition(noteName: string): number | null {
-		const match = /^([A-G])([#b]?)(\d)$/.exec(noteName);
-		if (!match) return null;
-
-		const [, letter, , octaveStr] = match;
-		const base = layout.basePositions[letter];
-		const octave = Number(octaveStr);
-		const octaveOffset = (octave - referenceOctave) * 3.5;
-
-		return base + octaveOffset;
-	}
-
-	const lineSpacing = $derived(height / 12);
-	const centerY = $derived(height / 2);
+	const lineSpacing = $derived(HEIGHT / 12);
+	const centerY = $derived(HEIGHT / 2);
 	const notes = $derived(sequence.map((s) => s.note));
-	const activeNote: string | null = $derived(
-		notes.length ? notes[Math.min(Math.max(currentIndex, 0), notes.length - 1)] : null
-	);
+
 	const renderedNotes = $derived(
 		notes.length ? notes.map((n) => renderNote(n, keySignature, clef)) : null
 	);
-	const noteRendered = $derived(activeNote ? renderNote(activeNote, keySignature, clef) : null);
 	const ghostNoteRendered = $derived(ghostNote ? renderNote(ghostNote, keySignature, clef) : null);
-	const notePosition = $derived(noteRendered?.position ?? null);
 	const ghostNotePosition = $derived(ghostNoteRendered?.position ?? null);
-	const noteAccidental = $derived(noteRendered?.accidental ?? null);
 	const ghostAccidental = $derived(ghostNoteRendered?.accidental ?? null);
 	const isHit = $derived(isCurrentNoteHit || isSequenceComplete);
 
+	// Container size binding
+	let containerWidth = $state(400);
+	const ledgerStart = 90;
+	const ledgerEnd = $derived(containerWidth - 10);
+
 	// Horizontal layout for multi-note melodies, spaced by note lengths
-	const startX = 100;
-	const endX = 360;
+	const startX = $derived(100);
+	const endX = $derived(containerWidth - 30);
 	const available = $derived(endX - startX);
 	const basePixelsPerSixteenth = 15; // 60px per quarter note (4 sixteenths)
-	const lengthBasedSpacing = $derived(
+	const noteXs = $derived(
 		sequence && sequence.length
 			? (() => {
 					const positions = [0]; // first note at 0
@@ -98,49 +87,61 @@
 				})()
 			: null
 	);
-	const noteXs = $derived(lengthBasedSpacing);
 	const currentGhostX = $derived(
-		lengthBasedSpacing && sequence && sequence.length
-			? lengthBasedSpacing[Math.min(Math.max(currentIndex, 0), sequence.length - 1)]
+		noteXs && sequence && sequence.length
+			? noteXs[Math.min(Math.max(currentIndex, 0), sequence.length - 1)]
 			: null
+	);
+
+	// Calculate bar line positions based on barLength (in 16th notes)
+	const barLineXPositions = $derived(
+		barLength && noteXs
+			? (() => {
+					const positions: number[] = [];
+					let cumulativeSixteenths = 0;
+
+					for (let i = 0; i < sequence.length; i++) {
+						const noteLengthInSixteenths = sequence[i]?.length ?? 4;
+						cumulativeSixteenths += noteLengthInSixteenths;
+
+						// If we've reached or passed a bar boundary, add a bar line position
+						if (cumulativeSixteenths % barLength === 0 && i < sequence.length - 1) {
+							// Bar line goes between note i and note i+1
+							const x1 = (noteXs?.[i] ?? 0) + lineSpacing / 2;
+							const x2 = noteXs?.[i + 1] ?? x1 + lineSpacing / 2;
+							const midX = (x1 + x2) / 2;
+							positions.push(midX);
+						}
+					}
+
+					return positions;
+				})()
+			: []
 	);
 </script>
 
-<div class="flex flex-col items-center gap-4">
-	<div class="relative w-full max-w-md" style="height: {height}px; aspect-ratio: 16/6">
+<div class="flex w-full max-w-md flex-col items-center gap-4" bind:clientWidth={containerWidth}>
+	<div class="relative w-full" style="height: {HEIGHT}px;">
 		<!-- Staff with clef symbol -->
-		<svg class="absolute inset-0 h-full w-full" viewBox="0 0 400 {height}">
+		<svg class="absolute inset-0 h-full w-full" width={containerWidth} height={HEIGHT}>
 			<!-- Clef staff lines -->
 			{#each staffLines as line (line.position)}
 				<line
 					x1="0"
 					y1={centerY - line.position * lineSpacing}
-					x2="400"
+					x2={containerWidth}
 					y2={centerY - line.position * lineSpacing}
 					stroke="#333"
 					stroke-width="1.5"
 				/>
 			{/each}
 
-			<!-- Ledger lines above (C6, etc.) -->
-			{#each [5, 6] as pos}
+			<!-- Ledger lines -->
+			{#each [-1, -2, -3, 5, 6] as pos}
 				<line
-					x1="80"
+					x1={ledgerStart}
 					y1={centerY - pos * lineSpacing}
-					x2="380"
-					y2={centerY - pos * lineSpacing}
-					stroke="#999"
-					stroke-width="1"
-					opacity="0.5"
-				/>
-			{/each}
-
-			<!-- Ledger lines below (C4, etc.) -->
-			{#each [-1, -2, -3] as pos}
-				<line
-					x1="80"
-					y1={centerY - pos * lineSpacing}
-					x2="380"
+					x2={ledgerEnd}
 					y2={centerY - pos * lineSpacing}
 					stroke="#999"
 					stroke-width="1"
@@ -151,13 +152,62 @@
 			<!-- Key signature -->
 			<KeySignatureSymbol {clef} {keySignature} {lineSpacing} {centerY} />
 
+			<!-- Bar lines -->
+			{#each barLineXPositions as barX}
+				<line
+					x1={barX}
+					x2={barX}
+					y1={centerY - staffLines[0].position * lineSpacing}
+					y2={centerY - staffLines[staffLines.length - 1].position * lineSpacing}
+					stroke="#333"
+					stroke-width="1"
+				/>
+			{/each}
+
 			{#if notes.length}
 				<!-- Space notes by their lengths, works for single or multiple notes -->
 				{#key notes.length}
 					{#each notes as n, i}
 						{@const x = noteXs?.[i] ?? 0}
 						{@const rn = renderedNotes?.[i]}
-						{#if rn}
+						{#if n === null}
+							<!-- Render rest symbol -->
+							{@const restLength = sequence?.[i]?.length ?? 4}
+							<g>
+								<text
+									class="note"
+									{x}
+									y={centerY + lineSpacing / 2}
+									fill={i < currentIndex || (isSequenceComplete && i === currentIndex)
+										? '#16a34a'
+										: i === currentIndex
+											? isHit
+												? '#16a34a'
+												: 'black'
+											: '#9ca3af'}
+									font-size={lineSpacing * 4}
+									text-anchor="middle"
+								>
+									{lengthRestMap[restLength]}
+								</text>
+								{#if i === currentIndex && !isSequenceComplete && isHit && heldSixteenths !== null}
+									<!-- Rest hold duration indicator -->
+									<rect
+										class="note"
+										x={x - lineSpacing}
+										y={centerY + lineSpacing * 1.5}
+										width={Math.min(
+											(heldSixteenths / restLength) * lineSpacing * 2,
+											lineSpacing * 2
+										)}
+										height={lineSpacing / 4}
+										fill={isHit ? '#16a34a' : 'black'}
+										font-size={lineSpacing * 1.5}
+										text-anchor="middle"
+									/>
+								{/if}
+							</g>
+						{:else if rn}
 							<NoteSymbol
 								{x}
 								y={centerY - (rn.position ?? 0) * lineSpacing}

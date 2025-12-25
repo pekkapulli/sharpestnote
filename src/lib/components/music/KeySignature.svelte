@@ -17,7 +17,7 @@
 		keySignature,
 		lineSpacing,
 		centerY,
-		xStart = 60,
+		xStart = 50,
 		xStep = 12
 	}: Props = $props();
 

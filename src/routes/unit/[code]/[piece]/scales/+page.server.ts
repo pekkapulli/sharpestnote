@@ -10,8 +10,15 @@ export const load: PageServerLoad = async ({ params }) => {
 		throw error(404, 'Unit not found');
 	}
 
+	const piece = unit.pieces.find((p) => p.code === params.piece);
+	if (!piece) {
+		throw error(404, 'Piece not found');
+	}
+
 	return {
 		unit,
-		code: normalizedCode
+		piece,
+		code: normalizedCode,
+		pieceCode: params.piece
 	};
 };

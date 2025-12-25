@@ -13,17 +13,18 @@
 		transposeDetectedNoteForDisplay as transposeDetectedForDisplay
 	} from '$lib/util/noteNames';
 	import type { MelodyItem, NoteLength } from '$lib/config/melody';
+	import { lengthToMs } from '$lib/config/melody';
 
 	interface Props {
 		instrument: InstrumentId;
 		keyNote: string;
 		mode: Mode;
 		tempoBPM?: number;
+		barLength?: number;
 		newMelody?: () => MelodyItem[];
 	}
 
-	let { instrument, keyNote, mode, tempoBPM = 100, newMelody }: Props = $props();
-
+	let { instrument, keyNote, mode, tempoBPM = 100, barLength = 16, newMelody }: Props = $props();
 	const selectedInstrument = $derived(instrumentMap[instrument]);
 	const keySignature = $derived(getKeySignature(keyNote, mode));
 
@@ -52,6 +53,8 @@
 	let lastSuccessNote = $state<string | null>(null);
 	const MIN_INACTIVE_MS = 120;
 	let inactiveSince = $state<number | null>(null);
+	let restTimeoutId: number | null = null;
+	let simulatedHeldSixteenths = $state<number | null>(null);
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
@@ -64,8 +67,13 @@
 
 	// Check if current note matches and fresh attack requirement is satisfied
 	const isCurrentNoteHit = $derived(() => {
-		if (!tuner.state.note || !melody || !melody.length) return false;
+		if (!melody || !melody.length) return false;
 		const target = melody[currentIndex].note;
+
+		// Rests are automatically "hit"
+		if (target === null) return true;
+
+		if (!tuner.state.note) return false;
 		const expectedNote = selectedInstrument
 			? transposeForTransposition(
 					target,
@@ -124,7 +132,74 @@
 		}
 	});
 
+	// Handle rests automatically
+	$effect(() => {
+		if (melody && melody.length && currentIndex < melody.length && !showSuccess) {
+			const currentNote = melody[currentIndex].note;
+
+			// If current note is a rest (null), automatically advance after the rest duration
+			if (currentNote === null) {
+				const restLength = melody[currentIndex].length ?? 4;
+				const restDurationMs = lengthToMs(restLength, tempoBPM);
+
+				// Clear any existing timeout
+				if (restTimeoutId !== null) {
+					clearTimeout(restTimeoutId);
+				}
+
+				// Simulate held sixteenths progressing
+				simulatedHeldSixteenths = 0;
+				const updateInterval = 50; // Update every 50ms
+				const sixteenthDurationMs = lengthToMs(1, tempoBPM);
+				const updates = Math.ceil(restDurationMs / updateInterval);
+				let updateCount = 0;
+
+				const intervalId = setInterval(() => {
+					updateCount++;
+					simulatedHeldSixteenths = Math.min(
+						(updateCount * updateInterval) / sixteenthDurationMs,
+						restLength
+					);
+
+					if (updateCount >= updates) {
+						clearInterval(intervalId);
+					}
+				}, updateInterval);
+
+				// Advance to next note after rest duration
+				restTimeoutId = setTimeout(() => {
+					simulatedHeldSixteenths = null;
+					handleCorrectNote();
+					restTimeoutId = null;
+				}, restDurationMs) as unknown as number;
+
+				return () => {
+					if (restTimeoutId !== null) {
+						clearTimeout(restTimeoutId);
+						restTimeoutId = null;
+					}
+					clearInterval(intervalId);
+					simulatedHeldSixteenths = null;
+				};
+			} else {
+				// Clear simulated sixteenths when not on a rest
+				simulatedHeldSixteenths = null;
+				if (restTimeoutId !== null) {
+					clearTimeout(restTimeoutId);
+					restTimeoutId = null;
+				}
+			}
+		}
+	});
+
 	function refreshMelody() {
+		// Clear any pending rest timeout
+		if (restTimeoutId !== null) {
+			clearTimeout(restTimeoutId);
+			restTimeoutId = null;
+		}
+		simulatedHeldSixteenths = null;
+
 		const nextMelody = newMelody ? newMelody() : [];
 		// Deep copy to guarantee a new reference and avoid stale reactivity
 		melody = nextMelody.map((i) => ({ ...i }));
@@ -182,7 +257,7 @@
 </script>
 
 <div class="min-h-screen bg-off-white py-12">
-	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">
+	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-1 sm:px-4">
 		<header class="text-center">
 			<div class="flex flex-col items-center justify-center gap-2">
 				<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Sight reading game</p>
@@ -210,14 +285,14 @@
 		{#if melody}
 			<!-- Staff display -->
 			<div
-				class={`flex justify-center rounded-2xl bg-white p-8 shadow-sm transition-all duration-300 ${
+				class={`flex flex-col items-center justify-center rounded-2xl bg-white p-1 py-4 shadow-sm transition-all duration-300 ${
 					showSuccess ? 'scale-105 ring-4 ring-green-400' : ''
-				}`}
+				} sm:p-6 lg:p-8`}
 			>
 				<Staff
 					sequence={melody}
 					{currentIndex}
-					heldSixteenths={tuner.state.heldSixteenths}
+					heldSixteenths={simulatedHeldSixteenths ?? tuner.state.heldSixteenths}
 					ghostNote={requireFreshAttack && !hadPauseSinceLastSuccess
 						? null
 						: selectedInstrument
@@ -228,11 +303,11 @@
 								)
 							: tuner.state.note}
 					cents={tuner.state.cents}
-					height={150}
 					clef={selectedInstrument.clef}
 					{keySignature}
 					isCurrentNoteHit={isCurrentNoteHit()}
 					isSequenceComplete={showSuccess}
+					{barLength}
 				/>
 			</div>
 

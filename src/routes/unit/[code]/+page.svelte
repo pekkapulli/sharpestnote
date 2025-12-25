@@ -1,9 +1,4 @@
 <script lang="ts">
-	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
-	import blocksIcon from '$lib/assets/blocks_icon.png';
-	import scalesIcon from '$lib/assets/scales_icon.png';
-	import stepsIcon from '$lib/assets/steps_icon.png';
-
 	const { data } = $props();
 	const { unit, code } = $derived(data);
 	const hasExtras = $derived((unit.extraLinks?.length ?? 0) > 0);
@@ -16,32 +11,17 @@
 		<p class="mt-2 text-slate-700">{unit.description}</p>
 		<p class="mt-1 text-xs text-slate-500">Code: {code}</p>
 
-		<AudioPlayer unit={code} tracks={unit.tracks} />
-
 		<section class="mt-8">
-			<h3 class="text-sm font-semibold text-slate-800">Games</h3>
-			<div class="game-grid">
-				<a href={`/unit/${code}/blocks`} class="game-card">
-					<div class="game-card__content">
-						<img src={blocksIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-						<span class="mt-3 font-semibold text-slate-900">Blocks</span>
-						<span class="mt-1 text-sm text-slate-600">Practice random phrases</span>
-					</div>
-				</a>
-				<a href={`/unit/${code}/scales`} class="game-card">
-					<div class="game-card__content">
-						<img src={scalesIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-						<span class="mt-3 font-semibold text-slate-900">Scales</span>
-						<span class="mt-1 text-sm text-slate-600">Climb up and down the scale</span>
-					</div>
-				</a>
-				<a href={`/unit/${code}/steps`} class="game-card">
-					<div class="game-card__content">
-						<img src={stepsIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-						<span class="mt-3 font-semibold text-slate-900">Steps</span>
-						<span class="mt-1 text-sm text-slate-600">Play note pairs</span>
-					</div>
-				</a>
+			<h3 class="text-sm font-semibold text-slate-800">Pieces</h3>
+			<div class="piece-grid">
+				{#each unit.pieces as piece (piece.code)}
+					<a href={`/unit/${code}/${piece.code}`} class="piece-card">
+						<div class="piece-card__content">
+							<span class="font-semibold text-slate-900">{piece.label}</span>
+							<span class="mt-1 text-sm text-slate-600">{piece.key} {piece.mode}</span>
+						</div>
+					</a>
+				{/each}
 			</div>
 		</section>
 
@@ -79,49 +59,35 @@
 </div>
 
 <style>
-	.game-grid {
+	.piece-grid {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 		gap: 0.75rem;
 		margin-top: 0.75rem;
 	}
-	@media (min-width: 640px) {
-		.game-grid {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-			gap: 1rem;
-		}
-	}
-	.game-card {
-		position: relative;
+	.piece-card {
 		display: block;
 		border-radius: 0.75rem;
 		background: white;
 		border: 1px solid rgb(226 232 240);
 		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-		overflow: hidden;
+		padding: 1rem;
+		text-decoration: none;
 		transition:
 			transform 150ms ease,
 			box-shadow 150ms ease,
 			background-color 150ms ease;
 	}
-	.game-card::before {
-		content: '';
-		display: block;
-		padding-bottom: 100%; /* square */
-	}
-	.game-card:hover {
+	.piece-card:hover {
 		transform: translateY(-2px);
 		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 		background: rgb(248 250 252);
 	}
-	.game-card__content {
-		position: absolute;
-		inset: 0;
+	.piece-card__content {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 0.75rem;
 		text-align: center;
 	}
 </style>
