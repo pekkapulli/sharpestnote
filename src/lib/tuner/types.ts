@@ -14,6 +14,7 @@ export interface TunerState {
 	amplitude: number;
 	isNoteActive: boolean;
 	heldSixteenths: number;
+	spectrum: Uint8Array | null;
 }
 
 export interface TunerOptions {

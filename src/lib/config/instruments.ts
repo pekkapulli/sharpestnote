@@ -12,6 +12,9 @@ export interface DetectionConfig {
 	// Onset detection settings
 	onsetRefractoryMs: number; // minimum time between onsets (prevents false retriggering)
 	onsetMinAmplitude: number; // minimum amplitude for onset to trigger
+	// Gentle note end detection
+	endHoldMs: number; // how long low amplitude/pitch loss must persist
+	endMinAmplitudeRatio: number; // relative to onsetMinAmplitude
 }
 
 export interface InstrumentConfig {
@@ -35,7 +38,9 @@ export const genericDetectionConfig: DetectionConfig = {
 	burstRequiresDecay: false,
 	burstMinDecayRatio: 0.7,
 	onsetRefractoryMs: 100, // 100ms cooldown prevents vibrato/tremolo retriggering
-	onsetMinAmplitude: 0.02 // minimum amplitude for onset
+	onsetMinAmplitude: 0.02, // minimum amplitude for onset
+	endHoldMs: 150, // require ~150ms of low energy before ending
+	endMinAmplitudeRatio: 0.3 // end threshold = onsetMinAmplitude * ratio
 };
 
 export const instrumentConfigs: InstrumentConfig[] = [

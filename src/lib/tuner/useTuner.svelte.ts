@@ -31,6 +31,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
 	const fluxHistory: number[] = []; // Track flux for dynamic threshold
+	let spectrumBuffer: Uint8Array | null = null; // Latest magnitude spectrum (byte values)
 
 	const state = $state<TunerState>({
 		isListening: false,
@@ -42,7 +43,8 @@ export function createTuner(options: TunerOptions = {}) {
 		selectedDeviceId: null,
 		amplitude: 0,
 		isNoteActive: false,
-		heldSixteenths: 0
+		heldSixteenths: 0,
+		spectrum: null
 	});
 
 	const a4 = $state({ value: options.a4 ?? 442 });
@@ -67,6 +69,7 @@ export function createTuner(options: TunerOptions = {}) {
 	let autoGainElapsed = 0;
 	let previousSpectrum: Float32Array | null = null; // for spectral flux calculation
 	let lastOnsetTime = 0; // timestamp of last detected onset (for refractory period)
+	let endCandidateStart: number | null = null; // when a potential note end started
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
@@ -126,6 +129,8 @@ export function createTuner(options: TunerOptions = {}) {
 		state.heldSixteenths = 0;
 		lastOnsetTime = 0;
 		previousSpectrum = null;
+		spectrumBuffer = null;
+		state.spectrum = null;
 
 		teardownAudioChain(audioChain);
 		audioChain = null;
@@ -156,6 +161,9 @@ export function createTuner(options: TunerOptions = {}) {
 		const fftData = new Uint8Array(analyser.frequencyBinCount);
 		analyser.getByteFrequencyData(fftData);
 		const spectrum = new Float32Array(fftData);
+		// Keep a copy for visualization (bytes 0-255)
+		spectrumBuffer = new Uint8Array(fftData);
+		state.spectrum = spectrumBuffer;
 
 		state.amplitude = amplitude;
 		const instrumentType = untrack(() => instrument.value as InstrumentKind);
@@ -199,10 +207,23 @@ export function createTuner(options: TunerOptions = {}) {
 			// console.log(`Onset detected: flux=${spectralFlux.toFixed(4)}, threshold=${dynamicFluxThreshold.toFixed(4)}, freq=${freq.toFixed(1)}`);
 		}
 
-		// Note stays active as long as amplitude is above minimum
-		// (We're not trying to detect note ends anymore)
-		if (state.isNoteActive && amplitude < tuning.onsetMinAmplitude * 0.3) {
-			state.isNoteActive = false;
+		// Gentle note end hysteresis: require low amplitude or lost pitch
+		// sustained for a short period before ending the note
+		if (state.isNoteActive) {
+			const lowAmplitude = amplitude < tuning.onsetMinAmplitude * tuning.endMinAmplitudeRatio;
+			const pitchLost = !(freq > 0 && isFrequencyStable(freq, frequencyHistory));
+			const endCondition = lowAmplitude || pitchLost;
+
+			if (endCondition) {
+				if (endCandidateStart === null) endCandidateStart = now;
+				const elapsed = now - endCandidateStart;
+				if (elapsed >= tuning.endHoldMs) {
+					state.isNoteActive = false;
+					endCandidateStart = null;
+				}
+			} else {
+				endCandidateStart = null;
+			}
 		}
 
 		previousSpectrum = new Float32Array(spectrum);

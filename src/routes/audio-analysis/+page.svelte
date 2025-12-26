@@ -1,0 +1,242 @@
+<script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
+	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
+	import { createTuner } from '$lib/tuner/useTuner.svelte';
+	import { DEFAULT_A4 } from '$lib/tuner/tune';
+
+	const HISTORY_MS = 10_000;
+	const SAMPLE_INTERVAL_MS = 33; // ~30fps sampling for the history buffer
+
+	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
+
+	let canvasEl: HTMLCanvasElement | null = null;
+	let ctx: CanvasRenderingContext2D | null = null;
+	let animationId: number | null = null;
+	let sampleTimer: number | null = null;
+	let resizeObserver: ResizeObserver | null = null;
+
+	let history: {
+		t: number;
+		amp: number;
+		spectrum: Uint8Array | null;
+		onset: boolean;
+		active: boolean;
+	}[] = [];
+	let prevNoteActive = false;
+
+	function startSampling() {
+		stopSampling();
+		sampleTimer = window.setInterval(() => {
+			const now = performance.now();
+			const isActive = tuner.state.isNoteActive;
+			const onset = isActive && !prevNoteActive;
+			prevNoteActive = isActive;
+			history.push({
+				t: now,
+				amp: tuner.state.amplitude,
+				spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
+				onset,
+				active: isActive
+			});
+			history = history.filter((h) => h.t >= now - HISTORY_MS);
+		}, SAMPLE_INTERVAL_MS);
+	}
+
+	function stopSampling() {
+		if (sampleTimer !== null) {
+			clearInterval(sampleTimer);
+			sampleTimer = null;
+		}
+		prevNoteActive = false;
+	}
+
+	function draw() {
+		if (!ctx || !canvasEl) return;
+		const c = ctx;
+		const canvas = canvasEl;
+		const now = performance.now();
+		history = history.filter((h) => h.t >= now - HISTORY_MS);
+
+		const { width, height } = canvas;
+		c.clearRect(0, 0, width, height);
+
+		// Dark base to let the heatmap and white line pop
+		c.fillStyle = '#0b1226';
+		c.fillRect(0, 0, width, height);
+
+		if (!history.length) {
+			c.fillStyle = '#cbd5e1';
+			c.font = '12px sans-serif';
+			c.fillText('No audio yet...', 12, 20);
+			scheduleNextFrame();
+			return;
+		}
+
+		const oldest = now - HISTORY_MS;
+		const paddingTop = 12;
+		const paddingBottom = 32;
+		const heatmapHeight = height - paddingTop - paddingBottom;
+		const binCount = history.find((h) => h.spectrum)?.spectrum?.length ?? 0;
+		const topMarkY = Math.max(6, paddingTop * 0.5);
+
+		// Spectrum heatmap timeline
+		if (binCount > 0) {
+			for (let i = 0; i < history.length; i++) {
+				const sample = history[i];
+				if (!sample.spectrum) continue;
+				const nextT = history[i + 1]?.t ?? now;
+				const x = ((sample.t - oldest) / HISTORY_MS) * width;
+				const xNext = ((nextT - oldest) / HISTORY_MS) * width;
+				const columnWidth = Math.max(1, Math.ceil(xNext - x));
+
+				for (let b = 0; b < binCount; b++) {
+					const mag = sample.spectrum[b];
+					const y = paddingTop + heatmapHeight - ((b + 1) / binCount) * heatmapHeight;
+					const binHeight = Math.ceil(heatmapHeight / binCount) + 1;
+					c.fillStyle = magnitudeToColor(mag);
+					c.fillRect(x, y, columnWidth, binHeight);
+				}
+			}
+		}
+
+		// Amplitude trace overlaid on the heatmap
+		const ampMax = Math.max(...history.map((h) => h.amp), 0.001);
+		const yScale = heatmapHeight / ampMax;
+		const baseline = paddingTop + heatmapHeight;
+
+		c.strokeStyle = '#ffffff';
+		c.lineWidth = 2;
+		c.beginPath();
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = baseline - h.amp * yScale;
+			if (idx === 0) {
+				c.moveTo(x, y);
+			} else {
+				c.lineTo(x, y);
+			}
+		});
+		c.stroke();
+
+		// Note onsets as dots along the top edge
+		c.fillStyle = '#fbbf24';
+		history.forEach((h) => {
+			if (!h.onset) return;
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			c.beginPath();
+			c.arc(x, topMarkY, 5, 0, Math.PI * 2);
+			c.fill();
+		});
+
+		// Active note line along the top edge
+		c.strokeStyle = '#fbbf24';
+		c.lineWidth = 2;
+		c.beginPath();
+		for (let i = 0; i < history.length; i++) {
+			const h = history[i];
+			const nextT = history[i + 1]?.t ?? now;
+			if (!h.active) continue;
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const xNext = ((nextT - oldest) / HISTORY_MS) * width;
+			c.moveTo(x, topMarkY);
+			c.lineTo(xNext, topMarkY);
+		}
+		c.stroke();
+
+		scheduleNextFrame();
+	}
+
+	function magnitudeToColor(mag: number) {
+		const t = Math.pow(Math.min(Math.max(mag / 255, 0), 1), 0.6); // slight curve to lift quiet bins
+		const start = { r: 12, g: 30, b: 73 }; // dark blue
+		const end = { r: 239, g: 68, b: 68 }; // red
+		const r = Math.round(start.r + (end.r - start.r) * t);
+		const g = Math.round(start.g + (end.g - start.g) * t);
+		const b = Math.round(start.b + (end.b - start.b) * t);
+		return `rgb(${r}, ${g}, ${b})`;
+	}
+
+	function scheduleNextFrame() {
+		animationId = requestAnimationFrame(draw);
+	}
+
+	function handleDeviceChange(deviceId: string) {
+		tuner.state.selectedDeviceId = deviceId;
+	}
+
+	onMount(() => {
+		if (canvasEl) {
+			ctx = canvasEl.getContext('2d');
+		}
+
+		resizeObserver = new ResizeObserver(() => {
+			const dpr = devicePixelRatio || 1;
+			if (canvasEl) {
+				canvasEl.width = canvasEl.clientWidth * dpr;
+				canvasEl.height = 280 * dpr;
+			}
+		});
+		if (canvasEl) resizeObserver.observe(canvasEl);
+
+		tuner.checkSupport();
+		tuner.refreshDevices();
+		startSampling();
+		scheduleNextFrame();
+	});
+
+	onDestroy(() => {
+		stopSampling();
+		if (animationId) cancelAnimationFrame(animationId);
+		if (resizeObserver) {
+			if (canvasEl) resizeObserver.unobserve(canvasEl);
+		}
+		tuner.destroy();
+	});
+</script>
+
+<div class="min-h-screen bg-off-white py-12">
+	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">
+		<header class="flex flex-col gap-2">
+			<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Audio analysis</p>
+			<h1 class="text-2xl font-semibold">Incoming audio (last 10s)</h1>
+			<p class="text-sm text-slate-700">
+				Microphone input visualized in near-real-time as a running spectrum heatmap with a white
+				amplitude trace over the last ten seconds.
+			</p>
+		</header>
+
+		<div class="flex flex-col gap-4">
+			<div class="rounded-2xl bg-white p-4 shadow-sm">
+				<div class="mb-2 flex items-center justify-between">
+					<p class="text-sm font-semibold text-slate-700">
+						Spectrum heatmap & amplitude (last 10s)
+					</p>
+					{#if tuner.state.note}
+						<span class="rounded-full bg-dark-blue px-3 py-1 text-xs font-semibold text-white">
+							{tuner.state.note}
+						</span>
+					{:else}
+						<span class="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+							>—</span
+						>
+					{/if}
+				</div>
+				<canvas bind:this={canvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
+			</div>
+			<div class="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
+				<MicrophoneSelector
+					tunerState={tuner.state}
+					onStartListening={tuner.start}
+					onDeviceChange={handleDeviceChange}
+				/>
+				<button
+					class={`rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow ${tuner.state.isListening ? 'bg-slate-600' : 'bg-dark-blue'}`}
+					onclick={tuner.state.isListening ? tuner.stop : tuner.start}
+					type="button"
+				>
+					{tuner.state.isListening ? 'Stop' : 'Start'}
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
