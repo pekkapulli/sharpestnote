@@ -6,7 +6,7 @@
 		y: number;
 		accidental?: { symbol: string; yOffset: number } | null;
 		length?: 1 | 2 | 4 | 8 | 16 | null;
-		heldSixteenths?: number | null;
+		progress?: number | null;
 		fill?: string;
 		stroke?: string;
 		strokeWidth?: number;
@@ -19,7 +19,7 @@
 		y,
 		accidental = null,
 		length = null,
-		heldSixteenths = null,
+		progress = null,
 		fill = 'black',
 		stroke = 'none',
 		strokeWidth = 0,
@@ -53,13 +53,13 @@
 			{opacity}
 		/>
 	{/if}
-	{#if heldSixteenths !== null && length !== null}
+	{#if progress !== null && length !== null}
 		<!-- Note hold duration indicator -->
 		<rect
 			class="note"
 			x={x - lineSpacing}
 			y={y + lineSpacing}
-			width={Math.min((heldSixteenths / length) * lineSpacing * 2, lineSpacing * 2)}
+			width={Math.min((progress / length) * lineSpacing * 2, lineSpacing * 2)}
 			height={lineSpacing / 4}
 			{fill}
 			font-size={lineSpacing * 1.5}

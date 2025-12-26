@@ -36,12 +36,8 @@
 	});
 
 	function getRequiredHoldLength(length: NoteLength): number {
-		// Sustaining instruments can hold notes full length
-		if (selectedInstrument?.sustaining) {
-			return Math.ceil(length * 0.8);
-		}
-		// Plucked/non-sustained instruments: require only 50% of note length
-		return Math.ceil(length * 0.3);
+		// Always require just 1 sixteenth for success
+		return 1;
 	}
 
 	let melody = $state<MelodyItem[] | null>(null);
@@ -51,10 +47,13 @@
 	let requireFreshAttack = $state(false);
 	let hadPauseSinceLastSuccess = $state(true);
 	let lastSuccessNote = $state<string | null>(null);
+	let currentNoteSuccess = $state(false);
 	const MIN_INACTIVE_MS = 120;
 	let inactiveSince = $state<number | null>(null);
-	let restTimeoutId: number | null = null;
+	let animationTimeoutId: number | null = null;
+	let animationIntervalId: number | null = null;
 	let simulatedHeldSixteenths = $state<number | null>(null);
+	let animatingNoteIndex = $state<number | null>(null);
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
@@ -111,6 +110,10 @@
 	$effect(() => {
 		if (tuner.state.note && melody && melody.length && !showSuccess) {
 			const target = melody[currentIndex].note;
+
+			// Skip if current note is a rest
+			if (target === null) return;
+
 			const expectedNote = selectedInstrument
 				? transposeForTransposition(
 						target,
@@ -124,9 +127,35 @@
 					return; // Don't count this note until there's a fresh attack
 				}
 
-				const requiredLength = getRequiredHoldLength(melody[currentIndex].length ?? 4);
-				if (tuner.state.heldSixteenths >= requiredLength) {
-					handleCorrectNote();
+				// Only require 1 sixteenth to be held
+				if (tuner.state.heldSixteenths >= 1) {
+					// Mark as success but continue animating
+					markNoteAsSuccess();
+				}
+			}
+
+			// Check if player is playing the NEXT note while current one is still animating
+			if (currentNoteSuccess && currentIndex < melody.length - 1) {
+				const nextTarget = melody[currentIndex + 1].note;
+				if (nextTarget !== null) {
+					const expectedNextNote = selectedInstrument
+						? transposeForTransposition(
+								nextTarget,
+								selectedInstrument.transpositionSemitones,
+								keySignature.preferredAccidental
+							)
+						: nextTarget;
+
+					if (
+						expectedNextNote &&
+						tuner.state.note === expectedNextNote &&
+						hadPauseSinceLastSuccess
+					) {
+						// Player hit the next note with a fresh attack - advance immediately
+						if (tuner.state.heldSixteenths >= 1) {
+							advanceToNextNote();
+						}
+					}
 				}
 			}
 		}
@@ -142,9 +171,14 @@
 				const restLength = melody[currentIndex].length ?? 4;
 				const restDurationMs = lengthToMs(restLength, tempoBPM);
 
-				// Clear any existing timeout
-				if (restTimeoutId !== null) {
-					clearTimeout(restTimeoutId);
+				animatingNoteIndex = currentIndex;
+
+				// Clear any existing animation
+				if (animationTimeoutId !== null) {
+					clearTimeout(animationTimeoutId);
+				}
+				if (animationIntervalId !== null) {
+					clearInterval(animationIntervalId);
 				}
 
 				// Simulate held sixteenths progressing
@@ -154,7 +188,7 @@
 				const updates = Math.ceil(restDurationMs / updateInterval);
 				let updateCount = 0;
 
-				const intervalId = setInterval(() => {
+				animationIntervalId = setInterval(() => {
 					updateCount++;
 					simulatedHeldSixteenths = Math.min(
 						(updateCount * updateInterval) / sixteenthDurationMs,
@@ -162,43 +196,122 @@
 					);
 
 					if (updateCount >= updates) {
-						clearInterval(intervalId);
+						clearInterval(animationIntervalId!);
+						animationIntervalId = null;
 					}
-				}, updateInterval);
+				}, updateInterval) as unknown as number;
 
 				// Advance to next note after rest duration
-				restTimeoutId = setTimeout(() => {
+				animationTimeoutId = setTimeout(() => {
 					simulatedHeldSixteenths = null;
+					animatingNoteIndex = null;
 					handleCorrectNote();
-					restTimeoutId = null;
+					animationTimeoutId = null;
 				}, restDurationMs) as unknown as number;
 
 				return () => {
-					if (restTimeoutId !== null) {
-						clearTimeout(restTimeoutId);
-						restTimeoutId = null;
+					if (animationTimeoutId !== null) {
+						clearTimeout(animationTimeoutId);
+						animationTimeoutId = null;
 					}
-					clearInterval(intervalId);
+					if (animationIntervalId !== null) {
+						clearInterval(animationIntervalId);
+						animationIntervalId = null;
+					}
 					simulatedHeldSixteenths = null;
+					animatingNoteIndex = null;
 				};
 			} else {
-				// Clear simulated sixteenths when not on a rest
-				simulatedHeldSixteenths = null;
-				if (restTimeoutId !== null) {
-					clearTimeout(restTimeoutId);
-					restTimeoutId = null;
+				// Don't clear animation if we're currently animating a successful note
+				if (animatingNoteIndex !== currentIndex) {
+					simulatedHeldSixteenths = null;
+					animatingNoteIndex = null;
 				}
 			}
 		}
 	});
 
-	function refreshMelody() {
-		// Clear any pending rest timeout
-		if (restTimeoutId !== null) {
-			clearTimeout(restTimeoutId);
-			restTimeoutId = null;
+	function markNoteAsSuccess() {
+		if (currentNoteSuccess) return; // Already marked as success
+
+		currentNoteSuccess = true;
+		lastSuccessNote = tuner.state.note;
+		requireFreshAttack = true;
+		hadPauseSinceLastSuccess = false;
+
+		// Reset hold duration so player must start a fresh note
+		tuner.resetHoldDuration();
+
+		// Start animation simulation for the successfully detected note
+		if (melody) {
+			const noteLength = melody[currentIndex].length ?? 4;
+			const noteDurationMs = lengthToMs(noteLength, tempoBPM);
+
+			animatingNoteIndex = currentIndex;
+
+			// Clear any existing animation
+			if (animationTimeoutId !== null) {
+				clearTimeout(animationTimeoutId);
+				animationTimeoutId = null;
+			}
+			if (animationIntervalId !== null) {
+				clearInterval(animationIntervalId);
+				animationIntervalId = null;
+			}
+
+			// Start animation from 0
+			simulatedHeldSixteenths = 0;
+			const updateInterval = 50; // Update every 50ms
+			const sixteenthDurationMs = lengthToMs(1, tempoBPM);
+			const totalUpdates = Math.ceil(noteDurationMs / updateInterval);
+			let updateCount = 0;
+
+			animationIntervalId = setInterval(() => {
+				updateCount++;
+				simulatedHeldSixteenths = Math.min(
+					(updateCount * updateInterval) / sixteenthDurationMs,
+					noteLength
+				);
+
+				if (updateCount >= totalUpdates) {
+					clearInterval(animationIntervalId!);
+					animationIntervalId = null;
+					// Animation complete - advance to next note
+					advanceToNextNote();
+				}
+			}, updateInterval) as unknown as number;
+		}
+	}
+
+	function advanceToNextNote() {
+		// Clear animation state
+		if (animationIntervalId !== null) {
+			clearInterval(animationIntervalId);
+			animationIntervalId = null;
+		}
+		if (animationTimeoutId !== null) {
+			clearTimeout(animationTimeoutId);
+			animationTimeoutId = null;
 		}
 		simulatedHeldSixteenths = null;
+		animatingNoteIndex = null;
+
+		// Advance
+		handleCorrectNote();
+	}
+
+	function refreshMelody() {
+		// Clear any pending animation
+		if (animationTimeoutId !== null) {
+			clearTimeout(animationTimeoutId);
+			animationTimeoutId = null;
+		}
+		if (animationIntervalId !== null) {
+			clearInterval(animationIntervalId);
+			animationIntervalId = null;
+		}
+		simulatedHeldSixteenths = null;
+		animatingNoteIndex = null;
 
 		const nextMelody = newMelody ? newMelody() : [];
 		// Deep copy to guarantee a new reference and avoid stale reactivity
@@ -208,23 +321,15 @@
 		requireFreshAttack = false;
 		hadPauseSinceLastSuccess = true;
 		lastSuccessNote = null;
+		currentNoteSuccess = false;
 	}
 
 	function handleCorrectNote() {
-		// Store the note that just succeeded
-		lastSuccessNote = tuner.state.note;
-
-		// Reset hold duration so player must start a fresh note
-		tuner.resetHoldDuration();
-
-		// Require a fresh attack on the next note
-		requireFreshAttack = true;
-		hadPauseSinceLastSuccess = false;
-
 		// Advance within melody first
 		if (melody) {
 			if (currentIndex < melody.length - 1) {
 				currentIndex += 1;
+				currentNoteSuccess = false; // Reset for next note
 				return;
 			}
 		}
@@ -292,7 +397,8 @@
 				<Staff
 					sequence={melody}
 					{currentIndex}
-					heldSixteenths={simulatedHeldSixteenths ?? tuner.state.heldSixteenths}
+					animatingIndex={animatingNoteIndex}
+					animationProgress={simulatedHeldSixteenths}
 					ghostNote={requireFreshAttack && !hadPauseSinceLastSuccess
 						? null
 						: selectedInstrument

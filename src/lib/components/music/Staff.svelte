@@ -17,12 +17,14 @@
 		sequence?: SequenceItem[];
 		// Index into `notes` indicating the currently active target note.
 		currentIndex?: number;
+		// Index of the note currently being animated (for held sixteenths display)
+		animatingIndex?: number | null;
+		animationProgress?: number | null;
 		ghostNote?: string | null;
 		cents?: number | null;
 		clef?: Clef;
 		keySignature: KeySignature;
 		mode?: Mode;
-		heldSixteenths?: number | null;
 		isCurrentNoteHit?: boolean;
 		isSequenceComplete?: boolean;
 		barLength?: number;
@@ -33,7 +35,8 @@
 	const {
 		sequence = [],
 		currentIndex = 0,
-		heldSixteenths = null,
+		animatingIndex = null,
+		animationProgress = null,
 		ghostNote = null,
 		cents = null,
 		clef = 'treble',
@@ -190,18 +193,18 @@
 								>
 									{lengthRestMap[restLength]}
 								</text>
-								{#if i === currentIndex && !isSequenceComplete && isHit && heldSixteenths !== null}
+								{#if i === (animatingIndex ?? currentIndex) && !isSequenceComplete && isHit && animationProgress !== null}
 									<!-- Rest hold duration indicator -->
 									<rect
 										class="note"
 										x={x - lineSpacing}
 										y={centerY + lineSpacing * 1.5}
 										width={Math.min(
-											(heldSixteenths / restLength) * lineSpacing * 2,
+											(animationProgress / restLength) * lineSpacing * 2,
 											lineSpacing * 2
 										)}
 										height={lineSpacing / 4}
-										fill={isHit ? '#16a34a' : 'black'}
+										fill="#16a34a"
 										font-size={lineSpacing * 1.5}
 										text-anchor="middle"
 									/>
@@ -213,7 +216,9 @@
 								y={centerY - (rn.position ?? 0) * lineSpacing}
 								accidental={rn.accidental}
 								length={sequence?.[i]?.length}
-								fill={i < currentIndex || (isSequenceComplete && i === currentIndex)
+								fill={i < currentIndex ||
+								(isSequenceComplete && i === currentIndex) ||
+								i === animatingIndex
 									? '#16a34a'
 									: i === currentIndex
 										? isHit
@@ -225,9 +230,7 @@
 									: 'none'}
 								strokeWidth={i < currentIndex || (isSequenceComplete && i === currentIndex) ? 2 : 0}
 								{lineSpacing}
-								heldSixteenths={i === currentIndex && !isSequenceComplete && isHit
-									? heldSixteenths
-									: null}
+								progress={i === animatingIndex && !isSequenceComplete ? animationProgress : null}
 							/>
 						{/if}
 					{/each}
