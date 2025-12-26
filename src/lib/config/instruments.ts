@@ -9,6 +9,9 @@ export interface DetectionConfig {
 	highFreqBurstFrameThreshold: number;
 	burstRequiresDecay: boolean;
 	burstMinDecayRatio: number;
+	// Onset detection settings
+	onsetRefractoryMs: number; // minimum time between onsets (prevents false retriggering)
+	onsetMinAmplitude: number; // minimum amplitude for onset to trigger
 }
 
 export interface InstrumentConfig {
@@ -30,7 +33,9 @@ export const genericDetectionConfig: DetectionConfig = {
 	highFreqBurstThreshold: 0.8,
 	highFreqBurstFrameThreshold: 2,
 	burstRequiresDecay: false,
-	burstMinDecayRatio: 0.7
+	burstMinDecayRatio: 0.7,
+	onsetRefractoryMs: 100, // 100ms cooldown prevents vibrato/tremolo retriggering
+	onsetMinAmplitude: 0.02 // minimum amplitude for onset
 };
 
 export const instrumentConfigs: InstrumentConfig[] = [

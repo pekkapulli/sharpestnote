@@ -8,6 +8,16 @@ export function calculateAmplitude(data: Float32Array): number {
 	return Math.sqrt(sum / data.length);
 }
 
+/**
+ * High-frequency weighted, positive-only spectral flux for onset detection.
+ *
+ * Key improvements over basic flux:
+ * - Only counts POSITIVE changes (energy increases = onsets)
+ * - Weights higher frequencies more heavily (attacks inject energy into upper harmonics first)
+ * - Ignores vibrato, tremolo, and slow timbral drift
+ *
+ * This makes repeat notes pop out clearly even when previous notes are sustaining.
+ */
 export function calculateSpectralFlux(
 	currentSpectrum: Float32Array,
 	previousSpectrum: Float32Array | null
@@ -16,24 +26,24 @@ export function calculateSpectralFlux(
 		return 0;
 	}
 
-	const normalize = (spec: Float32Array) => {
-		let sum = 0;
-		for (let i = 0; i < spec.length; i++) {
-			sum += spec[i] * spec[i];
-		}
-		const norm = Math.sqrt(sum);
-		return norm > 0 ? Array.from(spec).map((v) => v / norm) : Array.from(spec);
-	};
+	const length = currentSpectrum.length;
+	let weightedFlux = 0;
 
-	const currNorm = normalize(currentSpectrum);
-	const prevNorm = normalize(previousSpectrum);
+	// Weight higher frequencies more heavily
+	// Upper harmonics show attack transients more clearly
+	for (let i = 0; i < length; i++) {
+		// Frequency weight: emphasize upper bins
+		// Linear ramp from 1.0 at bin 0 to 3.0 at highest bin
+		const freqWeight = 1.0 + (i / length) * 2.0;
 
-	let squaredDist = 0;
-	for (let i = 0; i < currNorm.length; i++) {
-		const diff = currNorm[i] - prevNorm[i];
-		squaredDist += diff * diff;
+		// Only count positive changes (energy increases)
+		const increase = Math.max(0, currentSpectrum[i] - previousSpectrum[i]);
+
+		weightedFlux += freqWeight * increase;
 	}
-	return Math.sqrt(squaredDist);
+
+	// Normalize by number of bins to keep values comparable
+	return weightedFlux / length;
 }
 
 export function calculateHighFrequencyBurst(
@@ -78,4 +88,34 @@ export function getDetectionConfig(
 	return instrument === 'generic'
 		? genericDetectionConfig
 		: (instrumentMap[instrument]?.detectionConfig ?? genericDetectionConfig);
+}
+
+/**
+ * Calculate dynamic onset threshold based on recent flux statistics.
+ *
+ * Uses median + adaptive factor to handle varying signal levels and background noise.
+ * This prevents false positives while remaining sensitive to actual onsets.
+ *
+ * @param fluxHistory Recent flux values
+ * @param minHistorySize Minimum history size before using dynamic threshold
+ * @param multiplier How many times the median to use as threshold (typically 2-4)
+ */
+export function calculateDynamicThreshold(
+	fluxHistory: number[],
+	minHistorySize: number = 10,
+	multiplier: number = 3.0
+): number {
+	if (fluxHistory.length < minHistorySize) {
+		// Not enough history, use a reasonable default
+		return 0.02;
+	}
+
+	// Use median instead of mean to be robust to outliers (actual onsets)
+	const sorted = [...fluxHistory].sort((a, b) => a - b);
+	const mid = Math.floor(sorted.length / 2);
+	const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+
+	// Threshold = median * multiplier
+	// Add small floor to prevent triggering on complete silence
+	return Math.max(0.01, median * multiplier);
 }

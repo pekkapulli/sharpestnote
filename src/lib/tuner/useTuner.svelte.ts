@@ -9,7 +9,7 @@ import {
 } from '$lib/tuner/tune';
 import {
 	calculateAmplitude,
-	calculateHighFrequencyBurst,
+	calculateDynamicThreshold,
 	calculateSpectralFlux,
 	getDetectionConfig,
 	isFrequencyStable
@@ -18,7 +18,6 @@ import { createAudioChain, teardownAudioChain, type AudioChain } from './audioGr
 import { genericDetectionConfig, instrumentMap } from '$lib/config/instruments';
 import { lengthToMs } from '$lib/config/melody';
 import type { InstrumentKind, TunerOptions, TunerState } from './types';
-
 export type { InstrumentKind, TunerOptions, TunerState } from './types';
 
 export function createTuner(options: TunerOptions = {}) {
@@ -31,6 +30,7 @@ export function createTuner(options: TunerOptions = {}) {
 	let pendingNote: string | null = null;
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
+	const fluxHistory: number[] = []; // Track flux for dynamic threshold
 
 	const state = $state<TunerState>({
 		isListening: false,
@@ -65,12 +65,8 @@ export function createTuner(options: TunerOptions = {}) {
 	let heldNote: string | null = null;
 	let smoothedAmplitude = 0;
 	let autoGainElapsed = 0;
-	let peakAmplitude = 0;
-	let amplitudeAtDropStart = 0; // track amplitude when drop begins
 	let previousSpectrum: Float32Array | null = null; // for spectral flux calculation
-	let highSpectralFluxFrames = 0;
-	let amplitudeDropFrames = 0; // count consecutive frames with amplitude drop
-	let highFreqBurstFrames = 0; // count frames with high-frequency burst (bow scrape/attack noise)
+	let lastOnsetTime = 0; // timestamp of last detected onset (for refractory period)
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
@@ -128,11 +124,7 @@ export function createTuner(options: TunerOptions = {}) {
 		holdMs = 0;
 		heldNote = null;
 		state.heldSixteenths = 0;
-		peakAmplitude = 0;
-		amplitudeAtDropStart = 0;
-		highSpectralFluxFrames = 0;
-		amplitudeDropFrames = 0;
-		highFreqBurstFrames = 0;
+		lastOnsetTime = 0;
 		previousSpectrum = null;
 
 		teardownAudioChain(audioChain);
@@ -169,125 +161,51 @@ export function createTuner(options: TunerOptions = {}) {
 		const instrumentType = untrack(() => instrument.value as InstrumentKind);
 		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
 
-		// Track frequency and amplitude history
-		frequencyHistory.push(freq);
-		amplitudeHistory.push(amplitude);
-		if (frequencyHistory.length > 20) frequencyHistory.shift();
-		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
-
-		// Calculate spectral flux (how much the spectrum is changing)
+		// Calculate high-frequency weighted, positive-only spectral flux for onset detection
 		const spectralFlux = calculateSpectralFlux(spectrum, previousSpectrum);
 
-		const currentActive = state.isNoteActive;
+		// Track frequency, amplitude, and flux history
+		frequencyHistory.push(freq);
+		amplitudeHistory.push(amplitude);
+		fluxHistory.push(spectralFlux);
+		if (frequencyHistory.length > 20) frequencyHistory.shift();
+		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
+		if (fluxHistory.length > 30) fluxHistory.shift(); // Keep more for statistical reliability
 
-		// Detect high-frequency burst (bow scrape/attack noise = bow interacting with string)
-		const highFreqBurst = calculateHighFrequencyBurst(spectrum, previousSpectrum);
-		if (highFreqBurst > tuning.highFreqBurstThreshold) {
-			highFreqBurstFrames++;
-			// if (highFreqBurstFrames === 1) {
-			// 	console.log(
-			// 		`High-freq burst detected: ${highFreqBurst.toFixed(3)} (threshold: ${tuning.highFreqBurstThreshold}), freq: ${freq.toFixed(1)}, amp: ${amplitude.toFixed(4)}`
-			// 	);
-			// }
-		} else {
-			// if (highFreqBurstFrames > 0) {
-			// 	console.log(
-			// 		`Burst ended after ${highFreqBurstFrames} frames, burst value was ${highFreqBurst.toFixed(3)}`
-			// 	);
-			// }
-			highFreqBurstFrames = 0;
+		// Dynamic threshold adapts to signal level and background noise
+		const dynamicFluxThreshold = calculateDynamicThreshold(fluxHistory, 10, 3.0);
+
+		// ============================================================================
+		// ONSET DETECTION
+		// ============================================================================
+		// Professional approach: detect new note starts, don't worry about endings
+		// - Spectral flux spike = sudden energy increase (especially in upper harmonics)
+		// - Refractory period prevents false retriggering from vibrato/tremolo
+		// - Works even when previous notes are sustaining
+
+		const timeSinceLastOnset = now - lastOnsetTime;
+		const canTriggerOnset = timeSinceLastOnset > tuning.onsetRefractoryMs;
+
+		// Onset = flux spike above dynamic threshold + minimum amplitude + stable pitch
+		const meetsFrequency = freq > 0 && isFrequencyStable(freq, frequencyHistory);
+		const hasFluxSpike = spectralFlux > dynamicFluxThreshold;
+		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
+
+		const onsetDetected = canTriggerOnset && hasFluxSpike && hasMinAmplitude && meetsFrequency;
+
+		if (onsetDetected) {
+			lastOnsetTime = now;
+			state.isNoteActive = true;
+			// console.log(`Onset detected: flux=${spectralFlux.toFixed(4)}, threshold=${dynamicFluxThreshold.toFixed(4)}, freq=${freq.toFixed(1)}`);
 		}
-		const hasHighFreqBurst = highFreqBurstFrames >= tuning.highFreqBurstFrameThreshold;
-		const burstEndsNote = tuning.burstRequiresDecay
-			? hasHighFreqBurst &&
-				peakAmplitude > 0 &&
-				amplitude / peakAmplitude < tuning.burstMinDecayRatio
-			: hasHighFreqBurst;
-		// if (burstEndsNote && currentActive) {
-		// 	console.log(`High-freq burst triggered note end (${highFreqBurstFrames} frames)`);
-		// }
+
+		// Note stays active as long as amplitude is above minimum
+		// (We're not trying to detect note ends anymore)
+		if (state.isNoteActive && amplitude < tuning.onsetMinAmplitude * 0.3) {
+			state.isNoteActive = false;
+		}
 
 		previousSpectrum = new Float32Array(spectrum);
-
-		// Use hysteresis so small reverbs/room noise don't require amplitude to hit zero
-		const activateThreshold = amplitudeThreshold.value;
-		const meetsFrequency = freq > 0 && isFrequencyStable(freq, frequencyHistory);
-
-		// Track peak amplitude for decay detection
-		if (amplitude > peakAmplitude) {
-			peakAmplitude = amplitude;
-		}
-
-		// Detect high spectral flux (spectrum changing significantly = note ending or changing)
-		const hasHighSpectralFlux = spectralFlux > tuning.spectralFluxThreshold;
-		if (hasHighSpectralFlux) {
-			highSpectralFluxFrames++;
-		} else {
-			highSpectralFluxFrames = 0;
-		}
-		const hasSpectralChange = highSpectralFluxFrames >= tuning.highFluxFrameThreshold;
-
-		// Detect sustained amplitude drop (bow lifting off)
-		// First, check if amplitude is currently dropping
-		const isAmplitudeDropping =
-			amplitudeHistory.length >= 2 && amplitude < amplitudeHistory[amplitudeHistory.length - 2];
-
-		if (isAmplitudeDropping) {
-			amplitudeDropFrames++;
-			// Record amplitude when drop started (first frame of drop)
-			if (amplitudeDropFrames === 1) {
-				amplitudeAtDropStart = amplitude;
-			}
-		} else {
-			// Amplitude is not dropping, so check: did it recover?
-			// If we had a drop and now it's NOT recovering back up, it's permanent
-			if (amplitudeDropFrames > 0) {
-				// Drop was detected but amplitude isn't dropping anymore
-				// Check if it stayed low (didn't recover much)
-				const recoveryRatio = amplitude / amplitudeAtDropStart;
-				if (recoveryRatio < tuning.amplitudeRecoveryThreshold) {
-					// Amplitude dropped and barely recovered - permanent change
-					amplitudeDropFrames = tuning.amplitudeDropThreshold; // trigger the drop detection
-				} else {
-					// It recovered - was just a fluctuation
-					amplitudeDropFrames = 0;
-				}
-			}
-		}
-
-		// Only consider it a permanent drop if sustained long enough
-		const hasAmplitudeDrop = amplitudeDropFrames >= tuning.amplitudeDropThreshold;
-
-		if (currentActive) {
-			const frequencyLost = !meetsFrequency;
-			const amplitudeCriticallyLow = amplitude < amplitudeThreshold.value * 0.3;
-			// End note if:
-			// - High-frequency burst detected (bow scrape = release/attack), OR
-			// - BOTH spectral change AND amplitude drop (note ending), OR
-			// - Frequency becomes unstable/lost, OR
-			// - Amplitude drops to near silence
-			const spectralChangeWithDrop = hasSpectralChange && hasAmplitudeDrop;
-			state.isNoteActive = !(
-				burstEndsNote ||
-				spectralChangeWithDrop ||
-				frequencyLost ||
-				amplitudeCriticallyLow
-			);
-		} else {
-			state.isNoteActive = amplitude > activateThreshold && meetsFrequency;
-			// Always reset spectral flux counter when not actively playing a note
-			if (!state.isNoteActive) {
-				highSpectralFluxFrames = 0;
-				amplitudeDropFrames = 0;
-				amplitudeAtDropStart = 0;
-				highFreqBurstFrames = 0;
-			} else {
-				peakAmplitude = amplitude;
-				amplitudeDropFrames = 0; // reset drop tracking at note start
-				amplitudeAtDropStart = 0;
-				highFreqBurstFrames = 0;
-			}
-		}
 
 		if (freq > 0 && state.isNoteActive) {
 			const currentA4 = untrack(() => a4.value);
@@ -365,7 +283,7 @@ export function createTuner(options: TunerOptions = {}) {
 			const currentGain = gain.value;
 
 			// Adjust gain when between notes but still have some signal to calibrate from
-			const hasSignal = smoothedAmplitude > activateThreshold * 0.5;
+			const hasSignal = smoothedAmplitude > amplitudeThreshold.value * 0.5;
 			if (hasSignal) {
 				let nextGain = currentGain;
 				if (smoothedAmplitude < lower) {
