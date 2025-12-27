@@ -12,7 +12,8 @@ import { performFFT, type FFTResult } from './fftAnalysis';
 import {
 	calculateSpectralFluxWeighted,
 	calculatePhaseDeviationFocused,
-	calculateHarmonicFlux
+	calculateHarmonicFlux,
+	calculateHighFrequencyBurst
 } from './spectralAnalysis';
 import {
 	createAudioChain,
@@ -287,13 +288,10 @@ export function createTuner(options: TunerOptions = {}) {
 		const excitationCue = calculateSpectralFluxWeighted(fftResult, previousFFT);
 
 		// 1.3b: Harmonic-focused flux (tracks bursts on harmonic stack)
-		const harmonicFluxCue = calculateHarmonicFlux(
-			fftResult,
-			previousFFT,
-			hasPitch ? freq : null,
-			2,
-			10
-		);
+		// If pitch is not locked, fall back to high-frequency burst detector
+		const harmonicFluxCue = hasPitch
+			? calculateHarmonicFlux(fftResult, previousFFT, freq, 2, 10, 2)
+			: calculateHighFrequencyBurst(fftResult, previousFFT, 0.35);
 
 		// 1.4: Compute phase disruption cue
 		// Measure phase deviation (predicts phase advance, measures deviation)
@@ -364,6 +362,10 @@ export function createTuner(options: TunerOptions = {}) {
 
 		const normalizedExcitation = computeNormalized(excitationCue, excitationHistory);
 		const normalizedHarmonicFlux = computeNormalized(harmonicFluxCue, harmonicFluxHistory);
+		const prevHarmonicFlux =
+			harmonicFluxHistory.length > 1 ? harmonicFluxHistory[harmonicFluxHistory.length - 2] : 0;
+		const relativeHarmonicIncrease =
+			prevHarmonicFlux > 0 ? (harmonicFluxCue - prevHarmonicFlux) / prevHarmonicFlux : Infinity;
 		const normalizedAmplitudeSlope = computeNormalized(amplitudeDelta, amplitudeDeltaHistory);
 		const normalizedPhase = computeNormalized(phaseCue, phaseHistory);
 		const normalizedAmplitude = computeNormalized(amplitude, amplitudeHistory);
@@ -478,11 +480,12 @@ export function createTuner(options: TunerOptions = {}) {
 			// Rule B4 — Harmonic flux burst (bow direction change / re-bow)
 			else if (
 				hasPitch &&
-				normalizedHarmonicFlux > onsetDetectionConfig.b4_minNormalizedHarmonicFlux
+				normalizedHarmonicFlux > onsetDetectionConfig.b4_minNormalizedHarmonicFlux &&
+				relativeHarmonicIncrease >= onsetDetectionConfig.b4_minRelativeIncrease
 			) {
 				onsetDetected = true;
 				console.log(
-					`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+					`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% freq=${freq.toFixed(1)}Hz`
 				);
 			}
 			// Rule B5 — Legato rebound: dip then rise with harmonic brightening
@@ -510,6 +513,19 @@ export function createTuner(options: TunerOptions = {}) {
 						`✓ Onset: Rule B5 (legato rebound) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ avgSlope=${avgSlope.toFixed(2)} rise=${(percentRise * 100).toFixed(0)}% window=${Math.round(legatoRiseElapsedMs)}ms freq=${freq.toFixed(1)}Hz`
 					);
 				}
+			}
+			// Rule B6 — Burst-on-rise without pitch lock (fallback)
+			else if (
+				!hasPitch &&
+				normalizedHarmonicFlux > onsetDetectionConfig.b6_minNormalizedHarmonicFlux &&
+				relativeHarmonicIncrease >= onsetDetectionConfig.b6_minRelativeIncrease &&
+				normalizedAmplitudeSlope > onsetDetectionConfig.b6_minAmplitudeSlope &&
+				amplitude > tuning.onsetMinAmplitude * onsetDetectionConfig.b6_minAmplitudeGateMultiplier
+			) {
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule B6 (burst-on-rise) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% ampSlope=${normalizedAmplitudeSlope.toFixed(2)}`
+				);
 			}
 			// Rule C — Raw phase threshold: very reliable for phase-based attacks
 			else if (hasPitch && phaseCue > onsetDetectionConfig.c_minRawPhase) {

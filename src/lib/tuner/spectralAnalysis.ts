@@ -56,7 +56,8 @@ export function calculateHarmonicFlux(
 	previous: FFTResult | null,
 	fundamentalFreq: number | null,
 	toleranceBins: number = 2,
-	maxHarmonic: number = 10
+	maxHarmonic: number = 10,
+	startHarmonic: number = 2 // ignore fundamental by default
 ): number {
 	if (!previous || !fundamentalFreq || fundamentalFreq <= 0) return 0;
 
@@ -66,13 +67,15 @@ export function calculateHarmonicFlux(
 	let flux = 0;
 	let binsCounted = 0;
 
-	for (let h = 1; h <= maxHarmonic; h++) {
+	for (let h = Math.max(1, startHarmonic); h <= maxHarmonic; h++) {
 		const centerBin = freqToBin(fundamentalFreq * h);
 		for (let offset = -toleranceBins; offset <= toleranceBins; offset++) {
 			const k = centerBin + offset;
 			if (k < 0 || k >= current.magnitudes.length) continue;
 			const increase = Math.max(0, current.magnitudes[k] - previous.magnitudes[k]);
-			flux += increase;
+			// Slightly emphasize higher harmonics where re-bows brighten first
+			const harmonicWeight = 1 + 0.12 * h;
+			flux += increase * harmonicWeight;
 			binsCounted++;
 		}
 	}

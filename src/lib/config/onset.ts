@@ -33,6 +33,17 @@ export const onsetDetectionConfig = {
 	// RULE B4: Harmonic-focused excitation (bow direction changes)
 	// ========================================================================
 	b4_minNormalizedHarmonicFlux: 1.4, // Harmonic flux > 1.4 sigma
+	b4_minRelativeIncrease: 0.25, // Require ≥25% increase vs previous frame
+
+	// ========================================================================
+	// RULE B6: Burst-on-rise without pitch lock (fallback)
+	// Triggers when harmonic/high-frequency energy jumps and amplitude is rising,
+	// even if pitch tracking temporarily drops during re-articulation.
+	// ========================================================================
+	b6_minNormalizedHarmonicFlux: 0.8, // Need at least moderate normalized harmonic flux
+	b6_minRelativeIncrease: 0.3, // Require ≥30% increase vs previous frame
+	b6_minAmplitudeSlope: 0.25, // Amplitude must be rising
+	b6_minAmplitudeGateMultiplier: 1.0, // Amplitude must exceed onsetMinAmplitude * multiplier
 
 	// ========================================================================
 	// RULE B5: Legato rebound (dip then rise on harmonic stack)
