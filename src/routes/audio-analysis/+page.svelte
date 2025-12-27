@@ -437,12 +437,78 @@
 	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">
 		<header class="flex flex-col gap-2">
 			<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Audio analysis</p>
+
 			<h1 class="text-2xl font-semibold">Incoming audio (last 10s)</h1>
 			<p class="text-sm text-slate-700">
 				Microphone input visualized in near-real-time as a running spectrum heatmap with a white
 				amplitude trace over the last ten seconds.
 			</p>
 		</header>
+
+		<div class="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
+			{#if tuner.state.needsUserGesture}
+				<div
+					class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+				>
+					Audio is blocked until you click. Click “Enable audio” to resume.
+				</div>
+			{/if}
+
+			<div class="mb-2">
+				<p class="mb-2 text-sm font-semibold text-slate-700">Audio Source</p>
+				<div class="flex gap-2">
+					<button
+						class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'file' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
+						onclick={async () => {
+							await tuner.startWithFile('/test-audio.wav');
+						}}
+						type="button"
+					>
+						Test Audio File
+					</button>
+					<button
+						class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'microphone' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
+						onclick={async () => {
+							await tuner.start();
+						}}
+						type="button"
+					>
+						Microphone
+					</button>
+				</div>
+			</div>
+
+			{#if tuner.sourceType === 'microphone'}
+				<MicrophoneSelector
+					tunerState={tuner.state}
+					onStartListening={tuner.start}
+					onDeviceChange={handleDeviceChange}
+				/>
+			{/if}
+
+			<button
+				class={`rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow ${tuner.state.isListening ? 'bg-slate-600' : 'bg-dark-blue'}`}
+				onclick={async () => {
+					if (tuner.state.needsUserGesture) {
+						await tuner.resumeAfterGesture(
+							tuner.sourceType === 'microphone' ? undefined : '/test-audio.wav'
+						);
+						return;
+					}
+
+					if (tuner.state.isListening) {
+						tuner.stop();
+					} else if (tuner.sourceType === 'microphone') {
+						await tuner.start();
+					} else {
+						await tuner.startWithFile('/test-audio.wav');
+					}
+				}}
+				type="button"
+			>
+				{tuner.state.needsUserGesture ? 'Enable audio' : tuner.state.isListening ? 'Stop' : 'Start'}
+			</button>
+		</div>
 
 		<div class="flex flex-col gap-4">
 			<div class="rounded-2xl bg-white p-4 shadow-sm">
@@ -468,74 +534,6 @@
 					<span class="text-xs text-slate-500">Cyclical hue = phase angle</span>
 				</div>
 				<canvas bind:this={phaseCanvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
-			</div>
-			<div class="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
-				{#if tuner.state.needsUserGesture}
-					<div
-						class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
-					>
-						Audio is blocked until you click. Click “Enable audio” to resume.
-					</div>
-				{/if}
-
-				<div class="mb-2">
-					<p class="mb-2 text-sm font-semibold text-slate-700">Audio Source</p>
-					<div class="flex gap-2">
-						<button
-							class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'file' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
-							onclick={async () => {
-								await tuner.startWithFile('/test-audio.wav');
-							}}
-							type="button"
-						>
-							Test Audio File
-						</button>
-						<button
-							class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'microphone' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
-							onclick={async () => {
-								await tuner.start();
-							}}
-							type="button"
-						>
-							Microphone
-						</button>
-					</div>
-				</div>
-
-				{#if tuner.sourceType === 'microphone'}
-					<MicrophoneSelector
-						tunerState={tuner.state}
-						onStartListening={tuner.start}
-						onDeviceChange={handleDeviceChange}
-					/>
-				{/if}
-
-				<button
-					class={`rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow ${tuner.state.isListening ? 'bg-slate-600' : 'bg-dark-blue'}`}
-					onclick={async () => {
-						if (tuner.state.needsUserGesture) {
-							await tuner.resumeAfterGesture(
-								tuner.sourceType === 'microphone' ? undefined : '/test-audio.wav'
-							);
-							return;
-						}
-
-						if (tuner.state.isListening) {
-							tuner.stop();
-						} else if (tuner.sourceType === 'microphone') {
-							await tuner.start();
-						} else {
-							await tuner.startWithFile('/test-audio.wav');
-						}
-					}}
-					type="button"
-				>
-					{tuner.state.needsUserGesture
-						? 'Enable audio'
-						: tuner.state.isListening
-							? 'Stop'
-							: 'Start'}
-				</button>
 			</div>
 		</div>
 	</div>
