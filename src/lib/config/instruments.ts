@@ -10,6 +10,8 @@ export interface DetectionConfig {
 	// Phase deviation detection
 	usePhaseDeviation: boolean; // enable phase-based onset detection
 	phaseWeight: number; // weight for phase deviation (0-1, rest goes to flux)
+	strongPhaseThreshold: number; // normalized phase (0-1) for strong onset (phase alone)
+	moderatePhaseThreshold: number; // normalized phase (0-1) for moderate onset (phase + amplitude)
 }
 
 export interface InstrumentConfig {
@@ -24,12 +26,14 @@ export interface InstrumentConfig {
 }
 
 export const genericDetectionConfig: DetectionConfig = {
-	onsetRefractoryMs: 100, // 100ms cooldown prevents vibrato/tremolo retriggering
-	onsetMinAmplitude: 0.02, // minimum amplitude for onset
+	onsetRefractoryMs: 80, // 80ms cooldown - more sensitive for faster passages
+	onsetMinAmplitude: 0.015, // Lower minimum amplitude for softer attacks
 	endHoldMs: 150, // require ~150ms of low energy before ending
 	endMinAmplitudeRatio: 0.3, // end threshold = onsetMinAmplitude * ratio
 	usePhaseDeviation: true, // enable phase-based detection for repeat notes
-	phaseWeight: 0.3 // 30% phase, 70% flux
+	phaseWeight: 0.3, // 30% phase, 70% flux
+	strongPhaseThreshold: 0.1, // 20% of π - phase alone triggers onset (was hardcoded 0.25)
+	moderatePhaseThreshold: 0.8 // 15% of π - phase + amplitude triggers (was hardcoded 0.18)
 };
 
 export const instrumentConfigs: InstrumentConfig[] = [

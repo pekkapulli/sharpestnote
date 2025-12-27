@@ -3,6 +3,13 @@
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
+	import {
+		calculatePhaseDeviation,
+		calculateSpectralFluxWeighted
+	} from '$lib/tuner/spectralAnalysis';
+	import { calculateDynamicThreshold, getDetectionConfig } from '$lib/tuner/analysis';
+	import { instrumentMap, genericDetectionConfig } from '$lib/config/instruments';
+	import type { InstrumentKind } from '$lib/tuner/types';
 
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 33; // ~30fps sampling for the history buffer
@@ -24,8 +31,16 @@
 		phases: Float32Array | null;
 		onset: boolean;
 		active: boolean;
+		phaseDeviation: number;
+		spectralFlux: number;
+		onsetStrength: number; // Combined flux + phase deviation
 	}[] = [];
 	let prevNoteActive = false;
+	let prevPhases: Float32Array | null = null;
+	let prevSpectrum: Float32Array | null = null;
+	let fluxHistory: number[] = [];
+	let firstNoteTime: number | null = null;
+	let testLogTimer: number | null = null;
 
 	function startSampling() {
 		stopSampling();
@@ -34,15 +49,104 @@
 			const isActive = tuner.state.isNoteActive;
 			const onset = isActive && !prevNoteActive;
 			prevNoteActive = isActive;
+
+			// Calculate spectral flux and phase deviation using same logic as useTuner
+			let spectralFlux = 0;
+			let phaseDeviation = 0;
+
+			if (tuner.state.spectrum && tuner.state.phases && prevSpectrum && prevPhases) {
+				const currentFFT = {
+					phases: tuner.state.phases,
+					magnitudes: tuner.state.spectrum
+				} as any;
+				const previousFFT = {
+					phases: prevPhases,
+					magnitudes: prevSpectrum
+				} as any;
+				spectralFlux = calculateSpectralFluxWeighted(currentFFT, previousFFT);
+				phaseDeviation = calculatePhaseDeviation(currentFFT, previousFFT, 2048 / 4); // hopSize ~= fftSize/4
+			}
+
+			// Update previous frame data
+			if (tuner.state.phases) {
+				prevPhases = new Float32Array(tuner.state.phases);
+			}
+			if (tuner.state.spectrum) {
+				prevSpectrum = new Float32Array(tuner.state.spectrum);
+			}
+
+			// Track flux history for dynamic threshold (keep last 30 like useTuner)
+			fluxHistory.push(spectralFlux);
+			if (fluxHistory.length > 30) fluxHistory.shift();
+
+			// Combine flux and phase deviation with same weights as useTuner
+			const tuning = getDetectionConfig(
+				'generic' as InstrumentKind,
+				instrumentMap,
+				genericDetectionConfig
+			);
+			const normalizedPhase = phaseDeviation / Math.PI; // 0-1 range
+			const onsetStrength = tuning.usePhaseDeviation
+				? (1 - tuning.phaseWeight) * spectralFlux + tuning.phaseWeight * normalizedPhase
+				: spectralFlux;
+
 			history.push({
 				t: now,
 				amp: tuner.state.amplitude,
 				spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
 				phases: tuner.state.phases ? new Float32Array(tuner.state.phases) : null,
 				onset,
-				active: isActive
+				active: isActive,
+				phaseDeviation,
+				spectralFlux,
+				onsetStrength
 			});
 			history = history.filter((h) => h.t >= now - HISTORY_MS);
+
+			// Test logging: capture data 5 seconds after first note
+			if (onset && firstNoteTime === null) {
+				firstNoteTime = now;
+				testLogTimer = window.setTimeout(() => {
+					const startTime = firstNoteTime!;
+					const relevantHistory = history.filter(
+						(h) => h.t >= startTime && h.t <= startTime + 5000
+					);
+					console.log('=== TEST DATA: 5 seconds after first note ===');
+					console.log('First note at:', 0, 'ms');
+					console.log('\nOnset events:');
+					relevantHistory.forEach((h) => {
+						if (h.onset) {
+							const dynamicThreshold = calculateDynamicThreshold(
+								relevantHistory
+									.slice(
+										Math.max(0, relevantHistory.indexOf(h) - 29),
+										relevantHistory.indexOf(h) + 1
+									)
+									.map((s) => s.spectralFlux),
+								10,
+								3.0
+							);
+							console.log(
+								`  ${Math.round(h.t - startTime)}ms: amp=${h.amp.toFixed(3)} flux=${h.spectralFlux.toFixed(4)} phase=${h.phaseDeviation.toFixed(4)} strength=${h.onsetStrength.toFixed(4)} thresh=${dynamicThreshold.toFixed(4)} freq=${tuner.state.frequency?.toFixed(1) || 'N/A'}`
+							);
+						}
+					});
+					console.log('\nAll samples (every 3rd):');
+					relevantHistory.forEach((h, i) => {
+						if (i % 3 === 0) {
+							const dynamicThreshold = calculateDynamicThreshold(
+								relevantHistory.slice(Math.max(0, i - 29), i + 1).map((s) => s.spectralFlux),
+								10,
+								3.0
+							);
+							const marker = h.onset ? ' <-- ONSET' : '';
+							console.log(
+								`  ${Math.round(h.t - startTime)}ms: flux=${h.spectralFlux.toFixed(4)} phase=${h.phaseDeviation.toFixed(4)} strength=${h.onsetStrength.toFixed(4)} thresh=${dynamicThreshold.toFixed(4)}${marker}`
+							);
+						}
+					});
+				}, 5000);
+			}
 		}, SAMPLE_INTERVAL_MS);
 	}
 
@@ -51,7 +155,15 @@
 			clearInterval(sampleTimer);
 			sampleTimer = null;
 		}
+		if (testLogTimer !== null) {
+			clearTimeout(testLogTimer);
+			testLogTimer = null;
+		}
 		prevNoteActive = false;
+		prevPhases = null;
+		prevSpectrum = null;
+		fluxHistory = [];
+		firstNoteTime = null;
 	}
 
 	function draw() {
@@ -199,6 +311,40 @@
 				}
 			}
 		}
+
+		// Phase deviation trace overlaid on the heatmap
+		const phaseDevMax = Math.max(...history.map((h) => h.phaseDeviation), 0.001);
+		const phaseYScale = heatmapHeight / phaseDevMax;
+		const phaseBaseline = paddingTop + heatmapHeight;
+
+		c.strokeStyle = '#ffffff';
+		c.lineWidth = 2;
+		c.beginPath();
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = phaseBaseline - h.phaseDeviation * phaseYScale;
+			if (idx === 0) {
+				c.moveTo(x, y);
+			} else {
+				c.lineTo(x, y);
+			}
+		});
+		c.stroke();
+
+		// Mark onset events using same dynamic threshold as useTuner
+		c.fillStyle = '#10b981'; // Green for onset markers
+		history.forEach((h, i) => {
+			// Calculate dynamic threshold for this point in history
+			const historyUpToNow = history.slice(Math.max(0, i - 29), i + 1).map((s) => s.spectralFlux);
+			const dynamicThreshold = calculateDynamicThreshold(historyUpToNow, 10, 3.0);
+
+			if (h.onsetStrength > dynamicThreshold) {
+				const x = ((h.t - oldest) / HISTORY_MS) * width;
+				c.beginPath();
+				c.arc(x, paddingTop / 2, 5, 0, Math.PI * 2);
+				c.fill();
+			}
+		});
 
 		// Add phase legend labels
 		c.fillStyle = '#94a3b8';

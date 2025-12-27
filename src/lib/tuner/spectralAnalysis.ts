@@ -100,6 +100,86 @@ export function calculatePhaseDeviation(
 }
 
 /**
+ * Frequency-focused phase deviation detector for monophonic instruments
+ *
+ * Only analyzes phase coherence in bins that match the detected note's harmonic series.
+ * This makes repeat note detection much more sensitive by ignoring noise and overtones
+ * from other sources. Falls back to full-spectrum if no frequency is provided.
+ *
+ * @param current Current frame FFT result
+ * @param previous Previous frame FFT result
+ * @param hopSize Number of samples between frames
+ * @param fundamentalFreq The detected fundamental frequency (Hz), or null for full-spectrum
+ * @param sampleRate Audio sample rate (Hz)
+ * @param fftSize FFT size (for bin-to-frequency conversion)
+ */
+export function calculatePhaseDeviationFocused(
+	current: FFTResult,
+	previous: FFTResult | null,
+	hopSize: number,
+	fundamentalFreq: number | null,
+	sampleRate: number,
+	fftSize: number
+): number {
+	// Fall back to full-spectrum if no frequency detected
+	if (!fundamentalFreq || fundamentalFreq <= 0) {
+		return calculatePhaseDeviation(current, previous, hopSize);
+	}
+
+	if (!previous || previous.phases.length !== current.phases.length) {
+		return 0;
+	}
+
+	const length = current.phases.length;
+	let totalDeviation = 0;
+	let count = 0;
+
+	// Helper: convert frequency to nearest FFT bin
+	const freqToBin = (freq: number) => Math.round((freq * fftSize) / sampleRate);
+
+	// Analyze harmonics 1-12 (covers most musical content)
+	const maxHarmonic = 12;
+	const harmonicTolerance = 2; // Check ±2 bins around each harmonic for energy spread
+
+	for (let h = 1; h <= maxHarmonic; h++) {
+		const harmonicFreq = fundamentalFreq * h;
+		const centerBin = freqToBin(harmonicFreq);
+
+		// Check bins around this harmonic
+		for (let offset = -harmonicTolerance; offset <= harmonicTolerance; offset++) {
+			const k = centerBin + offset;
+
+			// Skip out of range bins
+			if (k < 2 || k >= length) continue;
+
+			// Expected phase advance for this bin
+			const expectedDelta = (2 * Math.PI * k * hopSize) / (length * 2);
+
+			// Actual phase change
+			let actualDelta = current.phases[k] - previous.phases[k];
+
+			// Wrap to [-π, π]
+			while (actualDelta > Math.PI) actualDelta -= 2 * Math.PI;
+			while (actualDelta < -Math.PI) actualDelta += 2 * Math.PI;
+
+			// Deviation from expected
+			let deviation = actualDelta - expectedDelta;
+			while (deviation > Math.PI) deviation -= 2 * Math.PI;
+			while (deviation < -Math.PI) deviation += 2 * Math.PI;
+
+			// Weight by magnitude (ignore phase noise in quiet bins)
+			const magnitude = current.magnitudes[k];
+			if (magnitude > 0.01) {
+				totalDeviation += Math.abs(deviation) * magnitude;
+				count += magnitude;
+			}
+		}
+	}
+
+	return count > 0 ? totalDeviation / count : 0;
+}
+
+/**
  * High-frequency burst detector
  *
  * Detects sudden energy increase in upper frequency bands.

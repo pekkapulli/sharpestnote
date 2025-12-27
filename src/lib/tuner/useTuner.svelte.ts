@@ -14,7 +14,7 @@ import {
 	isFrequencyStable
 } from './analysis';
 import { performFFT, type FFTResult } from './fftAnalysis';
-import { calculateSpectralFluxWeighted, calculatePhaseDeviation } from './spectralAnalysis';
+import { calculateSpectralFluxWeighted, calculatePhaseDeviationFocused } from './spectralAnalysis';
 import { createAudioChain, teardownAudioChain, type AudioChain } from './audioGraph';
 import { genericDetectionConfig, instrumentMap } from '$lib/config/instruments';
 import { lengthToMs } from '$lib/config/melody';
@@ -71,6 +71,7 @@ export function createTuner(options: TunerOptions = {}) {
 	let autoGainElapsed = 0;
 	let previousFFT: FFTResult | null = null; // for spectral analysis (magnitudes + phases)
 	let lastOnsetTime = 0; // timestamp of last detected onset (for refractory period)
+	let peakAmplitudeSinceOnset = 0; // track peak amplitude since last onset for drop detection
 	let endCandidateStart: number | null = null; // when a potential note end started
 
 	function clampGain(value: number): number {
@@ -130,6 +131,7 @@ export function createTuner(options: TunerOptions = {}) {
 		heldNote = null;
 		state.heldSixteenths = 0;
 		lastOnsetTime = 0;
+		peakAmplitudeSinceOnset = 0;
 		previousFFT = null;
 		spectrumBuffer = null;
 		state.spectrum = null;
@@ -181,7 +183,15 @@ export function createTuner(options: TunerOptions = {}) {
 		// Calculate high-frequency weighted, positive-only spectral flux for onset detection
 		// Now using custom FFT with magnitude and phase information
 		const spectralFlux = calculateSpectralFluxWeighted(fftResult, previousFFT);
-		const phaseDeviation = calculatePhaseDeviation(fftResult, previousFFT, analyser.fftSize / 4);
+		// Use frequency-focused phase deviation for monophonic instruments (better repeat note detection)
+		const phaseDeviation = calculatePhaseDeviationFocused(
+			fftResult,
+			previousFFT,
+			analyser.fftSize / 4,
+			freq, // Focus on detected note's harmonics
+			audioContext.sampleRate,
+			analyser.fftSize
+		);
 
 		// Track frequency, amplitude, and flux history
 		frequencyHistory.push(freq);
@@ -192,7 +202,7 @@ export function createTuner(options: TunerOptions = {}) {
 		if (fluxHistory.length > 30) fluxHistory.shift(); // Keep more for statistical reliability
 
 		// Dynamic threshold adapts to signal level and background noise
-		const dynamicFluxThreshold = calculateDynamicThreshold(fluxHistory, 10, 3.0);
+		const dynamicFluxThreshold = calculateDynamicThreshold(fluxHistory, 10, 2.5);
 
 		// ============================================================================
 		// ONSET DETECTION
@@ -213,17 +223,84 @@ export function createTuner(options: TunerOptions = {}) {
 			? (1 - tuning.phaseWeight) * spectralFlux + tuning.phaseWeight * normalizedPhase
 			: spectralFlux;
 
-		// Onset = combined strength above threshold + minimum amplitude + stable pitch
-		const meetsFrequency = freq > 0 && isFrequencyStable(freq, frequencyHistory);
+		// Detect quick amplitude changes (bow direction change in legato playing)
+		// Use peak amplitude since last onset as reference for more reliable detection
+		let hasQuickAmplitudeChange = false;
+
+		// Track peak amplitude since last onset
+		if (amplitude > peakAmplitudeSinceOnset) {
+			peakAmplitudeSinceOnset = amplitude;
+		}
+
+		if (amplitudeHistory.length >= 3 && peakAmplitudeSinceOnset > 0.03) {
+			const current = amplitude;
+			const recent2Min = Math.min(...amplitudeHistory.slice(-2));
+
+			// Significant drop from peak: current/recent dropped below 50% of peak
+			const significantDrop = recent2Min < peakAmplitudeSinceOnset * 0.5;
+			// Quick recovery: amplitude rising from minimum
+			const isRising = current > recent2Min * 1.1;
+			// Near-zero dip: amplitude dropped very low (close to zero as user mentioned)
+			const nearZeroDip = recent2Min < 0.02 && peakAmplitudeSinceOnset > 0.1;
+
+			hasQuickAmplitudeChange =
+				(significantDrop && isRising) || (nearZeroDip && current > recent2Min * 1.2);
+		}
+
+		// Detect slow vs fast pitch changes
+		// Slow drift (vibrato/correction) should not trigger onset
+		let hasFastPitchChange = false;
+		if (frequencyHistory.length >= 5 && freq > 0) {
+			const recent3 = frequencyHistory.slice(-3);
+			const older2 = frequencyHistory.slice(-5, -3);
+			const recent3Avg = recent3.reduce((a, b) => a + b) / recent3.length;
+			const older2Avg = older2.reduce((a, b) => a + b) / older2.length;
+
+			// Fast pitch change: >50 cents (~3% frequency change) in last ~100ms
+			const pitchDiffCents = Math.abs(1200 * Math.log2(recent3Avg / older2Avg));
+			hasFastPitchChange = pitchDiffCents > 50; // Sudden pitch jump = likely new note
+		}
+
+		// For repeat notes on sustaining instruments with valid pitch:
+		// Use configurable phase thresholds from instrument config
+		const hasPitch = freq > 0 && frequencyHistory.length >= 3;
+		const hasStrongPhaseReset = normalizedPhase > tuning.strongPhaseThreshold; // Configurable strong threshold
+		const hasModeratePhaseReset = normalizedPhase > tuning.moderatePhaseThreshold; // Configurable moderate threshold
+
+		// Detection paths (all require pitch + minimum amplitude)
+		const strongPhaseOnset = hasPitch && hasStrongPhaseReset;
+		const legatoOnset = hasPitch && hasModeratePhaseReset && hasQuickAmplitudeChange;
+		const amplitudeOnset =
+			hasPitch && hasQuickAmplitudeChange && amplitude > tuning.onsetMinAmplitude * 1.5;
+		// New: fast pitch change can indicate string crossing or new note start
+		const pitchChangeOnset = hasPitch && hasFastPitchChange && hasModeratePhaseReset;
+
+		// Onset detection requires valid pitch for ALL paths
+		const meetsFrequency = hasPitch && isFrequencyStable(freq, frequencyHistory);
 		const hasOnsetSpike = onsetStrength > dynamicFluxThreshold;
 		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
 
-		const onsetDetected = canTriggerOnset && hasOnsetSpike && hasMinAmplitude && meetsFrequency;
+		// Combine all detection methods - ALL paths now require hasPitch
+		// Traditional onset respects refractory period
+		const traditionalOnset =
+			canTriggerOnset && hasOnsetSpike && hasMinAmplitude && meetsFrequency && hasPitch;
+		// Phase/amplitude-based detection: more lenient refractory override
+		const veryStrongPhase = normalizedPhase > tuning.strongPhaseThreshold * 0.8; // 80% of strong threshold for override
+		const canOverrideRefractory = veryStrongPhase || hasQuickAmplitudeChange;
+		const phaseBasedOnset =
+			(strongPhaseOnset || legatoOnset || amplitudeOnset || pitchChangeOnset) &&
+			hasMinAmplitude &&
+			(canTriggerOnset || canOverrideRefractory);
+
+		const onsetDetected = traditionalOnset || phaseBasedOnset;
 
 		if (onsetDetected) {
 			lastOnsetTime = now;
 			state.isNoteActive = true;
-			// console.log(`Onset detected: flux=${spectralFlux.toFixed(4)}, threshold=${dynamicFluxThreshold.toFixed(4)}, freq=${freq.toFixed(1)}`);
+			peakAmplitudeSinceOnset = amplitude; // Reset peak for next note
+			console.log(
+				`Onset: phase=${normalizedPhase.toFixed(3)} flux=${spectralFlux.toFixed(3)} amp=${amplitude.toFixed(3)} peak=${peakAmplitudeSinceOnset.toFixed(3)} ampChange=${hasQuickAmplitudeChange} pitchChange=${hasFastPitchChange} freq=${freq.toFixed(1)}`
+			);
 		}
 
 		// Gentle note end hysteresis: require low amplitude or lost pitch
