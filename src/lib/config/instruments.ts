@@ -7,6 +7,7 @@ export interface DetectionConfig {
 	// Gentle note end detection
 	endHoldMs: number; // how long low amplitude/pitch loss must persist
 	endMinAmplitudeRatio: number; // relative to onsetMinAmplitude
+	endRelativeDropRatio: number; // end when amplitude falls below this fraction of post-onset peak
 	// Phase deviation detection
 	usePhaseDeviation: boolean; // enable phase-based onset detection
 	phaseWeight: number; // weight for phase deviation (0-1, rest goes to flux)
@@ -27,9 +28,10 @@ export interface InstrumentConfig {
 
 export const genericDetectionConfig: DetectionConfig = {
 	onsetRefractoryMs: 80, // 80ms cooldown - more sensitive for faster passages
-	onsetMinAmplitude: 0.015, // Lower minimum amplitude for softer attacks
-	endHoldMs: 150, // require ~150ms of low energy before ending
+	onsetMinAmplitude: 0.015, // Minimum amplitude for onset to trigger
+	endHoldMs: 40, // require ~80ms of low energy before ending
 	endMinAmplitudeRatio: 0.3, // end threshold = onsetMinAmplitude * ratio
+	endRelativeDropRatio: 0.8, // end when amplitude drops below 80% of peak since onset
 	usePhaseDeviation: true, // enable phase-based detection for repeat notes
 	phaseWeight: 0.3, // 30% phase, 70% flux
 	strongPhaseThreshold: 0.1, // 20% of π - phase alone triggers onset (was hardcoded 0.25)

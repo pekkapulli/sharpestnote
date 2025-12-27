@@ -9,6 +9,7 @@
 	} from '$lib/tuner/spectralAnalysis';
 	import { calculateDynamicThreshold, getDetectionConfig } from '$lib/tuner/analysis';
 	import { instrumentMap, genericDetectionConfig } from '$lib/config/instruments';
+	import { onsetDetectionConfig } from '$lib/config/onset';
 	import type { InstrumentKind } from '$lib/tuner/types';
 
 	const HISTORY_MS = 10_000;
@@ -31,6 +32,7 @@
 		phases: Float32Array | null;
 		onset: boolean;
 		active: boolean;
+		frequency?: number | null;
 		phaseDeviation: number;
 		spectralFlux: number;
 		onsetStrength: number; // Combined flux + phase deviation
@@ -97,6 +99,7 @@
 				phases: tuner.state.phases ? new Float32Array(tuner.state.phases) : null,
 				onset,
 				active: isActive,
+				frequency: tuner.state.frequency ?? null,
 				phaseDeviation,
 				spectralFlux,
 				onsetStrength
@@ -331,14 +334,21 @@
 		});
 		c.stroke();
 
-		// Mark onset events using same dynamic threshold as useTuner
+		// Mark phase-based onset events using raw threshold + amplitude gate
+		const tuning = getDetectionConfig(
+			'generic' as InstrumentKind,
+			instrumentMap,
+			genericDetectionConfig
+		);
 		c.fillStyle = '#10b981'; // Green for onset markers
-		history.forEach((h, i) => {
-			// Calculate dynamic threshold for this point in history
-			const historyUpToNow = history.slice(Math.max(0, i - 29), i + 1).map((s) => s.spectralFlux);
-			const dynamicThreshold = calculateDynamicThreshold(historyUpToNow, 10, 3.0);
-
-			if (h.onsetStrength > dynamicThreshold) {
+		history.forEach((h) => {
+			const hasPitch = !!h.frequency && h.frequency > 0;
+			if (
+				h.phaseDeviation > onsetDetectionConfig.c_minRawPhase &&
+				h.amp > tuning.onsetMinAmplitude &&
+				h.active &&
+				hasPitch
+			) {
 				const x = ((h.t - oldest) / HISTORY_MS) * width;
 				c.beginPath();
 				c.arc(x, paddingTop / 2, 5, 0, Math.PI * 2);
@@ -381,7 +391,7 @@
 		tuner.state.selectedDeviceId = deviceId;
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		if (canvasEl) {
 			ctx = canvasEl.getContext('2d');
 		}
@@ -407,6 +417,9 @@
 		tuner.refreshDevices();
 		startSampling();
 		scheduleNextFrame();
+
+		// Default to looping the bundled test audio until the user opts into the mic
+		await tuner.startWithFile('/test-audio.wav');
 	});
 
 	onDestroy(() => {
@@ -457,17 +470,71 @@
 				<canvas bind:this={phaseCanvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
 			</div>
 			<div class="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
-				<MicrophoneSelector
-					tunerState={tuner.state}
-					onStartListening={tuner.start}
-					onDeviceChange={handleDeviceChange}
-				/>
+				{#if tuner.state.needsUserGesture}
+					<div
+						class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+					>
+						Audio is blocked until you click. Click “Enable audio” to resume.
+					</div>
+				{/if}
+
+				<div class="mb-2">
+					<p class="mb-2 text-sm font-semibold text-slate-700">Audio Source</p>
+					<div class="flex gap-2">
+						<button
+							class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'file' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
+							onclick={async () => {
+								await tuner.startWithFile('/test-audio.wav');
+							}}
+							type="button"
+						>
+							Test Audio File
+						</button>
+						<button
+							class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'microphone' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
+							onclick={async () => {
+								await tuner.start();
+							}}
+							type="button"
+						>
+							Microphone
+						</button>
+					</div>
+				</div>
+
+				{#if tuner.sourceType === 'microphone'}
+					<MicrophoneSelector
+						tunerState={tuner.state}
+						onStartListening={tuner.start}
+						onDeviceChange={handleDeviceChange}
+					/>
+				{/if}
+
 				<button
 					class={`rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow ${tuner.state.isListening ? 'bg-slate-600' : 'bg-dark-blue'}`}
-					onclick={tuner.state.isListening ? tuner.stop : tuner.start}
+					onclick={async () => {
+						if (tuner.state.needsUserGesture) {
+							await tuner.resumeAfterGesture(
+								tuner.sourceType === 'microphone' ? undefined : '/test-audio.wav'
+							);
+							return;
+						}
+
+						if (tuner.state.isListening) {
+							tuner.stop();
+						} else if (tuner.sourceType === 'microphone') {
+							await tuner.start();
+						} else {
+							await tuner.startWithFile('/test-audio.wav');
+						}
+					}}
 					type="button"
 				>
-					{tuner.state.isListening ? 'Stop' : 'Start'}
+					{tuner.state.needsUserGesture
+						? 'Enable audio'
+						: tuner.state.isListening
+							? 'Stop'
+							: 'Start'}
 				</button>
 			</div>
 		</div>

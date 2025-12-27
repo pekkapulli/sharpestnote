@@ -9,6 +9,8 @@ export interface TunerState {
 	cents: number | null;
 	note: string | null;
 	error: string | null;
+	/** True when browser blocks AudioContext until user gesture */
+	needsUserGesture?: boolean;
 	devices: MediaDeviceInfo[];
 	selectedDeviceId: string | null;
 	amplitude: number;

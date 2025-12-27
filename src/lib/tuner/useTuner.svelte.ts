@@ -7,16 +7,21 @@ import {
 	noteNameFromMidi,
 	type Accidental
 } from '$lib/tuner/tune';
-import {
-	calculateAmplitude,
-	calculateDynamicThreshold,
-	getDetectionConfig,
-	isFrequencyStable
-} from './analysis';
+import { calculateAmplitude, getDetectionConfig, isFrequencyStable } from './analysis';
 import { performFFT, type FFTResult } from './fftAnalysis';
-import { calculateSpectralFluxWeighted, calculatePhaseDeviationFocused } from './spectralAnalysis';
-import { createAudioChain, teardownAudioChain, type AudioChain } from './audioGraph';
+import {
+	calculateSpectralFluxWeighted,
+	calculatePhaseDeviationFocused,
+	calculateHarmonicFlux
+} from './spectralAnalysis';
+import {
+	createAudioChain,
+	createAudioChainFromFile,
+	teardownAudioChain,
+	type AudioChain
+} from './audioGraph';
 import { genericDetectionConfig, instrumentMap } from '$lib/config/instruments';
+import { onsetDetectionConfig } from '$lib/config/onset';
 import { lengthToMs } from '$lib/config/melody';
 import type { InstrumentKind, TunerOptions, TunerState } from './types';
 export type { InstrumentKind, TunerOptions, TunerState } from './types';
@@ -31,7 +36,35 @@ export function createTuner(options: TunerOptions = {}) {
 	let pendingNote: string | null = null;
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
-	const fluxHistory: number[] = []; // Track flux for dynamic threshold
+
+	// ========================================================================
+	// ONSET DETECTION STATE (Step 0 - Analysis setup)
+	// ========================================================================
+	// Sliding history windows for local normalization (300-500ms ~= 30-50 frames at 100fps)
+	const excitationHistory: number[] = []; // HF spectral flux history
+	const harmonicFluxHistory: number[] = []; // Harmonic-focused flux history
+	const amplitudeDeltaHistory: number[] = []; // Amplitude slope history
+	const phaseHistory: number[] = []; // Phase deviation history
+	const HISTORY_LENGTH = onsetDetectionConfig.historyLength;
+
+	// Legato rebound tracking (dip→rise state)
+	let legatoDipActive = false;
+	let legatoRiseFrames = 0;
+	let legatoDipMinAmp = 0;
+	let legatoRiseElapsedMs = 0;
+	let legatoSlopeSumNorm = 0;
+	let legatoSlopeCount = 0;
+
+	// State from previous frames
+	let previousFFT: FFTResult | null = null;
+	let previousPitch: number | null = null;
+	let stablePitch: number | null = null; // Recent stable pitch for change detection
+	let pitchConfidence = 0;
+
+	// Cooldown enforcement (refractory period)
+	let lastOnsetTime = 0;
+	const COOLDOWN_MS = onsetDetectionConfig.cooldownMs;
+
 	let spectrumBuffer: Uint8Array | null = null; // Latest magnitude spectrum (byte values)
 
 	const state = $state<TunerState>({
@@ -40,6 +73,7 @@ export function createTuner(options: TunerOptions = {}) {
 		cents: null,
 		note: null,
 		error: null,
+		needsUserGesture: false,
 		devices: [],
 		selectedDeviceId: null,
 		amplitude: 0,
@@ -69,10 +103,10 @@ export function createTuner(options: TunerOptions = {}) {
 	let heldNote: string | null = null;
 	let smoothedAmplitude = 0;
 	let autoGainElapsed = 0;
-	let previousFFT: FFTResult | null = null; // for spectral analysis (magnitudes + phases)
-	let lastOnsetTime = 0; // timestamp of last detected onset (for refractory period)
-	let peakAmplitudeSinceOnset = 0; // track peak amplitude since last onset for drop detection
-	let endCandidateStart: number | null = null; // when a potential note end started
+
+	// Note end tracking (separate from onset detection - Step 6)
+	let peakAmplitudeSinceOnset = 0;
+	let endCandidateStart: number | null = null;
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
@@ -94,6 +128,7 @@ export function createTuner(options: TunerOptions = {}) {
 	async function start() {
 		try {
 			state.error = null;
+			state.needsUserGesture = false;
 			stop();
 
 			audioContext = audioContext ?? new AudioContext();
@@ -108,8 +143,60 @@ export function createTuner(options: TunerOptions = {}) {
 			tick();
 		} catch (err) {
 			console.error(err);
-			state.error = 'Unable to start microphone. Please check permissions.';
+			if (err instanceof DOMException && err.name === 'NotAllowedError') {
+				state.error = 'Tap to enable audio (browser blocked autoplay).';
+				state.needsUserGesture = true;
+			} else {
+				state.error = 'Unable to start microphone. Please check permissions.';
+			}
 			stop();
+		}
+	}
+
+	async function startWithFile(audioUrl: string) {
+		try {
+			state.error = null;
+			state.needsUserGesture = false;
+			stop();
+
+			audioContext = audioContext ?? new AudioContext();
+			await audioContext.resume();
+
+			gain.value = clampGain(gain.value);
+			audioChain = await createAudioChainFromFile(audioContext, audioUrl, gain.value);
+			buffer = audioChain.buffer;
+
+			state.isListening = true;
+			tick();
+		} catch (err) {
+			console.error(err);
+			if (err instanceof DOMException && err.name === 'NotAllowedError') {
+				state.error = 'Tap to enable audio (browser blocked autoplay).';
+				state.needsUserGesture = true;
+			} else {
+				state.error = 'Unable to start audio file playback.';
+			}
+			stop();
+		}
+	}
+
+	async function resumeAfterGesture(audioUrl?: string) {
+		try {
+			if (!audioContext) {
+				audioContext = new AudioContext();
+			}
+			await audioContext.resume();
+			state.needsUserGesture = false;
+			if (audioUrl) {
+				await startWithFile(audioUrl);
+			} else if (audioChain?.sourceType === 'microphone') {
+				await start();
+			} else {
+				await startWithFile('/test-audio.wav');
+			}
+		} catch (err) {
+			console.error(err);
+			state.error = 'Audio still blocked; please try again.';
 		}
 	}
 
@@ -130,9 +217,18 @@ export function createTuner(options: TunerOptions = {}) {
 		holdMs = 0;
 		heldNote = null;
 		state.heldSixteenths = 0;
+
+		// Reset onset detection state
 		lastOnsetTime = 0;
 		peakAmplitudeSinceOnset = 0;
 		previousFFT = null;
+		previousPitch = null;
+		stablePitch = null;
+		pitchConfidence = 0;
+		excitationHistory.length = 0;
+		phaseHistory.length = 0;
+		endCandidateStart = null;
+
 		spectrumBuffer = null;
 		state.spectrum = null;
 		state.phases = null;
@@ -159,11 +255,353 @@ export function createTuner(options: TunerOptions = {}) {
 
 		const tempData = new Float32Array(analyser.fftSize) as Float32Array<ArrayBuffer>;
 		analyser.getFloatTimeDomainData(tempData);
-		const freq = autoCorrelate(tempData, audioContext.sampleRate);
 		const amplitude = calculateAmplitude(tempData);
 
-		// Perform custom FFT with phase information for high-quality onset detection
+		// ========================================================================
+		// STEP 1 — PER-FRAME FEATURE EXTRACTION
+		// ========================================================================
+
+		// 1.1: Compute spectrum (magnitudes + phases)
 		const fftResult = performFFT(tempData, audioContext.sampleRate, true);
+
+		// 1.2: Estimate pitch (with confidence)
+		// Update history BEFORE stability check
+		const freq = autoCorrelate(tempData, audioContext.sampleRate);
+		frequencyHistory.push(freq);
+		amplitudeHistory.push(amplitude);
+
+		// Track amplitude slope for legato dip/rise detection
+		const previousAmplitude =
+			amplitudeHistory.length > 1 ? amplitudeHistory[amplitudeHistory.length - 2] : amplitude;
+		const amplitudeDelta = amplitude - previousAmplitude;
+		amplitudeDeltaHistory.push(amplitudeDelta);
+
+		if (frequencyHistory.length > 20) frequencyHistory.shift();
+		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
+		if (amplitudeDeltaHistory.length > 20) amplitudeDeltaHistory.shift();
+
+		const hasPitch = freq > 0 && isFrequencyStable(freq, frequencyHistory);
+
+		// 1.3: Compute excitation cue (HF spectral flux)
+		// High-frequency weighted, positive-only spectral flux
+		const excitationCue = calculateSpectralFluxWeighted(fftResult, previousFFT);
+
+		// 1.3b: Harmonic-focused flux (tracks bursts on harmonic stack)
+		const harmonicFluxCue = calculateHarmonicFlux(
+			fftResult,
+			previousFFT,
+			hasPitch ? freq : null,
+			2,
+			10
+		);
+
+		// 1.4: Compute phase disruption cue
+		// Measure phase deviation (predicts phase advance, measures deviation)
+		const phaseCueFundamental = hasPitch ? freq : null;
+		const phaseCue = calculatePhaseDeviationFocused(
+			fftResult,
+			previousFFT,
+			analyser.fftSize / 4, // hop size
+			phaseCueFundamental, // Focus on detected pitch harmonics when stable
+			audioContext.sampleRate,
+			analyser.fftSize
+		);
+
+		// Track pitch confidence: stable pitch over multiple frames
+		if (hasPitch) {
+			if (previousPitch === null) {
+				pitchConfidence = 0.3; // Initial confidence
+				stablePitch = freq;
+			} else {
+				const pitchDiffCents = Math.abs(1200 * Math.log2(freq / previousPitch));
+				if (pitchDiffCents < 30) {
+					// Stable: increase confidence
+					pitchConfidence = Math.min(1.0, pitchConfidence + 0.15);
+					// Update stable pitch with smoothing
+					stablePitch = stablePitch ? stablePitch * 0.7 + freq * 0.3 : freq;
+				} else {
+					// Unstable: reduce confidence
+					pitchConfidence = Math.max(0, pitchConfidence - 0.2);
+				}
+			}
+			previousPitch = freq;
+		} else {
+			pitchConfidence = Math.max(0, pitchConfidence - 0.1);
+			previousPitch = null;
+		}
+
+		// ========================================================================
+		// STEP 2 — LOCAL NORMALIZATION
+		// ========================================================================
+
+		// Maintain sliding history for excitation and phase cues
+		excitationHistory.push(excitationCue);
+		harmonicFluxHistory.push(harmonicFluxCue);
+		phaseHistory.push(phaseCue);
+		if (excitationHistory.length > HISTORY_LENGTH) excitationHistory.shift();
+		if (harmonicFluxHistory.length > HISTORY_LENGTH) harmonicFluxHistory.shift();
+		if (phaseHistory.length > HISTORY_LENGTH) phaseHistory.shift();
+
+		// Compute local baseline (median) and spread (MAD - median absolute deviation)
+		const computeNormalized = (value: number, history: number[]) => {
+			if (history.length < 10) return 0; // Need minimum history
+
+			const sorted = [...history].sort((a, b) => a - b);
+			const median = sorted[Math.floor(sorted.length / 2)];
+
+			// Median absolute deviation for robust spread estimation
+			const deviations = history.map((v) => Math.abs(v - median));
+			const sortedDev = deviations.sort((a, b) => a - b);
+			const mad = sortedDev[Math.floor(sortedDev.length / 2)];
+
+			// Express current value as relative deviation from baseline
+			// MAD * 1.4826 approximates standard deviation for normal distributions
+			const spread = mad * 1.4826;
+			if (spread < 0.0001) return 0; // Avoid division by zero
+
+			return (value - median) / spread;
+		};
+
+		const normalizedExcitation = computeNormalized(excitationCue, excitationHistory);
+		const normalizedHarmonicFlux = computeNormalized(harmonicFluxCue, harmonicFluxHistory);
+		const normalizedAmplitudeSlope = computeNormalized(amplitudeDelta, amplitudeDeltaHistory);
+		const normalizedPhase = computeNormalized(phaseCue, phaseHistory);
+		const normalizedAmplitude = computeNormalized(amplitude, amplitudeHistory);
+
+		// Update dip→rise state for legato detection
+		if (normalizedAmplitude < onsetDetectionConfig.b5_minDipBelow) {
+			legatoDipActive = true;
+			legatoRiseFrames = 0;
+			legatoDipMinAmp = amplitude;
+			legatoRiseElapsedMs = 0;
+			legatoSlopeSumNorm = 0;
+			legatoSlopeCount = 0;
+		} else if (legatoDipActive) {
+			// Accumulate rise metrics
+			legatoRiseElapsedMs += dt;
+			legatoSlopeSumNorm += Math.max(0, normalizedAmplitudeSlope);
+			legatoSlopeCount += 1;
+			if (normalizedAmplitudeSlope > onsetDetectionConfig.b5_minAmplitudeSlope) {
+				legatoRiseFrames++;
+			}
+			// If amplitude falls again significantly, cancel rebound tracking
+			if (normalizedAmplitude < onsetDetectionConfig.b5_minDipBelow - 0.1) {
+				legatoDipActive = false;
+				legatoRiseFrames = 0;
+			}
+		}
+
+		// ========================================================================
+		// STEP 3 — PITCH CHANGE DETECTION
+		// ========================================================================
+
+		let pitchChangeDetected = false;
+		if (hasPitch && stablePitch && pitchConfidence > 0.6) {
+			const pitchChangeCents = Math.abs(1200 * Math.log2(freq / stablePitch));
+			// Pitch change > 25 cents (~1/4 semitone) = new note
+			if (pitchChangeCents > 25) {
+				pitchChangeDetected = true;
+			}
+		}
+
+		// ========================================================================
+		// STEP 4 — ONSET DECISION RULES
+		// ========================================================================
+
+		const timeSinceLastOnset = now - lastOnsetTime;
+		const instrumentType = untrack(() => instrument.value as InstrumentKind);
+		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
+
+		let onsetDetected = false;
+
+		// Check cooldown FIRST (Step 5 enforcement)
+		const cooldownActive = timeSinceLastOnset < COOLDOWN_MS;
+
+		// Minimum amplitude check for all rules
+		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
+
+		// DEBUG: Log detection state every 30 frames (~300ms)
+		if (Math.random() < 0.033) {
+			console.log('[DEBUG]', {
+				excitationCue: excitationCue.toFixed(4),
+				phaseCue: phaseCue.toFixed(4),
+				normalizedExcitation: normalizedExcitation.toFixed(2),
+				normalizedPhase: normalizedPhase.toFixed(2),
+				historyLength: excitationHistory.length,
+				hasPitch,
+				pitchConfidence: pitchConfidence.toFixed(2),
+				hasMinAmplitude,
+				amplitude: amplitude.toFixed(3),
+				minRequired: tuning.onsetMinAmplitude.toFixed(3),
+				cooldownActive,
+				timeSinceLastOnset: Math.round(timeSinceLastOnset)
+			});
+		}
+
+		if (!cooldownActive && hasMinAmplitude) {
+			// Rule A — Guaranteed onset: pitch change with high confidence
+			if (pitchChangeDetected) {
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, confidence=${pitchConfidence.toFixed(2)}`
+				);
+			}
+			// Rule B1 — Re-articulation: both excitation + phase cues (relaxed thresholds)
+			else if (
+				hasPitch &&
+				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation && // Moderate excitation
+				normalizedPhase > onsetDetectionConfig.b1_minNormalizedPhase // Moderate phase disruption
+			) {
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule B1 (both cues) - exc=${normalizedExcitation.toFixed(1)}σ phase=${normalizedPhase.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+				);
+			}
+			// Rule B2 — Asymmetric: strong phase + weak/negative excitation (require pitch lock)
+			else if (
+				hasPitch &&
+				normalizedPhase > onsetDetectionConfig.b2_minNormalizedPhase && // Strong phase
+				normalizedExcitation > onsetDetectionConfig.b2_minNormalizedExcitation // Allow negative excitation
+			) {
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule B2 (phase-dominant) - phase=${normalizedPhase.toFixed(1)}σ exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+				);
+			}
+			// Rule B3 — Very strong excitation alone (for attacks with clear energy spike)
+			else if (hasPitch && normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation) {
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule B3 (strong excitation) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+				);
+			}
+			// Rule B4 — Harmonic flux burst (bow direction change / re-bow)
+			else if (
+				hasPitch &&
+				normalizedHarmonicFlux > onsetDetectionConfig.b4_minNormalizedHarmonicFlux
+			) {
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+				);
+			}
+			// Rule B5 — Legato rebound: dip then rise with harmonic brightening
+			else if (
+				hasPitch &&
+				legatoDipActive &&
+				legatoRiseFrames >= onsetDetectionConfig.b5_minRiseFrames &&
+				normalizedHarmonicFlux > onsetDetectionConfig.b5_minNormalizedHarmonicFlux
+			) {
+				const avgSlope = legatoSlopeCount > 0 ? legatoSlopeSumNorm / legatoSlopeCount : 0;
+				const percentRise =
+					legatoDipMinAmp > 0 ? (amplitude - legatoDipMinAmp) / legatoDipMinAmp : 0;
+				const withinWindow = legatoRiseElapsedMs <= onsetDetectionConfig.b5_riseWindowMs;
+				if (
+					withinWindow &&
+					avgSlope >= onsetDetectionConfig.b5_minAvgSlope &&
+					percentRise >= onsetDetectionConfig.b5_minRisePercent
+				) {
+					onsetDetected = true;
+					legatoDipActive = false;
+					legatoRiseFrames = 0;
+					legatoSlopeSumNorm = 0;
+					legatoSlopeCount = 0;
+					console.log(
+						`✓ Onset: Rule B5 (legato rebound) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ avgSlope=${avgSlope.toFixed(2)} rise=${(percentRise * 100).toFixed(0)}% window=${Math.round(legatoRiseElapsedMs)}ms freq=${freq.toFixed(1)}Hz`
+					);
+				}
+			}
+			// Rule C — Raw phase threshold: very reliable for phase-based attacks
+			else if (hasPitch && phaseCue > onsetDetectionConfig.c_minRawPhase) {
+				// Raw phase alone (no excitation requirement)
+				// Catches all plucks/attacks where phase disruption is clear
+				onsetDetected = true;
+				console.log(
+					`✓ Onset: Rule C (raw phase) - rawPhase=${phaseCue.toFixed(2)} freq=${freq.toFixed(1)}Hz`
+				);
+			}
+			// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
+			else if (normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase) {
+				// Very strong phase
+				onsetDetected = true;
+				console.log(`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ`);
+			}
+			// DEBUG: Log near-misses
+			else if (
+				hasPitch &&
+				(normalizedExcitation > 1.2 || normalizedPhase > 1.2 || phaseCue > 1.3)
+			) {
+				console.log(
+					`✗ Near-miss: exc=${normalizedExcitation.toFixed(1)}σ phase=${normalizedPhase.toFixed(1)}σ rawPhase=${phaseCue.toFixed(2)} rawExc=${excitationCue.toFixed(3)}`
+				);
+			}
+		} else {
+			// Log why we couldn't check rules
+			if (cooldownActive && Math.random() < 0.1) {
+				console.log(`⏸ Cooldown active: ${timeSinceLastOnset.toFixed(0)}ms / ${COOLDOWN_MS}ms`);
+			}
+			if (!hasMinAmplitude && Math.random() < 0.1) {
+				console.log(
+					`⏸ Below min amplitude: ${amplitude.toFixed(3)} < ${tuning.onsetMinAmplitude.toFixed(3)}`
+				);
+			}
+		}
+
+		// Apply onset if detected
+		if (onsetDetected) {
+			lastOnsetTime = now;
+			state.isNoteActive = true;
+			peakAmplitudeSinceOnset = amplitude;
+			// Only update stable pitch if confidence is high (after pitch change onset)
+			// Otherwise let it build naturally through the tracking above
+			if (pitchChangeDetected && hasPitch) {
+				stablePitch = freq;
+			}
+		}
+
+		// ========================================================================
+		// STEP 6 — NOTE END TRACKING (separate path, no feed into onset detection)
+		// ========================================================================
+
+		if (state.isNoteActive) {
+			// Track peak amplitude for decay detection
+			if (amplitude > peakAmplitudeSinceOnset) {
+				peakAmplitudeSinceOnset = amplitude;
+			}
+
+			// Note end conditions (independent of onset logic)
+			const lowAmplitude = amplitude < tuning.onsetMinAmplitude * tuning.endMinAmplitudeRatio;
+			// End when amplitude dips significantly relative to the post-onset peak
+			const relativeDrop = amplitude < peakAmplitudeSinceOnset * tuning.endRelativeDropRatio;
+			const pitchLost = !hasPitch || pitchConfidence < 0.3;
+			const endCondition = lowAmplitude || pitchLost || relativeDrop;
+
+			if (endCondition) {
+				if (endCandidateStart === null) endCandidateStart = now;
+				const elapsed = now - endCandidateStart;
+				// Require sustained end condition before ending note
+				if (elapsed >= tuning.endHoldMs) {
+					state.isNoteActive = false;
+					endCandidateStart = null;
+					peakAmplitudeSinceOnset = 0;
+					// Gradually decay confidence rather than instant reset
+					// This helps maintain pitch tracking across quick note sequences
+					pitchConfidence *= 0.5;
+					console.log(
+						`• End: amplitude=${amplitude.toFixed(3)} low=${lowAmplitude} relDrop=${relativeDrop} elapsed=${Math.round(elapsed)}ms`
+					);
+				}
+			} else {
+				endCandidateStart = null;
+			}
+		}
+
+		// ========================================================================
+		// STEP 7 — STATE UPDATE
+		// ========================================================================
+
+		// Store current frame data for next iteration
+		previousFFT = fftResult;
 
 		// Convert magnitudes to byte range for visualization (0-255)
 		spectrumBuffer = new Uint8Array(fftResult.magnitudes.length);
@@ -174,156 +612,12 @@ export function createTuner(options: TunerOptions = {}) {
 			}
 		}
 		state.spectrum = spectrumBuffer;
-		state.phases = fftResult.phases; // Expose phase information for visualization
-
+		state.phases = fftResult.phases;
 		state.amplitude = amplitude;
-		const instrumentType = untrack(() => instrument.value as InstrumentKind);
-		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
 
-		// Calculate high-frequency weighted, positive-only spectral flux for onset detection
-		// Now using custom FFT with magnitude and phase information
-		const spectralFlux = calculateSpectralFluxWeighted(fftResult, previousFFT);
-		// Use frequency-focused phase deviation for monophonic instruments (better repeat note detection)
-		const phaseDeviation = calculatePhaseDeviationFocused(
-			fftResult,
-			previousFFT,
-			analyser.fftSize / 4,
-			freq, // Focus on detected note's harmonics
-			audioContext.sampleRate,
-			analyser.fftSize
-		);
-
-		// Track frequency, amplitude, and flux history
-		frequencyHistory.push(freq);
-		amplitudeHistory.push(amplitude);
-		fluxHistory.push(spectralFlux);
-		if (frequencyHistory.length > 20) frequencyHistory.shift();
-		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
-		if (fluxHistory.length > 30) fluxHistory.shift(); // Keep more for statistical reliability
-
-		// Dynamic threshold adapts to signal level and background noise
-		const dynamicFluxThreshold = calculateDynamicThreshold(fluxHistory, 10, 2.5);
-
-		// ============================================================================
-		// ONSET DETECTION
-		// ============================================================================
-		// Professional approach: detect new note starts using spectral flux + phase deviation
-		// - Spectral flux spike = sudden energy increase (especially in upper harmonics)
-		// - Phase deviation = sudden phase reset across bins (even without energy change)
-		// - Refractory period prevents false retriggering from vibrato/tremolo
-		// - Works even when previous notes are sustaining
-
-		const timeSinceLastOnset = now - lastOnsetTime;
-		const canTriggerOnset = timeSinceLastOnset > tuning.onsetRefractoryMs;
-
-		// Combine spectral flux and phase deviation for robust detection
-		// Phase deviation catches repeat notes that flux might miss
-		const normalizedPhase = phaseDeviation / Math.PI; // 0-1 range
-		const onsetStrength = tuning.usePhaseDeviation
-			? (1 - tuning.phaseWeight) * spectralFlux + tuning.phaseWeight * normalizedPhase
-			: spectralFlux;
-
-		// Detect quick amplitude changes (bow direction change in legato playing)
-		// Use peak amplitude since last onset as reference for more reliable detection
-		let hasQuickAmplitudeChange = false;
-
-		// Track peak amplitude since last onset
-		if (amplitude > peakAmplitudeSinceOnset) {
-			peakAmplitudeSinceOnset = amplitude;
-		}
-
-		if (amplitudeHistory.length >= 3 && peakAmplitudeSinceOnset > 0.03) {
-			const current = amplitude;
-			const recent2Min = Math.min(...amplitudeHistory.slice(-2));
-
-			// Significant drop from peak: current/recent dropped below 50% of peak
-			const significantDrop = recent2Min < peakAmplitudeSinceOnset * 0.5;
-			// Quick recovery: amplitude rising from minimum
-			const isRising = current > recent2Min * 1.1;
-			// Near-zero dip: amplitude dropped very low (close to zero as user mentioned)
-			const nearZeroDip = recent2Min < 0.02 && peakAmplitudeSinceOnset > 0.1;
-
-			hasQuickAmplitudeChange =
-				(significantDrop && isRising) || (nearZeroDip && current > recent2Min * 1.2);
-		}
-
-		// Detect slow vs fast pitch changes
-		// Slow drift (vibrato/correction) should not trigger onset
-		let hasFastPitchChange = false;
-		if (frequencyHistory.length >= 5 && freq > 0) {
-			const recent3 = frequencyHistory.slice(-3);
-			const older2 = frequencyHistory.slice(-5, -3);
-			const recent3Avg = recent3.reduce((a, b) => a + b) / recent3.length;
-			const older2Avg = older2.reduce((a, b) => a + b) / older2.length;
-
-			// Fast pitch change: >50 cents (~3% frequency change) in last ~100ms
-			const pitchDiffCents = Math.abs(1200 * Math.log2(recent3Avg / older2Avg));
-			hasFastPitchChange = pitchDiffCents > 50; // Sudden pitch jump = likely new note
-		}
-
-		// For repeat notes on sustaining instruments with valid pitch:
-		// Use configurable phase thresholds from instrument config
-		const hasPitch = freq > 0 && frequencyHistory.length >= 3;
-		const hasStrongPhaseReset = normalizedPhase > tuning.strongPhaseThreshold; // Configurable strong threshold
-		const hasModeratePhaseReset = normalizedPhase > tuning.moderatePhaseThreshold; // Configurable moderate threshold
-
-		// Detection paths (all require pitch + minimum amplitude)
-		const strongPhaseOnset = hasPitch && hasStrongPhaseReset;
-		const legatoOnset = hasPitch && hasModeratePhaseReset && hasQuickAmplitudeChange;
-		const amplitudeOnset =
-			hasPitch && hasQuickAmplitudeChange && amplitude > tuning.onsetMinAmplitude * 1.5;
-		// New: fast pitch change can indicate string crossing or new note start
-		const pitchChangeOnset = hasPitch && hasFastPitchChange && hasModeratePhaseReset;
-
-		// Onset detection requires valid pitch for ALL paths
-		const meetsFrequency = hasPitch && isFrequencyStable(freq, frequencyHistory);
-		const hasOnsetSpike = onsetStrength > dynamicFluxThreshold;
-		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
-
-		// Combine all detection methods - ALL paths now require hasPitch
-		// Traditional onset respects refractory period
-		const traditionalOnset =
-			canTriggerOnset && hasOnsetSpike && hasMinAmplitude && meetsFrequency && hasPitch;
-		// Phase/amplitude-based detection: more lenient refractory override
-		const veryStrongPhase = normalizedPhase > tuning.strongPhaseThreshold * 0.8; // 80% of strong threshold for override
-		const canOverrideRefractory = veryStrongPhase || hasQuickAmplitudeChange;
-		const phaseBasedOnset =
-			(strongPhaseOnset || legatoOnset || amplitudeOnset || pitchChangeOnset) &&
-			hasMinAmplitude &&
-			(canTriggerOnset || canOverrideRefractory);
-
-		const onsetDetected = traditionalOnset || phaseBasedOnset;
-
-		if (onsetDetected) {
-			lastOnsetTime = now;
-			state.isNoteActive = true;
-			peakAmplitudeSinceOnset = amplitude; // Reset peak for next note
-			console.log(
-				`Onset: phase=${normalizedPhase.toFixed(3)} flux=${spectralFlux.toFixed(3)} amp=${amplitude.toFixed(3)} peak=${peakAmplitudeSinceOnset.toFixed(3)} ampChange=${hasQuickAmplitudeChange} pitchChange=${hasFastPitchChange} freq=${freq.toFixed(1)}`
-			);
-		}
-
-		// Gentle note end hysteresis: require low amplitude or lost pitch
-		// sustained for a short period before ending the note
-		if (state.isNoteActive) {
-			const lowAmplitude = amplitude < tuning.onsetMinAmplitude * tuning.endMinAmplitudeRatio;
-			const pitchLost = !(freq > 0 && isFrequencyStable(freq, frequencyHistory));
-			const endCondition = lowAmplitude || pitchLost;
-
-			if (endCondition) {
-				if (endCandidateStart === null) endCandidateStart = now;
-				const elapsed = now - endCandidateStart;
-				if (elapsed >= tuning.endHoldMs) {
-					state.isNoteActive = false;
-					endCandidateStart = null;
-				}
-			} else {
-				endCandidateStart = null;
-			}
-		}
-
-		// Store FFT result for next frame
-		previousFFT = fftResult;
+		// ========================================================================
+		// PITCH TRACKING & NOTE OUTPUT
+		// ========================================================================
 
 		if (freq > 0 && state.isNoteActive) {
 			const currentA4 = untrack(() => a4.value);
@@ -500,10 +794,15 @@ export function createTuner(options: TunerOptions = {}) {
 			instrument.value = value;
 		},
 		start,
+		startWithFile,
 		stop,
 		refreshDevices,
 		checkSupport,
 		resetHoldDuration,
-		destroy: stop
+		destroy: stop,
+		resumeAfterGesture,
+		get sourceType() {
+			return audioChain?.sourceType ?? null;
+		}
 	};
 }

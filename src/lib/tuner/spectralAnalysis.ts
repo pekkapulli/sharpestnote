@@ -45,6 +45,42 @@ export function calculateSpectralFluxWeighted(
 }
 
 /**
+ * Harmonic-focused spectral flux
+ *
+ * Measures positive energy increases specifically around the detected fundamental
+ * and its early harmonics. This is useful for bow-direction changes where the
+ * harmonic stack brightens without a clear broadband attack.
+ */
+export function calculateHarmonicFlux(
+	current: FFTResult,
+	previous: FFTResult | null,
+	fundamentalFreq: number | null,
+	toleranceBins: number = 2,
+	maxHarmonic: number = 10
+): number {
+	if (!previous || !fundamentalFreq || fundamentalFreq <= 0) return 0;
+
+	const fftSize = current.magnitudes.length * 2;
+	const freqToBin = (freq: number) => Math.round((freq * fftSize) / current.sampleRate);
+
+	let flux = 0;
+	let binsCounted = 0;
+
+	for (let h = 1; h <= maxHarmonic; h++) {
+		const centerBin = freqToBin(fundamentalFreq * h);
+		for (let offset = -toleranceBins; offset <= toleranceBins; offset++) {
+			const k = centerBin + offset;
+			if (k < 0 || k >= current.magnitudes.length) continue;
+			const increase = Math.max(0, current.magnitudes[k] - previous.magnitudes[k]);
+			flux += increase;
+			binsCounted++;
+		}
+	}
+
+	return binsCounted > 0 ? flux / binsCounted : 0;
+}
+
+/**
  * Phase deviation onset detector
  *
  * Detects sudden phase incoherence across frequency bins.
