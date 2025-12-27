@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TunerState } from './useTuner.svelte';
+	import type { TunerState } from '$lib/tuner/useTuner.svelte';
 
 	interface Props {
 		tunerState: TunerState;

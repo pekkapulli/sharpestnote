@@ -10,10 +10,11 @@ import {
 import {
 	calculateAmplitude,
 	calculateDynamicThreshold,
-	calculateSpectralFlux,
 	getDetectionConfig,
 	isFrequencyStable
 } from './analysis';
+import { performFFT, type FFTResult } from './fftAnalysis';
+import { calculateSpectralFluxWeighted, calculatePhaseDeviation } from './spectralAnalysis';
 import { createAudioChain, teardownAudioChain, type AudioChain } from './audioGraph';
 import { genericDetectionConfig, instrumentMap } from '$lib/config/instruments';
 import { lengthToMs } from '$lib/config/melody';
@@ -44,7 +45,8 @@ export function createTuner(options: TunerOptions = {}) {
 		amplitude: 0,
 		isNoteActive: false,
 		heldSixteenths: 0,
-		spectrum: null
+		spectrum: null,
+		phases: null
 	});
 
 	const a4 = $state({ value: options.a4 ?? 442 });
@@ -67,7 +69,7 @@ export function createTuner(options: TunerOptions = {}) {
 	let heldNote: string | null = null;
 	let smoothedAmplitude = 0;
 	let autoGainElapsed = 0;
-	let previousSpectrum: Float32Array | null = null; // for spectral flux calculation
+	let previousFFT: FFTResult | null = null; // for spectral analysis (magnitudes + phases)
 	let lastOnsetTime = 0; // timestamp of last detected onset (for refractory period)
 	let endCandidateStart: number | null = null; // when a potential note end started
 
@@ -128,9 +130,10 @@ export function createTuner(options: TunerOptions = {}) {
 		heldNote = null;
 		state.heldSixteenths = 0;
 		lastOnsetTime = 0;
-		previousSpectrum = null;
+		previousFFT = null;
 		spectrumBuffer = null;
 		state.spectrum = null;
+		state.phases = null;
 
 		teardownAudioChain(audioChain);
 		audioChain = null;
@@ -157,20 +160,28 @@ export function createTuner(options: TunerOptions = {}) {
 		const freq = autoCorrelate(tempData, audioContext.sampleRate);
 		const amplitude = calculateAmplitude(tempData);
 
-		// Compute FFT for spectral flux
-		const fftData = new Uint8Array(analyser.frequencyBinCount);
-		analyser.getByteFrequencyData(fftData);
-		const spectrum = new Float32Array(fftData);
-		// Keep a copy for visualization (bytes 0-255)
-		spectrumBuffer = new Uint8Array(fftData);
+		// Perform custom FFT with phase information for high-quality onset detection
+		const fftResult = performFFT(tempData, audioContext.sampleRate, true);
+
+		// Convert magnitudes to byte range for visualization (0-255)
+		spectrumBuffer = new Uint8Array(fftResult.magnitudes.length);
+		const maxMag = Math.max(...Array.from(fftResult.magnitudes));
+		if (maxMag > 0) {
+			for (let i = 0; i < fftResult.magnitudes.length; i++) {
+				spectrumBuffer[i] = Math.floor((fftResult.magnitudes[i] / maxMag) * 255);
+			}
+		}
 		state.spectrum = spectrumBuffer;
+		state.phases = fftResult.phases; // Expose phase information for visualization
 
 		state.amplitude = amplitude;
 		const instrumentType = untrack(() => instrument.value as InstrumentKind);
 		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
 
 		// Calculate high-frequency weighted, positive-only spectral flux for onset detection
-		const spectralFlux = calculateSpectralFlux(spectrum, previousSpectrum);
+		// Now using custom FFT with magnitude and phase information
+		const spectralFlux = calculateSpectralFluxWeighted(fftResult, previousFFT);
+		const phaseDeviation = calculatePhaseDeviation(fftResult, previousFFT, analyser.fftSize / 4);
 
 		// Track frequency, amplitude, and flux history
 		frequencyHistory.push(freq);
@@ -186,20 +197,28 @@ export function createTuner(options: TunerOptions = {}) {
 		// ============================================================================
 		// ONSET DETECTION
 		// ============================================================================
-		// Professional approach: detect new note starts, don't worry about endings
+		// Professional approach: detect new note starts using spectral flux + phase deviation
 		// - Spectral flux spike = sudden energy increase (especially in upper harmonics)
+		// - Phase deviation = sudden phase reset across bins (even without energy change)
 		// - Refractory period prevents false retriggering from vibrato/tremolo
 		// - Works even when previous notes are sustaining
 
 		const timeSinceLastOnset = now - lastOnsetTime;
 		const canTriggerOnset = timeSinceLastOnset > tuning.onsetRefractoryMs;
 
-		// Onset = flux spike above dynamic threshold + minimum amplitude + stable pitch
+		// Combine spectral flux and phase deviation for robust detection
+		// Phase deviation catches repeat notes that flux might miss
+		const normalizedPhase = phaseDeviation / Math.PI; // 0-1 range
+		const onsetStrength = tuning.usePhaseDeviation
+			? (1 - tuning.phaseWeight) * spectralFlux + tuning.phaseWeight * normalizedPhase
+			: spectralFlux;
+
+		// Onset = combined strength above threshold + minimum amplitude + stable pitch
 		const meetsFrequency = freq > 0 && isFrequencyStable(freq, frequencyHistory);
-		const hasFluxSpike = spectralFlux > dynamicFluxThreshold;
+		const hasOnsetSpike = onsetStrength > dynamicFluxThreshold;
 		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
 
-		const onsetDetected = canTriggerOnset && hasFluxSpike && hasMinAmplitude && meetsFrequency;
+		const onsetDetected = canTriggerOnset && hasOnsetSpike && hasMinAmplitude && meetsFrequency;
 
 		if (onsetDetected) {
 			lastOnsetTime = now;
@@ -226,7 +245,8 @@ export function createTuner(options: TunerOptions = {}) {
 			}
 		}
 
-		previousSpectrum = new Float32Array(spectrum);
+		// Store FFT result for next frame
+		previousFFT = fftResult;
 
 		if (freq > 0 && state.isNoteActive) {
 			const currentA4 = untrack(() => a4.value);

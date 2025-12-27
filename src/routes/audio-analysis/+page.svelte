@@ -10,7 +10,9 @@
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
 
 	let canvasEl: HTMLCanvasElement | null = null;
+	let phaseCanvasEl: HTMLCanvasElement | null = null;
 	let ctx: CanvasRenderingContext2D | null = null;
+	let phaseCtx: CanvasRenderingContext2D | null = null;
 	let animationId: number | null = null;
 	let sampleTimer: number | null = null;
 	let resizeObserver: ResizeObserver | null = null;
@@ -19,6 +21,7 @@
 		t: number;
 		amp: number;
 		spectrum: Uint8Array | null;
+		phases: Float32Array | null;
 		onset: boolean;
 		active: boolean;
 	}[] = [];
@@ -35,6 +38,7 @@
 				t: now,
 				amp: tuner.state.amplitude,
 				spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
+				phases: tuner.state.phases ? new Float32Array(tuner.state.phases) : null,
 				onset,
 				active: isActive
 			});
@@ -52,6 +56,13 @@
 
 	function draw() {
 		if (!ctx || !canvasEl) return;
+		drawSpectrum();
+		drawPhase();
+		scheduleNextFrame();
+	}
+
+	function drawSpectrum() {
+		if (!ctx || !canvasEl) return;
 		const c = ctx;
 		const canvas = canvasEl;
 		const now = performance.now();
@@ -68,7 +79,6 @@
 			c.fillStyle = '#cbd5e1';
 			c.font = '12px sans-serif';
 			c.fillText('No audio yet...', 12, 20);
-			scheduleNextFrame();
 			return;
 		}
 
@@ -142,8 +152,69 @@
 			c.lineTo(xNext, topMarkY);
 		}
 		c.stroke();
+	}
 
-		scheduleNextFrame();
+	function drawPhase() {
+		if (!phaseCtx || !phaseCanvasEl) return;
+		const c = phaseCtx;
+		const canvas = phaseCanvasEl;
+		const now = performance.now();
+
+		const { width, height } = canvas;
+		c.clearRect(0, 0, width, height);
+
+		// Dark background
+		c.fillStyle = '#0b1226';
+		c.fillRect(0, 0, width, height);
+
+		if (!history.length) {
+			c.fillStyle = '#cbd5e1';
+			c.font = '12px sans-serif';
+			c.fillText('No phase data yet...', 12, 20);
+			return;
+		}
+
+		const oldest = now - HISTORY_MS;
+		const paddingTop = 12;
+		const paddingBottom = 32;
+		const heatmapHeight = height - paddingTop - paddingBottom;
+		const binCount = history.find((h) => h.phases)?.phases?.length ?? 0;
+
+		// Phase heatmap: map phase angles (-π to π) to colors
+		if (binCount > 0) {
+			for (let i = 0; i < history.length; i++) {
+				const sample = history[i];
+				if (!sample.phases) continue;
+				const nextT = history[i + 1]?.t ?? now;
+				const x = ((sample.t - oldest) / HISTORY_MS) * width;
+				const xNext = ((nextT - oldest) / HISTORY_MS) * width;
+				const columnWidth = Math.max(1, Math.ceil(xNext - x));
+
+				for (let b = 0; b < binCount; b++) {
+					const phase = sample.phases[b];
+					const y = paddingTop + heatmapHeight - ((b + 1) / binCount) * heatmapHeight;
+					const binHeight = Math.ceil(heatmapHeight / binCount) + 1;
+					c.fillStyle = phaseToColor(phase);
+					c.fillRect(x, y, columnWidth, binHeight);
+				}
+			}
+		}
+
+		// Add phase legend labels
+		c.fillStyle = '#94a3b8';
+		c.font = '10px monospace';
+		c.textAlign = 'right';
+		c.fillText('+π', width - 4, paddingTop + 10);
+		c.fillText('0', width - 4, paddingTop + heatmapHeight / 2 + 4);
+		c.fillText('-π', width - 4, paddingTop + heatmapHeight - 4);
+	}
+
+	function phaseToColor(phase: number): string {
+		// Map phase from [-π, π] to [0, 1]
+		const normalized = (phase + Math.PI) / (2 * Math.PI);
+		// Use HSL for cyclical phase representation
+		const hue = normalized * 360;
+		return `hsl(${hue}, 70%, 50%)`;
 	}
 
 	function magnitudeToColor(mag: number) {
@@ -168,6 +239,9 @@
 		if (canvasEl) {
 			ctx = canvasEl.getContext('2d');
 		}
+		if (phaseCanvasEl) {
+			phaseCtx = phaseCanvasEl.getContext('2d');
+		}
 
 		resizeObserver = new ResizeObserver(() => {
 			const dpr = devicePixelRatio || 1;
@@ -175,8 +249,13 @@
 				canvasEl.width = canvasEl.clientWidth * dpr;
 				canvasEl.height = 280 * dpr;
 			}
+			if (phaseCanvasEl) {
+				phaseCanvasEl.width = phaseCanvasEl.clientWidth * dpr;
+				phaseCanvasEl.height = 280 * dpr;
+			}
 		});
 		if (canvasEl) resizeObserver.observe(canvasEl);
+		if (phaseCanvasEl) resizeObserver.observe(phaseCanvasEl);
 
 		tuner.checkSupport();
 		tuner.refreshDevices();
@@ -189,6 +268,7 @@
 		if (animationId) cancelAnimationFrame(animationId);
 		if (resizeObserver) {
 			if (canvasEl) resizeObserver.unobserve(canvasEl);
+			if (phaseCanvasEl) resizeObserver.unobserve(phaseCanvasEl);
 		}
 		tuner.destroy();
 	});
@@ -222,6 +302,13 @@
 					{/if}
 				</div>
 				<canvas bind:this={canvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
+			</div>
+			<div class="rounded-2xl bg-white p-4 shadow-sm">
+				<div class="mb-2 flex items-center justify-between">
+					<p class="text-sm font-semibold text-slate-700">Phase information (last 10s)</p>
+					<span class="text-xs text-slate-500">Cyclical hue = phase angle</span>
+				</div>
+				<canvas bind:this={phaseCanvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
 			</div>
 			<div class="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
 				<MicrophoneSelector

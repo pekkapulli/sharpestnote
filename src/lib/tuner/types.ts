@@ -15,6 +15,7 @@ export interface TunerState {
 	isNoteActive: boolean;
 	heldSixteenths: number;
 	spectrum: Uint8Array | null;
+	phases: Float32Array | null; // Phase angles in radians for each frequency bin
 }
 
 export interface TunerOptions {

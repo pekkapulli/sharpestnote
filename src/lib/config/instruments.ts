@@ -1,20 +1,15 @@
 import type { Clef, InstrumentId } from './types';
 
 export interface DetectionConfig {
-	spectralFluxThreshold: number;
-	highFluxFrameThreshold: number;
-	amplitudeDropThreshold: number;
-	amplitudeRecoveryThreshold: number;
-	highFreqBurstThreshold: number;
-	highFreqBurstFrameThreshold: number;
-	burstRequiresDecay: boolean;
-	burstMinDecayRatio: number;
 	// Onset detection settings
 	onsetRefractoryMs: number; // minimum time between onsets (prevents false retriggering)
 	onsetMinAmplitude: number; // minimum amplitude for onset to trigger
 	// Gentle note end detection
 	endHoldMs: number; // how long low amplitude/pitch loss must persist
 	endMinAmplitudeRatio: number; // relative to onsetMinAmplitude
+	// Phase deviation detection
+	usePhaseDeviation: boolean; // enable phase-based onset detection
+	phaseWeight: number; // weight for phase deviation (0-1, rest goes to flux)
 }
 
 export interface InstrumentConfig {
@@ -29,18 +24,12 @@ export interface InstrumentConfig {
 }
 
 export const genericDetectionConfig: DetectionConfig = {
-	spectralFluxThreshold: 0.15,
-	highFluxFrameThreshold: 1,
-	amplitudeDropThreshold: 2,
-	amplitudeRecoveryThreshold: 0.7,
-	highFreqBurstThreshold: 0.8,
-	highFreqBurstFrameThreshold: 2,
-	burstRequiresDecay: false,
-	burstMinDecayRatio: 0.7,
 	onsetRefractoryMs: 100, // 100ms cooldown prevents vibrato/tremolo retriggering
 	onsetMinAmplitude: 0.02, // minimum amplitude for onset
 	endHoldMs: 150, // require ~150ms of low energy before ending
-	endMinAmplitudeRatio: 0.3 // end threshold = onsetMinAmplitude * ratio
+	endMinAmplitudeRatio: 0.3, // end threshold = onsetMinAmplitude * ratio
+	usePhaseDeviation: true, // enable phase-based detection for repeat notes
+	phaseWeight: 0.3 // 30% phase, 70% flux
 };
 
 export const instrumentConfigs: InstrumentConfig[] = [
@@ -52,12 +41,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'G3',
 		topNote: 'G5',
-		detectionConfig: {
-			...genericDetectionConfig,
-			highFreqBurstThreshold: 0.8,
-			highFreqBurstFrameThreshold: 2,
-			burstRequiresDecay: false
-		}
+		detectionConfig: genericDetectionConfig
 	},
 	{
 		id: 'guitar',
@@ -67,13 +51,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: -12, // sounds an octave lower than written
 		bottomNote: 'E3',
 		topNote: 'E5',
-		detectionConfig: {
-			...genericDetectionConfig,
-			highFreqBurstThreshold: 1.4,
-			highFreqBurstFrameThreshold: 3,
-			burstRequiresDecay: true,
-			burstMinDecayRatio: 0.65
-		}
+		detectionConfig: genericDetectionConfig
 	},
 	{
 		id: 'viola',
@@ -83,9 +61,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C3',
 		topNote: 'D5',
-		detectionConfig: {
-			...genericDetectionConfig
-		}
+		detectionConfig: genericDetectionConfig
 	},
 	{
 		id: 'cello',
@@ -95,9 +71,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C2',
 		topNote: 'G4',
-		detectionConfig: {
-			...genericDetectionConfig
-		}
+		detectionConfig: genericDetectionConfig
 	},
 	{
 		id: 'flute',
@@ -107,12 +81,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C4',
 		topNote: 'C6',
-		detectionConfig: {
-			...genericDetectionConfig,
-			highFreqBurstThreshold: 0.8,
-			highFreqBurstFrameThreshold: 2,
-			burstRequiresDecay: false
-		}
+		detectionConfig: genericDetectionConfig
 	},
 	{
 		id: 'recorder',
@@ -122,9 +91,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 12, // sounds an octave higher than written
 		bottomNote: 'C4',
 		topNote: 'C5',
-		detectionConfig: {
-			...genericDetectionConfig
-		}
+		detectionConfig: genericDetectionConfig
 	}
 ];
 
