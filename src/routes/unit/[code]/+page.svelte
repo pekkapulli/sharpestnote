@@ -1,15 +1,43 @@
 <script lang="ts">
+	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+
 	const { data } = $props();
-	const { unit, code } = $derived(data);
+	const { unit, code, imageUrl, instrumentLabel } = $derived(data);
 	const hasExtras = $derived((unit.extraLinks?.length ?? 0) > 0);
+	const sheetMusicCta = '/store'; // TODO: replace with live store link when available
+	let imageLoaded = $state(false);
+	$effect(() => {
+		// Reset loading state when the image URL changes
+		imageLoaded = false;
+		imageUrl;
+	});
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-off-white px-4 py-12">
 	<article class="w-full max-w-3xl rounded-2xl bg-white p-8 shadow-md">
-		<p class="text-xs tracking-[0.15em] text-slate-500 uppercase">Extra materials</p>
-		<h1 class="mt-2 text-3xl font-semibold text-slate-900">{unit.title}</h1>
-		<p class="mt-2 text-slate-700">{unit.description}</p>
-		<p class="mt-1 text-xs text-slate-500">Code: {code}</p>
+		<div class="mb-6 w-full rounded-xl shadow-sm" style="position: relative; aspect-ratio: 1 / 1;">
+			{#if !imageLoaded}
+				<div class="shimmer bg-off-white" style="position: absolute; inset: 0;"></div>
+			{/if}
+			<img
+				alt={`${unit.title} cover art`}
+				class="object-cover"
+				decoding="async"
+				loading="lazy"
+				onload={() => (imageLoaded = true)}
+				style="position: absolute; inset: 0; width: 100%; height: 100%;"
+				src={imageUrl}
+			/>
+		</div>
+		<h1 class="text-3xl font-semibold text-slate-900">{unit.title} — Free Unit</h1>
+		<p class="mt-1 text-sm font-semibold text-emerald-700">For {instrumentLabel}</p>
+		<p class="mt-3 text-slate-700">
+			{unit.description}
+		</p>
+
+		<LinkButton size="large" href={sheetMusicCta}
+			>Get the sheet music – accompaniment included!</LinkButton
+		>
 
 		<section class="mt-8">
 			<h3 class="text-sm font-semibold text-slate-800">Pieces</h3>
@@ -59,6 +87,33 @@
 </div>
 
 <style>
+	@keyframes shimmer {
+		0% {
+			background-position: -200% 0;
+		}
+		100% {
+			background-position: 200% 0;
+		}
+	}
+
+	.shimmer {
+		border-radius: inherit;
+		background-image: linear-gradient(
+			90deg,
+			rgba(248, 250, 252, 1) 0%,
+			rgba(241, 245, 249, 1) 40%,
+			rgba(248, 250, 252, 1) 80%
+		);
+		background-size: 200% 100%;
+		animation: shimmer 1.5s linear infinite;
+		will-change: background-position;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.shimmer {
+			animation: none;
+		}
+	}
 	.piece-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

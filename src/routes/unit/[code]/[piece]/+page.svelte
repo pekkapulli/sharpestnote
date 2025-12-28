@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BackButton from '$lib/components/ui/BackButton.svelte';
+	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import blocksIcon from '$lib/assets/blocks_icon.png';
 	import scalesIcon from '$lib/assets/scales_icon.png';
@@ -12,7 +12,7 @@
 <div class="min-h-screen bg-off-white px-4 py-8">
 	<div class="mx-auto w-full max-w-3xl">
 		<nav class="mb-4">
-			<BackButton href={`/unit/${code}`}>← Back to unit</BackButton>
+			<LinkButton href={`/unit/${code}`}>← Back to unit</LinkButton>
 		</nav>
 
 		<article class="rounded-2xl bg-white p-8 shadow-md">

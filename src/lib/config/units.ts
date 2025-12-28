@@ -38,7 +38,8 @@ export const units: Units = {
 		code: 'tw-v',
 		instrument: 'violin',
 		title: 'Twinkle Twinkle Little Star for Violin',
-		description: 'See how the Sharpest Note materials work with a classic tune.',
+		description:
+			'A musical, playable way to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
 		pieces: [
 			{
 				code: 'twinkle-twinkle-little-star',
