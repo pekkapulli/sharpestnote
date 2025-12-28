@@ -18,7 +18,7 @@
 	// Toggle debug console logging in this page
 	const ENABLE_TEST_LOGGING = false;
 
-	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
+	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp', debug: ENABLE_TEST_LOGGING });
 
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
 	let fluxCanvasEl: HTMLCanvasElement | null = null;

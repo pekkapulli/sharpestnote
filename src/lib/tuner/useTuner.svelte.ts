@@ -39,6 +39,7 @@ export function createTuner(options: TunerOptions = {}) {
 	let pendingNote: string | null = null;
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
+	const debug = options.debug ?? false; // Capture debug flag
 
 	// ========================================================================
 	// ONSET DETECTION STATE (Step 0 - Analysis setup)
@@ -114,6 +115,12 @@ export function createTuner(options: TunerOptions = {}) {
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
+	}
+
+	function debugLog(...args: unknown[]): void {
+		if (debug) {
+			console.log('[Tuner Debug]', ...args);
+		}
 	}
 
 	async function refreshDevices() {
@@ -445,7 +452,7 @@ export function createTuner(options: TunerOptions = {}) {
 			if (pitchChangeDetected) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'A';
-				console.log(
+				debugLog(
 					`✓ Onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, confidence=${pitchConfidence.toFixed(2)}`
 				);
 			}
@@ -456,7 +463,7 @@ export function createTuner(options: TunerOptions = {}) {
 			) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'B1';
-				console.log(
+				debugLog(
 					`✓ Onset: Rule B1 (excitation-only) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 				);
 			}
@@ -468,7 +475,7 @@ export function createTuner(options: TunerOptions = {}) {
 			) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'B2';
-				console.log(
+				debugLog(
 					`✓ Onset: Rule B2 (phase-dominant) - phase=${normalizedPhase.toFixed(1)}σ exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 				);
 			}
@@ -476,7 +483,7 @@ export function createTuner(options: TunerOptions = {}) {
 			else if (hasPitch && normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'B3';
-				console.log(
+				debugLog(
 					`✓ Onset: Rule B3 (strong excitation) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 				);
 			}
@@ -488,7 +495,7 @@ export function createTuner(options: TunerOptions = {}) {
 			) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'B4';
-				console.log(
+				debugLog(
 					`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% freq=${freq.toFixed(1)}Hz`
 				);
 			}
@@ -514,7 +521,7 @@ export function createTuner(options: TunerOptions = {}) {
 					legatoRiseFrames = 0;
 					legatoSlopeSumNorm = 0;
 					legatoSlopeCount = 0;
-					console.log(
+					debugLog(
 						`✓ Onset: Rule B5 (legato rebound) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ avgSlope=${avgSlope.toFixed(2)} rise=${(percentRise * 100).toFixed(0)}% window=${Math.round(legatoRiseElapsedMs)}ms freq=${freq.toFixed(1)}Hz`
 					);
 				}
@@ -548,7 +555,7 @@ export function createTuner(options: TunerOptions = {}) {
 				// Very strong phase
 				onsetDetected = true;
 				state.lastOnsetRule = 'D';
-				console.log(`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ`);
+				debugLog(`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ`);
 			}
 			// Suppress near-miss logs; only log actual onsets
 		} else {

@@ -35,4 +35,5 @@ export interface TunerOptions {
 	minGain?: number;
 	gainAdjustRate?: number;
 	autoGainInterval?: number;
+	debug?: boolean; // Enable debug logging
 }
