@@ -15,6 +15,9 @@
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
 
+	// Toggle debug console logging in this page
+	const ENABLE_TEST_LOGGING = false;
+
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
 
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
@@ -33,6 +36,7 @@
 		spectrum: Uint8Array | null;
 		phases: Float32Array | null;
 		onset: boolean;
+		rule: string | null; // Which rule triggered this onset (A, B1, B2, B3, B4, B5, B6, C, D)
 		active: boolean;
 		frequency?: number | null;
 		phaseDeviation: number;
@@ -94,12 +98,19 @@
 				? (1 - tuning.phaseWeight) * spectralFlux + tuning.phaseWeight * normalizedPhase
 				: spectralFlux;
 
+			// Extract rule from the tuner state
+			let rule: string | null = null;
+			if (onset && (tuner.state as any).lastOnsetRule) {
+				rule = (tuner.state as any).lastOnsetRule;
+			}
+
 			history.push({
 				t: now,
 				amp: tuner.state.amplitude,
 				spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
 				phases: tuner.state.phases ? new Float32Array(tuner.state.phases) : null,
 				onset,
+				rule,
 				active: isActive,
 				frequency: tuner.state.frequency ?? null,
 				phaseDeviation,
@@ -108,8 +119,8 @@
 			});
 			history = history.filter((h) => h.t >= now - HISTORY_MS);
 
-			// Test logging: capture data 5 seconds after first note
-			if (onset && firstNoteTime === null) {
+			// Test logging: capture data 5 seconds after first note (disabled unless enabled)
+			if (ENABLE_TEST_LOGGING && onset && firstNoteTime === null) {
 				firstNoteTime = now;
 				testLogTimer = window.setTimeout(() => {
 					const startTime = firstNoteTime!;
@@ -246,30 +257,85 @@
 		});
 		c.stroke();
 
-		// Note onsets as dots along the top edge
-		c.fillStyle = '#fbbf24';
-		history.forEach((h) => {
-			if (!h.onset) return;
-			const x = ((h.t - oldest) / HISTORY_MS) * width;
-			c.beginPath();
-			c.arc(x, topMarkY, 5, 0, Math.PI * 2);
-			c.fill();
-		});
+		// Note onsets as dots at y-position based on rule
+		// Rules mapped to y-positions: A, B1, B2, B3, B4, B5, B6, C, D
+		const ruleToY = (rule: string | null): number => {
+			const ruleOrder: { [key: string]: number } = {
+				A: 0,
+				B1: 1,
+				B2: 2,
+				B3: 3,
+				B4: 4,
+				B5: 5,
+				B6: 6,
+				C: 7,
+				D: 8
+			};
+			const idx = rule ? (ruleOrder[rule] ?? -1) : -1;
+			if (idx < 0) return topMarkY;
+			return topMarkY + idx * 24; // Space rules 24px apart
+		};
 
-		// Active note line along the top edge
-		c.strokeStyle = '#fbbf24';
-		c.lineWidth = 2;
-		c.beginPath();
+		// Draw onset markers and note-duration lines tied to the onset
 		for (let i = 0; i < history.length; i++) {
 			const h = history[i];
-			const nextT = history[i + 1]?.t ?? now;
-			if (!h.active) continue;
+			if (!h.onset) continue;
 			const x = ((h.t - oldest) / HISTORY_MS) * width;
-			const xNext = ((nextT - oldest) / HISTORY_MS) * width;
-			c.moveTo(x, topMarkY);
-			c.lineTo(xNext, topMarkY);
+			const y = ruleToY(h.rule);
+
+			// Find the end of the active segment that starts at this onset
+			let j = i;
+			while (j + 1 < history.length && history[j + 1].active) {
+				j++;
+			}
+			const segmentEndT = history[j + 1]?.t ?? now;
+			const xEnd = ((segmentEndT - oldest) / HISTORY_MS) * width;
+
+			// Draw horizontal dashed line from onset to the end of this note's active segment
+			c.strokeStyle = 'rgba(251, 191, 36, 1)';
+			c.lineWidth = 1;
+			c.beginPath();
+			c.moveTo(x, y);
+			c.lineTo(Math.min(xEnd, width), y);
+			c.stroke();
+			c.setLineDash([]);
+
+			// Draw onset dot
+			c.fillStyle = '#fbbf24';
+			c.beginPath();
+			c.arc(x, y, 5, 0, Math.PI * 2);
+			c.fill();
+
+			// Draw rule label at the onset position
+			if (h.rule) {
+				c.fillStyle = '#fbbf24';
+				c.font = '8px monospace';
+				c.fillText(h.rule, x + 7, y + 8);
+			}
 		}
-		c.stroke();
+
+		// Removed top active note line; note-duration lines are tied to onsets at rule-specific Y
+
+		// Draw rule labels on the left side
+		c.fillStyle = '#94a3b8';
+		c.font = '24px monospace';
+		c.textAlign = 'right';
+		const ruleLabels: { [key: string]: string } = {
+			A: 'Pitch Change',
+			B1: 'Excitation-Only',
+			B2: 'Phase-Dominant',
+			B3: 'Strong Excitation',
+			B4: 'Harmonic Flux',
+			B5: 'Legato Rebound',
+			B6: 'Burst-on-Rise',
+			C: 'Raw Phase',
+			D: 'Soft Attack'
+		};
+		const rules = ['A', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'C', 'D'];
+		rules.forEach((rule) => {
+			const y = ruleToY(rule);
+			c.fillText(ruleLabels[rule], width - 8, y + 3);
+		});
 	}
 
 	function drawSpectralFlux() {
@@ -350,20 +416,6 @@
 			c.stroke();
 			c.fillStyle = '#22c55e';
 			c.fillText('B1', width - 4, b1Y - 2);
-		}
-
-		// B3 threshold (very strong)
-		const b3Y = baseline - onsetDetectionConfig.b3_minNormalizedExcitation * yScale;
-		if (b3Y > paddingTop && b3Y < baseline) {
-			c.strokeStyle = 'rgba(239, 68, 68, 0.5)'; // red
-			c.lineWidth = 1;
-			c.setLineDash([2, 2]);
-			c.beginPath();
-			c.moveTo(0, b3Y);
-			c.lineTo(width - 4, b3Y);
-			c.stroke();
-			c.fillStyle = '#ef4444';
-			c.fillText('B3', width - 4, b3Y - 2);
 		}
 
 		c.setLineDash([]);

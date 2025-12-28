@@ -132,8 +132,18 @@ export function teardownAudioChain(chain: AudioChain | null) {
 		chain.mediaStream?.getTracks().forEach((track) => track.stop());
 		chain.mediaSource?.disconnect();
 	} else if (chain.sourceType === 'file') {
-		chain.audioElement?.pause();
-		chain.audioElement = undefined;
+		// Pause and fully unload any playing HTMLAudioElement to prevent overlap
+		try {
+			if (chain.audioElement) {
+				chain.audioElement.pause();
+				// Reset playback position and unload source to ensure no lingering audio
+				chain.audioElement.currentTime = 0;
+				chain.audioElement.src = '';
+				chain.audioElement.load();
+			}
+		} finally {
+			chain.audioElement = undefined;
+		}
 		chain.audioElementSource?.disconnect();
 	}
 

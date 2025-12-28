@@ -18,6 +18,7 @@ export interface TunerState {
 	heldSixteenths: number;
 	spectrum: Uint8Array | null;
 	phases: Float32Array | null; // Phase angles in radians for each frequency bin
+	lastOnsetRule: string | null; // Which rule triggered the most recent onset (A, B1, B2, B3, B4, B5, B6, C, D)
 }
 
 export interface TunerOptions {

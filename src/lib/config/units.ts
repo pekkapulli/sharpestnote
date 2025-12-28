@@ -135,6 +135,214 @@ export const units: Units = {
 				]
 			}
 		]
+	},
+	'tw-va': {
+		code: 'tw-va',
+		instrument: 'viola',
+		title: 'Twinkle Twinkle Little Star for Viola',
+		description: 'See how the Sharpest Note materials work with a classic tune.',
+		pieces: [
+			{
+				code: 'twinkle-twinkle-little-star',
+				label: 'Twinkle Twinkle Little Star',
+				tracks: {
+					slow: {
+						tempo: 60,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+					},
+					medium: {
+						tempo: 80,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+					},
+					fast: {
+						tempo: 100,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+					}
+				},
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'D4', length: 4 },
+					{ note: 'E4', length: 4 },
+					{ note: 'F#4', length: 4 },
+					{ note: 'G4', length: 4 },
+					{ note: 'A4', length: 4 },
+					{ note: 'B4', length: 4 }
+				],
+				melody: [
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G4', length: 4 },
+						{ note: 'G4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'F#4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: null, length: 4 }
+					]
+				]
+			}
+		]
+	},
+	'1st-finger-nature-va': {
+		code: '1st-finger-nature-va',
+		instrument: 'viola',
+		title: 'First-finger Nature Pieces for Viola',
+		description: 'Musical pieces for first-finger performance.',
+		pieces: [
+			{
+				code: 'in-the-wind',
+				label: 'In the Wind',
+				tracks: {
+					slow: {
+						tempo: 60,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+					},
+					medium: {
+						tempo: 80,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+					},
+					fast: {
+						tempo: 100,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+					}
+				},
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'G3', length: 4 },
+					{ note: 'A3', length: 4 },
+					{ note: 'D4', length: 4 },
+					{ note: 'E4', length: 4 },
+					{ note: 'A4', length: 4 },
+					{ note: 'B4', length: 4 }
+				],
+				melody: [
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 8 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 8 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 8 },
+						{ note: null, length: 8 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 8 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'A4', length: 8 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 8 },
+						{ note: null, length: 8 }
+					],
+					[
+						{ note: 'G3', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 8 },
+						{ note: 'G3', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 8 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'A4', length: 8 },
+						{ note: null, length: 8 }
+					],
+					[
+						{ note: 'G3', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 8 },
+						{ note: 'G3', length: 4 },
+						{ note: 'D4', length: 4 },
+						{ note: 'D4', length: 8 }
+					],
+					[
+						{ note: 'A4', length: 4 },
+						{ note: 'B4', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'E4', length: 4 },
+						{ note: 'D4', length: 8 },
+						{ note: null, length: 8 }
+					]
+				]
+			}
+		]
 	}
 };
 

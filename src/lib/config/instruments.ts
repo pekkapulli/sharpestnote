@@ -2,7 +2,6 @@ import type { Clef, InstrumentId } from './types';
 
 export interface DetectionConfig {
 	// Onset detection settings
-	onsetRefractoryMs: number; // minimum time between onsets (prevents false retriggering)
 	onsetMinAmplitude: number; // minimum amplitude for onset to trigger
 	// Gentle note end detection
 	endHoldMs: number; // how long low amplitude/pitch loss must persist
@@ -27,9 +26,8 @@ export interface InstrumentConfig {
 }
 
 export const genericDetectionConfig: DetectionConfig = {
-	onsetRefractoryMs: 80, // 80ms cooldown - more sensitive for faster passages
-	onsetMinAmplitude: 0.015, // Minimum amplitude for onset to trigger
-	endHoldMs: 40, // require ~80ms of low energy before ending
+	onsetMinAmplitude: 0.15, // Minimum amplitude for onset to trigger
+	endHoldMs: 60, // end sooner to allow rapid re-articulations
 	endMinAmplitudeRatio: 0.3, // end threshold = onsetMinAmplitude * ratio
 	endRelativeDropRatio: 0.8, // end when amplitude drops below 80% of peak since onset
 	usePhaseDeviation: true, // enable phase-based detection for repeat notes

@@ -9,13 +9,13 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE A: Pitch change with high confidence
 	// ========================================================================
-	pitchChangeThresholdCents: 25, // Pitch change > 25 cents = new note
-	minPitchConfidenceForChange: 0.6, // Confidence must be > 0.6
+	pitchChangeThresholdCents: 20, // Pitch change > 20 cents = new note (quicker alternations)
+	minPitchConfidenceForChange: 0.5, // Confidence must be > 0.5 (a bit more permissive)
 
 	// ========================================================================
 	// RULE B1: Both excitation + phase cues moderate
 	// ========================================================================
-	b1_minNormalizedExcitation: 1.6, // Excitation must be > 1.6 sigma
+	b1_minNormalizedExcitation: 1.0, // Excitation must be > 1.0 sigma (more sensitive)
 	b1_minNormalizedPhase: 1.3, // Phase must be > 1.3 sigma
 
 	// ========================================================================
@@ -70,7 +70,7 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// COOLDOWN & AMPLITUDE
 	// ========================================================================
-	cooldownMs: 80, // Refractory period after onset (80ms)
+	cooldownMs: 60, // Refractory period after onset (60ms) to catch quick D–E–D
 	minAmplitudeRequired: true, // Require minimum amplitude for all rules
 
 	// ========================================================================

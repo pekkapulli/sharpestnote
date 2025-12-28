@@ -30,6 +30,8 @@ export type { InstrumentKind, TunerOptions, TunerState } from './types';
 export function createTuner(options: TunerOptions = {}) {
 	let audioContext: AudioContext | null = null;
 	let audioChain: AudioChain | null = null;
+	// Track the user's intended source between blocked autoplay and resume
+	let desiredSourceType: 'microphone' | 'file' | null = null;
 	let rafId: number | null = null;
 	let buffer: Float32Array | null = null;
 	let noteDebounceId: number | null = null;
@@ -81,7 +83,8 @@ export function createTuner(options: TunerOptions = {}) {
 		isNoteActive: false,
 		heldSixteenths: 0,
 		spectrum: null,
-		phases: null
+		phases: null,
+		lastOnsetRule: null
 	});
 
 	const a4 = $state({ value: options.a4 ?? 442 });
@@ -130,6 +133,7 @@ export function createTuner(options: TunerOptions = {}) {
 		try {
 			state.error = null;
 			state.needsUserGesture = false;
+			desiredSourceType = 'microphone';
 			stop();
 
 			audioContext = audioContext ?? new AudioContext();
@@ -158,6 +162,7 @@ export function createTuner(options: TunerOptions = {}) {
 		try {
 			state.error = null;
 			state.needsUserGesture = false;
+			desiredSourceType = 'file';
 			stop();
 
 			audioContext = audioContext ?? new AudioContext();
@@ -188,12 +193,15 @@ export function createTuner(options: TunerOptions = {}) {
 			}
 			await audioContext.resume();
 			state.needsUserGesture = false;
-			if (audioUrl) {
-				await startWithFile(audioUrl);
-			} else if (audioChain?.sourceType === 'microphone') {
+			// Prefer the user's intended source if known, regardless of audioUrl
+			if (desiredSourceType === 'microphone') {
 				await start();
+			} else if (desiredSourceType === 'file') {
+				await startWithFile(audioUrl ?? '/test-audio.wav');
+			} else if (audioUrl) {
+				await startWithFile(audioUrl);
 			} else {
-				await startWithFile('/test-audio.wav');
+				await start();
 			}
 		} catch (err) {
 			console.error(err);
@@ -312,14 +320,20 @@ export function createTuner(options: TunerOptions = {}) {
 				stablePitch = freq;
 			} else {
 				const pitchDiffCents = Math.abs(1200 * Math.log2(freq / previousPitch));
-				if (pitchDiffCents < 30) {
+				if (pitchDiffCents < onsetDetectionConfig.pitchStabilityThresholdCents) {
 					// Stable: increase confidence
-					pitchConfidence = Math.min(1.0, pitchConfidence + 0.15);
+					pitchConfidence = Math.min(
+						1.0,
+						pitchConfidence + onsetDetectionConfig.pitchConfidenceIncrement
+					);
 					// Update stable pitch with smoothing
 					stablePitch = stablePitch ? stablePitch * 0.7 + freq * 0.3 : freq;
 				} else {
 					// Unstable: reduce confidence
-					pitchConfidence = Math.max(0, pitchConfidence - 0.2);
+					pitchConfidence = Math.max(
+						0,
+						pitchConfidence - onsetDetectionConfig.pitchConfidenceDecrement
+					);
 				}
 			}
 			previousPitch = freq;
@@ -398,10 +412,14 @@ export function createTuner(options: TunerOptions = {}) {
 		// ========================================================================
 
 		let pitchChangeDetected = false;
-		if (hasPitch && stablePitch && pitchConfidence > 0.6) {
+		if (
+			hasPitch &&
+			stablePitch &&
+			pitchConfidence > onsetDetectionConfig.minPitchConfidenceForChange
+		) {
 			const pitchChangeCents = Math.abs(1200 * Math.log2(freq / stablePitch));
-			// Pitch change > 25 cents (~1/4 semitone) = new note
-			if (pitchChangeCents > 25) {
+			// Pitch change threshold from config
+			if (pitchChangeCents > onsetDetectionConfig.pitchChangeThresholdCents) {
 				pitchChangeDetected = true;
 			}
 		}
@@ -422,41 +440,24 @@ export function createTuner(options: TunerOptions = {}) {
 		// Minimum amplitude check for all rules
 		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
 
-		// DEBUG: Log detection state every 30 frames (~300ms)
-		if (Math.random() < 0.033) {
-			console.log('[DEBUG]', {
-				excitationCue: excitationCue.toFixed(4),
-				phaseCue: phaseCue.toFixed(4),
-				normalizedExcitation: normalizedExcitation.toFixed(2),
-				normalizedPhase: normalizedPhase.toFixed(2),
-				historyLength: excitationHistory.length,
-				hasPitch,
-				pitchConfidence: pitchConfidence.toFixed(2),
-				hasMinAmplitude,
-				amplitude: amplitude.toFixed(3),
-				minRequired: tuning.onsetMinAmplitude.toFixed(3),
-				cooldownActive,
-				timeSinceLastOnset: Math.round(timeSinceLastOnset)
-			});
-		}
-
 		if (!cooldownActive && hasMinAmplitude) {
 			// Rule A — Guaranteed onset: pitch change with high confidence
 			if (pitchChangeDetected) {
 				onsetDetected = true;
+				state.lastOnsetRule = 'A';
 				console.log(
 					`✓ Onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, confidence=${pitchConfidence.toFixed(2)}`
 				);
 			}
-			// Rule B1 — Re-articulation: both excitation + phase cues (relaxed thresholds)
+			// Rule B1 — Re-articulation: excitation only (sufficient for detecting attacks)
 			else if (
 				hasPitch &&
-				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation && // Moderate excitation
-				normalizedPhase > onsetDetectionConfig.b1_minNormalizedPhase // Moderate phase disruption
+				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation // Moderate excitation
 			) {
 				onsetDetected = true;
+				state.lastOnsetRule = 'B1';
 				console.log(
-					`✓ Onset: Rule B1 (both cues) - exc=${normalizedExcitation.toFixed(1)}σ phase=${normalizedPhase.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+					`✓ Onset: Rule B1 (excitation-only) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 				);
 			}
 			// Rule B2 — Asymmetric: strong phase + weak/negative excitation (require pitch lock)
@@ -466,6 +467,7 @@ export function createTuner(options: TunerOptions = {}) {
 				normalizedExcitation > onsetDetectionConfig.b2_minNormalizedExcitation // Allow negative excitation
 			) {
 				onsetDetected = true;
+				state.lastOnsetRule = 'B2';
 				console.log(
 					`✓ Onset: Rule B2 (phase-dominant) - phase=${normalizedPhase.toFixed(1)}σ exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 				);
@@ -473,6 +475,7 @@ export function createTuner(options: TunerOptions = {}) {
 			// Rule B3 — Very strong excitation alone (for attacks with clear energy spike)
 			else if (hasPitch && normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation) {
 				onsetDetected = true;
+				state.lastOnsetRule = 'B3';
 				console.log(
 					`✓ Onset: Rule B3 (strong excitation) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 				);
@@ -484,6 +487,7 @@ export function createTuner(options: TunerOptions = {}) {
 				relativeHarmonicIncrease >= onsetDetectionConfig.b4_minRelativeIncrease
 			) {
 				onsetDetected = true;
+				state.lastOnsetRule = 'B4';
 				console.log(
 					`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% freq=${freq.toFixed(1)}Hz`
 				);
@@ -505,6 +509,7 @@ export function createTuner(options: TunerOptions = {}) {
 					percentRise >= onsetDetectionConfig.b5_minRisePercent
 				) {
 					onsetDetected = true;
+					state.lastOnsetRule = 'B5';
 					legatoDipActive = false;
 					legatoRiseFrames = 0;
 					legatoSlopeSumNorm = 0;
@@ -515,52 +520,39 @@ export function createTuner(options: TunerOptions = {}) {
 				}
 			}
 			// Rule B6 — Burst-on-rise without pitch lock (fallback)
-			else if (
-				!hasPitch &&
-				normalizedHarmonicFlux > onsetDetectionConfig.b6_minNormalizedHarmonicFlux &&
-				relativeHarmonicIncrease >= onsetDetectionConfig.b6_minRelativeIncrease &&
-				normalizedAmplitudeSlope > onsetDetectionConfig.b6_minAmplitudeSlope &&
-				amplitude > tuning.onsetMinAmplitude * onsetDetectionConfig.b6_minAmplitudeGateMultiplier
-			) {
-				onsetDetected = true;
-				console.log(
-					`✓ Onset: Rule B6 (burst-on-rise) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% ampSlope=${normalizedAmplitudeSlope.toFixed(2)}`
-				);
-			}
+			// else if (
+			// 	!hasPitch &&
+			// 	normalizedHarmonicFlux > onsetDetectionConfig.b6_minNormalizedHarmonicFlux &&
+			// 	relativeHarmonicIncrease >= onsetDetectionConfig.b6_minRelativeIncrease &&
+			// 	normalizedAmplitudeSlope > onsetDetectionConfig.b6_minAmplitudeSlope &&
+			// 	amplitude > tuning.onsetMinAmplitude * onsetDetectionConfig.b6_minAmplitudeGateMultiplier
+			// ) {
+			// 	onsetDetected = true;
+			// 	state.lastOnsetRule = 'B6';
+			// 	console.log(
+			// 		`✓ Onset: Rule B6 (burst-on-rise) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% ampSlope=${normalizedAmplitudeSlope.toFixed(2)}`
+			// 	);
+			// }
 			// Rule C — Raw phase threshold: very reliable for phase-based attacks
-			else if (hasPitch && phaseCue > onsetDetectionConfig.c_minRawPhase) {
-				// Raw phase alone (no excitation requirement)
-				// Catches all plucks/attacks where phase disruption is clear
-				onsetDetected = true;
-				console.log(
-					`✓ Onset: Rule C (raw phase) - rawPhase=${phaseCue.toFixed(2)} freq=${freq.toFixed(1)}Hz`
-				);
-			}
+			// else if (hasPitch && phaseCue > onsetDetectionConfig.c_minRawPhase) {
+			// 	// Raw phase alone (no excitation requirement)
+			// 	// Catches all plucks/attacks where phase disruption is clear
+			// 	onsetDetected = true;
+			// 	state.lastOnsetRule = 'C';
+			// 	console.log(
+			// 		`✓ Onset: Rule C (raw phase) - rawPhase=${phaseCue.toFixed(2)} freq=${freq.toFixed(1)}Hz`
+			// 	);
+			// }
 			// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
 			else if (normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase) {
 				// Very strong phase
 				onsetDetected = true;
+				state.lastOnsetRule = 'D';
 				console.log(`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ`);
 			}
-			// DEBUG: Log near-misses
-			else if (
-				hasPitch &&
-				(normalizedExcitation > 1.2 || normalizedPhase > 1.2 || phaseCue > 1.3)
-			) {
-				console.log(
-					`✗ Near-miss: exc=${normalizedExcitation.toFixed(1)}σ phase=${normalizedPhase.toFixed(1)}σ rawPhase=${phaseCue.toFixed(2)} rawExc=${excitationCue.toFixed(3)}`
-				);
-			}
+			// Suppress near-miss logs; only log actual onsets
 		} else {
-			// Log why we couldn't check rules
-			if (cooldownActive && Math.random() < 0.1) {
-				console.log(`⏸ Cooldown active: ${timeSinceLastOnset.toFixed(0)}ms / ${COOLDOWN_MS}ms`);
-			}
-			if (!hasMinAmplitude && Math.random() < 0.1) {
-				console.log(
-					`⏸ Below min amplitude: ${amplitude.toFixed(3)} < ${tuning.onsetMinAmplitude.toFixed(3)}`
-				);
-			}
+			// Suppress cooldown/low amplitude logs
 		}
 
 		// Apply onset if detected
@@ -603,9 +595,7 @@ export function createTuner(options: TunerOptions = {}) {
 					// Gradually decay confidence rather than instant reset
 					// This helps maintain pitch tracking across quick note sequences
 					pitchConfidence *= 0.5;
-					console.log(
-						`• End: amplitude=${amplitude.toFixed(3)} low=${lowAmplitude} relDrop=${relativeDrop} elapsed=${Math.round(elapsed)}ms`
-					);
+					// Suppress end logs; only log actual onsets
 				}
 			} else {
 				endCandidateStart = null;
@@ -819,6 +809,10 @@ export function createTuner(options: TunerOptions = {}) {
 		resumeAfterGesture,
 		get sourceType() {
 			return audioChain?.sourceType ?? null;
+		},
+		// Expose desired source for UI logic if needed
+		get desiredSource() {
+			return desiredSourceType;
 		}
 	};
 }
