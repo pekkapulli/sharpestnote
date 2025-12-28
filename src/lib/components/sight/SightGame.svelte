@@ -314,6 +314,7 @@
 		animatingNoteIndex = null;
 
 		const nextMelody = newMelody ? newMelody() : [];
+		console.log('New melody:', nextMelody);
 		// Deep copy to guarantee a new reference and avoid stale reactivity
 		melody = nextMelody.map((i) => ({ ...i }));
 		currentIndex = 0;

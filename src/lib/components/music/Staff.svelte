@@ -7,14 +7,12 @@
 	import NoteSymbol from './NoteSymbol.svelte';
 	import GhostNote from './GhostNote.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
-	import type { NoteLength } from '$lib/config/melody';
-	import { lengthRestMap } from '$lib/config/melody';
-
-	type SequenceItem = { note: string | null; length?: NoteLength };
+	import FingerMarking from './FingerMarking.svelte';
+	import { lengthRestMap, type MelodyItem } from '$lib/config/melody';
 
 	interface Props {
 		// Provide sequence as an array of { note, length }
-		sequence?: SequenceItem[];
+		sequence?: MelodyItem[];
 		// Index into `notes` indicating the currently active target note.
 		currentIndex?: number;
 		// Index of the note currently being animated (for held sixteenths display)
@@ -45,7 +43,6 @@
 		isSequenceComplete = false,
 		barLength
 	}: Props = $props();
-
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
 
@@ -231,6 +228,13 @@
 								strokeWidth={i < currentIndex || (isSequenceComplete && i === currentIndex) ? 2 : 0}
 								{lineSpacing}
 								progress={i === animatingIndex && !isSequenceComplete ? animationProgress : null}
+							/>
+							<!-- Finger marking under ledger lines -->
+							<FingerMarking
+								item={sequence[i]}
+								{x}
+								y={centerY - -3 * lineSpacing + lineSpacing * 1.5}
+								{lineSpacing}
 							/>
 						{/if}
 					{/each}

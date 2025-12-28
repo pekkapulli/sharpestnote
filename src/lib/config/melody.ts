@@ -4,10 +4,23 @@
 export type SixteenthCount = number;
 export type NoteLength = 1 | 2 | 4 | 8 | 16;
 export type RhythmTemplate = SixteenthCount[];
+export type ColourstringsString = 'Elephant' | 'Bear' | 'Dad' | 'Mom' | 'Bird';
 export interface MelodyItem {
 	note: string | null;
 	length: NoteLength;
+	finger?: number; // optional fingering
+	string?: ColourstringsString; // optional string
+	position?: number; // optional position
 }
+
+// Color map for Colorstrings
+export const COLORSTRINGS_MAP: Record<ColourstringsString, string> = {
+	Elephant: '#a855f7', // purple
+	Bear: '#22c55e', // green
+	Dad: '#ef4444', // red
+	Mom: '#3b82f6', // blue
+	Bird: '#eab308' // yellow
+};
 
 // Common 4/4 bar rhythm templates (sum of values = 16 sixteenths)
 export const RHYTHM_TEMPLATES: Record<string, RhythmTemplate> = {
