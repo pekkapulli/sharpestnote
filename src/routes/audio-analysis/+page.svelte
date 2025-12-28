@@ -13,14 +13,16 @@
 	import type { InstrumentKind } from '$lib/tuner/types';
 
 	const HISTORY_MS = 10_000;
-	const SAMPLE_INTERVAL_MS = 33; // ~30fps sampling for the history buffer
+	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
 
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
 
-	let canvasEl: HTMLCanvasElement | null = null;
-	let phaseCanvasEl: HTMLCanvasElement | null = null;
-	let ctx: CanvasRenderingContext2D | null = null;
-	let phaseCtx: CanvasRenderingContext2D | null = null;
+	let spectrumCanvasEl: HTMLCanvasElement | null = null;
+	let fluxCanvasEl: HTMLCanvasElement | null = null;
+	let fundamentalPhaseCanvasEl: HTMLCanvasElement | null = null;
+	let spectrumCtx: CanvasRenderingContext2D | null = null;
+	let fluxCtx: CanvasRenderingContext2D | null = null;
+	let fundamentalPhaseCtx: CanvasRenderingContext2D | null = null;
 	let animationId: number | null = null;
 	let sampleTimer: number | null = null;
 	let resizeObserver: ResizeObserver | null = null;
@@ -170,16 +172,17 @@
 	}
 
 	function draw() {
-		if (!ctx || !canvasEl) return;
+		if (!spectrumCtx || !spectrumCanvasEl) return;
 		drawSpectrum();
-		drawPhase();
+		drawSpectralFlux();
+		drawFundamentalPhase();
 		scheduleNextFrame();
 	}
 
 	function drawSpectrum() {
-		if (!ctx || !canvasEl) return;
-		const c = ctx;
-		const canvas = canvasEl;
+		if (!spectrumCtx || !spectrumCanvasEl) return;
+		const c = spectrumCtx;
+		const canvas = spectrumCanvasEl;
 		const now = performance.now();
 		history = history.filter((h) => h.t >= now - HISTORY_MS);
 
@@ -269,10 +272,124 @@
 		c.stroke();
 	}
 
-	function drawPhase() {
-		if (!phaseCtx || !phaseCanvasEl) return;
-		const c = phaseCtx;
-		const canvas = phaseCanvasEl;
+	function drawSpectralFlux() {
+		if (!fluxCtx || !fluxCanvasEl) return;
+		const c = fluxCtx;
+		const canvas = fluxCanvasEl;
+		const now = performance.now();
+
+		const { width, height } = canvas;
+		c.clearRect(0, 0, width, height);
+
+		// Dark background
+		c.fillStyle = '#0b1226';
+		c.fillRect(0, 0, width, height);
+
+		if (!history.length) {
+			c.fillStyle = '#cbd5e1';
+			c.font = '12px sans-serif';
+			c.fillText('No data yet...', 12, 20);
+			return;
+		}
+
+		const oldest = now - HISTORY_MS;
+		const paddingTop = 8;
+		const paddingBottom = 20;
+		const graphHeight = height - paddingTop - paddingBottom;
+		const baseline = paddingTop + graphHeight;
+
+		// Find max flux for scaling
+		const maxFlux = Math.max(...history.map((h) => h.spectralFlux), 0.001);
+		const yScale = graphHeight / maxFlux;
+
+		// Draw spectral flux as a filled area
+		c.fillStyle = 'rgba(79, 172, 254, 0.6)'; // light blue with transparency
+		c.beginPath();
+		c.moveTo(0, baseline);
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = baseline - h.spectralFlux * yScale;
+			if (idx === 0) {
+				c.lineTo(x, y);
+			} else {
+				c.lineTo(x, y);
+			}
+		});
+		c.lineTo(width, baseline);
+		c.closePath();
+		c.fill();
+
+		// Draw outline
+		c.strokeStyle = '#4face';
+		c.lineWidth = 1.5;
+		c.beginPath();
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = baseline - h.spectralFlux * yScale;
+			if (idx === 0) {
+				c.moveTo(x, y);
+			} else {
+				c.lineTo(x, y);
+			}
+		});
+		c.stroke();
+
+		// Draw threshold lines
+		c.font = '9px monospace';
+		c.textAlign = 'right';
+
+		// B1 threshold (moderate)
+		const b1Y = baseline - onsetDetectionConfig.b1_minNormalizedExcitation * yScale;
+		if (b1Y > paddingTop && b1Y < baseline) {
+			c.strokeStyle = 'rgba(34, 197, 94, 0.5)'; // green
+			c.lineWidth = 1;
+			c.setLineDash([2, 2]);
+			c.beginPath();
+			c.moveTo(0, b1Y);
+			c.lineTo(width - 4, b1Y);
+			c.stroke();
+			c.fillStyle = '#22c55e';
+			c.fillText('B1', width - 4, b1Y - 2);
+		}
+
+		// B3 threshold (very strong)
+		const b3Y = baseline - onsetDetectionConfig.b3_minNormalizedExcitation * yScale;
+		if (b3Y > paddingTop && b3Y < baseline) {
+			c.strokeStyle = 'rgba(239, 68, 68, 0.5)'; // red
+			c.lineWidth = 1;
+			c.setLineDash([2, 2]);
+			c.beginPath();
+			c.moveTo(0, b3Y);
+			c.lineTo(width - 4, b3Y);
+			c.stroke();
+			c.fillStyle = '#ef4444';
+			c.fillText('B3', width - 4, b3Y - 2);
+		}
+
+		c.setLineDash([]);
+
+		// Add grid lines and labels
+		c.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+		c.lineWidth = 1;
+		c.fillStyle = '#94a3b8';
+
+		// Grid at 25%, 50%, 75%, 100%
+		for (let i = 1; i <= 4; i++) {
+			const y = baseline - (graphHeight / 4) * i;
+			c.beginPath();
+			c.moveTo(0, y);
+			c.lineTo(width - 4, y);
+			c.stroke();
+		}
+		c.fillText(`${(maxFlux * 0.75).toFixed(2)}`, width - 4, baseline - (graphHeight / 4) * 3 - 2);
+		c.fillText(`${(maxFlux * 0.5).toFixed(2)}`, width - 4, baseline - (graphHeight / 4) * 2 + 4);
+		c.fillText(`0`, width - 4, baseline + 12);
+	}
+
+	function drawFundamentalPhase() {
+		if (!fundamentalPhaseCtx || !fundamentalPhaseCanvasEl) return;
+		const c = fundamentalPhaseCtx;
+		const canvas = fundamentalPhaseCanvasEl;
 		const now = performance.now();
 
 		const { width, height } = canvas;
@@ -292,40 +409,38 @@
 		const oldest = now - HISTORY_MS;
 		const paddingTop = 12;
 		const paddingBottom = 32;
-		const heatmapHeight = height - paddingTop - paddingBottom;
-		const binCount = history.find((h) => h.phases)?.phases?.length ?? 0;
+		const graphHeight = height - paddingTop - paddingBottom;
+		const baseline = paddingTop + graphHeight;
 
-		// Phase heatmap: map phase angles (-π to π) to colors
-		if (binCount > 0) {
-			for (let i = 0; i < history.length; i++) {
-				const sample = history[i];
-				if (!sample.phases) continue;
-				const nextT = history[i + 1]?.t ?? now;
-				const x = ((sample.t - oldest) / HISTORY_MS) * width;
-				const xNext = ((nextT - oldest) / HISTORY_MS) * width;
-				const columnWidth = Math.max(1, Math.ceil(xNext - x));
+		// Find max phase deviation for scaling
+		// This is the phase COHERENCE metric - how many bins deviate from expected phase advance
+		const maxPhaseDeviation = Math.max(...history.map((h) => h.phaseDeviation), 0.001);
+		const phaseDevScale = graphHeight / maxPhaseDeviation;
 
-				for (let b = 0; b < binCount; b++) {
-					const phase = sample.phases[b];
-					const y = paddingTop + heatmapHeight - ((b + 1) / binCount) * heatmapHeight;
-					const binHeight = Math.ceil(heatmapHeight / binCount) + 1;
-					c.fillStyle = phaseToColor(phase);
-					c.fillRect(x, y, columnWidth, binHeight);
-				}
+		// Draw phase deviation as a filled area (shows unexpected phase shifts across the spectrum)
+		c.fillStyle = 'rgba(167, 139, 250, 0.4)'; // purple with transparency
+		c.beginPath();
+		c.moveTo(0, baseline);
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = baseline - h.phaseDeviation * phaseDevScale;
+			if (idx === 0) {
+				c.lineTo(x, y);
+			} else {
+				c.lineTo(x, y);
 			}
-		}
+		});
+		c.lineTo(width, baseline);
+		c.closePath();
+		c.fill();
 
-		// Phase deviation trace overlaid on the heatmap
-		const phaseDevMax = Math.max(...history.map((h) => h.phaseDeviation), 0.001);
-		const phaseYScale = heatmapHeight / phaseDevMax;
-		const phaseBaseline = paddingTop + heatmapHeight;
-
-		c.strokeStyle = '#ffffff';
+		// Draw outline
+		c.strokeStyle = '#a78bfa'; // purple
 		c.lineWidth = 2;
 		c.beginPath();
 		history.forEach((h, idx) => {
 			const x = ((h.t - oldest) / HISTORY_MS) * width;
-			const y = phaseBaseline - h.phaseDeviation * phaseYScale;
+			const y = baseline - h.phaseDeviation * phaseDevScale;
 			if (idx === 0) {
 				c.moveTo(x, y);
 			} else {
@@ -334,35 +449,50 @@
 		});
 		c.stroke();
 
-		// Mark phase-based onset events using raw threshold + amplitude gate
-		const tuning = getDetectionConfig(
-			'generic' as InstrumentKind,
-			instrumentMap,
-			genericDetectionConfig
-		);
-		c.fillStyle = '#10b981'; // Green for onset markers
-		history.forEach((h) => {
-			const hasPitch = !!h.frequency && h.frequency > 0;
-			if (
-				h.phaseDeviation > onsetDetectionConfig.c_minRawPhase &&
-				h.amp > tuning.onsetMinAmplitude &&
-				h.active &&
-				hasPitch
-			) {
-				const x = ((h.t - oldest) / HISTORY_MS) * width;
-				c.beginPath();
-				c.arc(x, paddingTop / 2, 5, 0, Math.PI * 2);
-				c.fill();
-			}
-		});
+		// Draw Rule C threshold (raw phase deviation)
+		// This is the threshold for detecting onsets based on phase incoherence
+		const cThresholdY = baseline - onsetDetectionConfig.c_minRawPhase * phaseDevScale;
+		if (cThresholdY > paddingTop && cThresholdY < baseline) {
+			c.strokeStyle = 'rgba(239, 68, 68, 0.6)'; // red
+			c.lineWidth = 1.5;
+			c.setLineDash([2, 2]);
+			c.beginPath();
+			c.moveTo(0, cThresholdY);
+			c.lineTo(width - 4, cThresholdY);
+			c.stroke();
+			c.fillStyle = '#ef4444';
+			c.font = '9px monospace';
+			c.textAlign = 'right';
+			c.fillText(
+				`Rule C: ${onsetDetectionConfig.c_minRawPhase.toFixed(2)}`,
+				width - 4,
+				cThresholdY - 2
+			);
+		}
 
-		// Add phase legend labels
+		c.setLineDash([]);
+
+		// Draw baseline
+		c.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+		c.lineWidth = 1;
+		c.setLineDash([4, 4]);
+		c.beginPath();
+		c.moveTo(0, baseline);
+		c.lineTo(width, baseline);
+		c.stroke();
+		c.setLineDash([]);
+
+		// Add phase deviation legend labels
 		c.fillStyle = '#94a3b8';
-		c.font = '10px monospace';
+		c.font = '9px monospace';
 		c.textAlign = 'right';
-		c.fillText('+π', width - 4, paddingTop + 10);
-		c.fillText('0', width - 4, paddingTop + heatmapHeight / 2 + 4);
-		c.fillText('-π', width - 4, paddingTop + heatmapHeight - 4);
+		c.fillText('Phase coherence (full spectrum)', width - 4, paddingTop + 10);
+		c.fillText(
+			`${(maxPhaseDeviation * 0.5).toFixed(2)}`,
+			width - 4,
+			baseline - graphHeight / 2 + 4
+		);
+		c.fillText('0 (coherent)', width - 4, baseline + 12);
 	}
 
 	function phaseToColor(phase: number): string {
@@ -392,26 +522,34 @@
 	}
 
 	onMount(async () => {
-		if (canvasEl) {
-			ctx = canvasEl.getContext('2d');
+		if (spectrumCanvasEl) {
+			spectrumCtx = spectrumCanvasEl.getContext('2d');
 		}
-		if (phaseCanvasEl) {
-			phaseCtx = phaseCanvasEl.getContext('2d');
+		if (fluxCanvasEl) {
+			fluxCtx = fluxCanvasEl.getContext('2d');
+		}
+		if (fundamentalPhaseCanvasEl) {
+			fundamentalPhaseCtx = fundamentalPhaseCanvasEl.getContext('2d');
 		}
 
 		resizeObserver = new ResizeObserver(() => {
 			const dpr = devicePixelRatio || 1;
-			if (canvasEl) {
-				canvasEl.width = canvasEl.clientWidth * dpr;
-				canvasEl.height = 280 * dpr;
+			if (spectrumCanvasEl) {
+				spectrumCanvasEl.width = spectrumCanvasEl.clientWidth * dpr;
+				spectrumCanvasEl.height = 280 * dpr;
 			}
-			if (phaseCanvasEl) {
-				phaseCanvasEl.width = phaseCanvasEl.clientWidth * dpr;
-				phaseCanvasEl.height = 280 * dpr;
+			if (fluxCanvasEl) {
+				fluxCanvasEl.width = fluxCanvasEl.clientWidth * dpr;
+				fluxCanvasEl.height = 100 * dpr;
+			}
+			if (fundamentalPhaseCanvasEl) {
+				fundamentalPhaseCanvasEl.width = fundamentalPhaseCanvasEl.clientWidth * dpr;
+				fundamentalPhaseCanvasEl.height = 160 * dpr;
 			}
 		});
-		if (canvasEl) resizeObserver.observe(canvasEl);
-		if (phaseCanvasEl) resizeObserver.observe(phaseCanvasEl);
+		if (spectrumCanvasEl) resizeObserver.observe(spectrumCanvasEl);
+		if (fluxCanvasEl) resizeObserver.observe(fluxCanvasEl);
+		if (fundamentalPhaseCanvasEl) resizeObserver.observe(fundamentalPhaseCanvasEl);
 
 		tuner.checkSupport();
 		tuner.refreshDevices();
@@ -426,8 +564,9 @@
 		stopSampling();
 		if (animationId) cancelAnimationFrame(animationId);
 		if (resizeObserver) {
-			if (canvasEl) resizeObserver.unobserve(canvasEl);
-			if (phaseCanvasEl) resizeObserver.unobserve(phaseCanvasEl);
+			if (spectrumCanvasEl) resizeObserver.unobserve(spectrumCanvasEl);
+			if (fluxCanvasEl) resizeObserver.unobserve(fluxCanvasEl);
+			if (fundamentalPhaseCanvasEl) resizeObserver.unobserve(fundamentalPhaseCanvasEl);
 		}
 		tuner.destroy();
 	});
@@ -460,6 +599,8 @@
 					<button
 						class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'file' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
 						onclick={async () => {
+							stopSampling();
+							startSampling();
 							await tuner.startWithFile('/test-audio.wav');
 						}}
 						type="button"
@@ -469,6 +610,8 @@
 					<button
 						class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'microphone' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
 						onclick={async () => {
+							stopSampling();
+							startSampling();
 							await tuner.start();
 						}}
 						type="button"
@@ -497,10 +640,13 @@
 					}
 
 					if (tuner.state.isListening) {
+						stopSampling();
 						tuner.stop();
 					} else if (tuner.sourceType === 'microphone') {
+						startSampling();
 						await tuner.start();
 					} else {
+						startSampling();
 						await tuner.startWithFile('/test-audio.wav');
 					}
 				}}
@@ -526,14 +672,20 @@
 						>
 					{/if}
 				</div>
-				<canvas bind:this={canvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
+				<canvas bind:this={spectrumCanvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
 			</div>
 			<div class="rounded-2xl bg-white p-4 shadow-sm">
-				<div class="mb-2 flex items-center justify-between">
-					<p class="text-sm font-semibold text-slate-700">Phase information (last 10s)</p>
-					<span class="text-xs text-slate-500">Cyclical hue = phase angle</span>
+				<div class="mb-2">
+					<p class="text-sm font-semibold text-slate-700">Spectral flux (last 10s)</p>
 				</div>
-				<canvas bind:this={phaseCanvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
+				<canvas bind:this={fluxCanvasEl} class="h-24 w-full rounded-xl bg-slate-900"></canvas>
+			</div>
+			<div class="rounded-2xl bg-white p-4 shadow-sm">
+				<div class="mb-2">
+					<p class="text-sm font-semibold text-slate-700">Phase coherence (last 10s)</p>
+				</div>
+				<canvas bind:this={fundamentalPhaseCanvasEl} class="h-40 w-full rounded-xl bg-slate-900"
+				></canvas>
 			</div>
 		</div>
 	</div>
