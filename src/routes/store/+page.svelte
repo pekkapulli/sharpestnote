@@ -69,7 +69,7 @@
 					<p class="mt-3 text-slate-700">{unit.description}</p>
 					<div class="mt-4 flex gap-2">
 						<LinkButton href={unit.gumroadUrl} color="green">Buy on Gumroad</LinkButton>
-						<LinkButton href={`/unit/${unit.code}`}>Preview Free</LinkButton>
+						<LinkButton href={`/unit/${unit.code}`}>Preview</LinkButton>
 					</div>
 				</article>
 			{/each}
