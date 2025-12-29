@@ -14,11 +14,13 @@ export interface TrackVariant {
 }
 
 export interface UnitMaterial {
+	published?: boolean;
 	code: string;
 	keyCode: string;
 	instrument: InstrumentId;
 	title: string;
 	description: string;
+	gumroadUrl: string;
 	pieces: {
 		code: string;
 		label: string;
@@ -36,12 +38,14 @@ export const fileStore = 'https://f002.backblazeb2.com/file/sharpestnote/unit';
 
 export const units: Units = {
 	'tw-v': {
+		published: true,
 		code: 'tw-v',
 		keyCode: 'LHXQ',
 		instrument: 'violin',
 		title: 'Twinkle Twinkle Little Star for Violin',
 		description:
 			'A musical, playable way to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-violin',
 		pieces: [
 			{
 				code: 'twinkle-twinkle-little-star',
@@ -145,6 +149,7 @@ export const units: Units = {
 		instrument: 'viola',
 		title: 'Twinkle Twinkle Little Star for Viola',
 		description: 'See how the Sharpest Note materials work with a classic tune.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-viola',
 		pieces: [
 			{
 				code: 'twinkle-twinkle-little-star',
@@ -248,6 +253,7 @@ export const units: Units = {
 		instrument: 'viola',
 		title: 'First-finger Nature Pieces for Viola',
 		description: 'Musical pieces for first-finger performance.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/first-finger-nature-viola',
 		pieces: [
 			{
 				code: 'in-the-wind',

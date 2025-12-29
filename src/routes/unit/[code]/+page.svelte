@@ -42,7 +42,7 @@
 		{/if}
 
 		<section class="mt-8">
-			<h3 class="text-sm font-semibold text-slate-800">Pieces</h3>
+			<h3 class="text-sm font-semibold text-slate-800">Play the Pieces</h3>
 			<div class="piece-grid">
 				{#each unit.pieces as piece (piece.code)}
 					<a href={`/unit/${code}/${piece.code}${keyQuery}`} class="piece-card">

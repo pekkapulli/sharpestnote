@@ -1,12 +1,12 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { instrumentMap } from '$lib/config/instruments';
-import { fileStore, getUnitByCode, normalizeUnitCode } from '$lib/config/units';
+import { getUnitByCode, normalizeUnitCode } from '$lib/config/units';
+import { getImageUrl } from '$lib/util/getImageUrl';
 
 export const load: PageServerLoad = async ({ params }) => {
-	const normalizedCode = normalizeUnitCode(params.code);
 	const unit = getUnitByCode(params.code);
-	const imageUrl = `${fileStore}/${normalizedCode}/${normalizedCode}.jpg`;
+	const imageUrl = getImageUrl(params.code);
 	const instrumentLabel = unit ? (instrumentMap[unit.instrument]?.label ?? unit.instrument) : '';
 
 	if (!unit) {
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	return {
 		unit,
-		code: normalizedCode,
+		code: normalizeUnitCode(params.code),
 		imageUrl,
 		instrumentLabel
 	};
