@@ -5,21 +5,21 @@
 		href: string;
 		children: Snippet;
 		size?: 'small' | 'medium' | 'large';
+		color?: 'blue' | 'green';
 	}
 
-	const { href, children, size = 'small' }: Props = $props();
+	const { href, children, size = 'small', color = 'blue' }: Props = $props();
 </script>
 
 <a
 	{href}
-	class="{size} inline-block rounded-lg bg-dark-blue px-3 text-sm font-semibold text-off-white transition hover:-translate-y-px hover:bg-slate-200 hover:shadow"
+	class="{size} {color} inline-block rounded-lg px-3 text-sm font-semibold text-off-white transition hover:-translate-y-px hover:shadow"
 >
 	{@render children()}
 </a>
 
 <style>
 	a {
-		background-color: var(--color-dark-blue);
 		text-decoration: none;
 		color: var(--color-off-white);
 	}
@@ -43,8 +43,21 @@
 		color: var(--color-off-white);
 	}
 
-	a:hover {
+	a.blue {
+		background-color: var(--color-dark-blue);
+	}
+
+	a.blue:hover {
 		background-color: var(--color-dark-blue-highlight);
+		color: var(--color-off-white);
+	}
+
+	a.green {
+		background-color: var(--color-brand-green);
+	}
+
+	a.green:hover {
+		background-color: var(--color-brand-green-highlight);
 		color: var(--color-off-white);
 	}
 </style>

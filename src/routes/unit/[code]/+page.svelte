@@ -2,7 +2,7 @@
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 
 	const { data } = $props();
-	const { unit, code, imageUrl, instrumentLabel } = $derived(data);
+	const { unit, code, imageUrl, instrumentLabel, keyQuery, hasKeyAccess } = $derived(data);
 	const hasExtras = $derived((unit.extraLinks?.length ?? 0) > 0);
 	const sheetMusicCta = '/store'; // TODO: replace with live store link when available
 	let imageLoaded = $state(false);
@@ -35,15 +35,17 @@
 			{unit.description}
 		</p>
 
-		<LinkButton size="large" href={sheetMusicCta}
-			>Get the sheet music – accompaniment included!</LinkButton
-		>
+		{#if !hasKeyAccess}
+			<LinkButton size="large" href={sheetMusicCta} color="green"
+				>Get the sheet music – accompaniment included!</LinkButton
+			>
+		{/if}
 
 		<section class="mt-8">
 			<h3 class="text-sm font-semibold text-slate-800">Pieces</h3>
 			<div class="piece-grid">
 				{#each unit.pieces as piece (piece.code)}
-					<a href={`/unit/${code}/${piece.code}`} class="piece-card">
+					<a href={`/unit/${code}/${piece.code}${keyQuery}`} class="piece-card">
 						<div class="piece-card__content">
 							<span class="font-semibold text-slate-900">{piece.label}</span>
 							<span class="mt-1 text-sm text-slate-600">{piece.key} {piece.mode}</span>
