@@ -3,22 +3,12 @@
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
-	import {
-		calculatePhaseDeviation,
-		calculateSpectralFluxWeighted
-	} from '$lib/tuner/spectralAnalysis';
-	import { calculateDynamicThreshold, getDetectionConfig } from '$lib/tuner/analysis';
-	import { instrumentMap, genericDetectionConfig } from '$lib/config/instruments';
 	import { onsetDetectionConfig } from '$lib/config/onset';
-	import type { InstrumentKind } from '$lib/tuner/types';
 
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
 
-	// Toggle debug console logging in this page
-	const ENABLE_TEST_LOGGING = false;
-
-	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp', debug: ENABLE_TEST_LOGGING });
+	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp', debug: false });
 
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
 	let fluxCanvasEl: HTMLCanvasElement | null = null;
@@ -41,14 +31,8 @@
 		frequency?: number | null;
 		phaseDeviation: number;
 		spectralFlux: number;
-		onsetStrength: number; // Combined flux + phase deviation
 	}[] = [];
 	let prevNoteActive = false;
-	let prevPhases: Float32Array | null = null;
-	let prevSpectrum: Float32Array | null = null;
-	let fluxHistory: number[] = [];
-	let firstNoteTime: number | null = null;
-	let testLogTimer: number | null = null;
 
 	function startSampling() {
 		stopSampling();
@@ -58,50 +42,14 @@
 			const onset = isActive && !prevNoteActive;
 			prevNoteActive = isActive;
 
-			// Calculate spectral flux and phase deviation using same logic as useTuner
-			let spectralFlux = 0;
-			let phaseDeviation = 0;
-
-			if (tuner.state.spectrum && tuner.state.phases && prevSpectrum && prevPhases) {
-				const currentFFT = {
-					phases: tuner.state.phases,
-					magnitudes: tuner.state.spectrum
-				} as any;
-				const previousFFT = {
-					phases: prevPhases,
-					magnitudes: prevSpectrum
-				} as any;
-				spectralFlux = calculateSpectralFluxWeighted(currentFFT, previousFFT);
-				phaseDeviation = calculatePhaseDeviation(currentFFT, previousFFT, 2048 / 4); // hopSize ~= fftSize/4
-			}
-
-			// Update previous frame data
-			if (tuner.state.phases) {
-				prevPhases = new Float32Array(tuner.state.phases);
-			}
-			if (tuner.state.spectrum) {
-				prevSpectrum = new Float32Array(tuner.state.spectrum);
-			}
-
-			// Track flux history for dynamic threshold (keep last 30 like useTuner)
-			fluxHistory.push(spectralFlux);
-			if (fluxHistory.length > 30) fluxHistory.shift();
-
-			// Combine flux and phase deviation with same weights as useTuner
-			const tuning = getDetectionConfig(
-				'generic' as InstrumentKind,
-				instrumentMap,
-				genericDetectionConfig
-			);
-			const normalizedPhase = phaseDeviation / Math.PI; // 0-1 range
-			const onsetStrength = tuning.usePhaseDeviation
-				? (1 - tuning.phaseWeight) * spectralFlux + tuning.phaseWeight * normalizedPhase
-				: spectralFlux;
+			// Use spectral flux and phase deviation directly from tuner state
+			const spectralFlux = tuner.state.spectralFlux;
+			const phaseDeviation = tuner.state.phaseDeviation;
 
 			// Extract rule from the tuner state
 			let rule: string | null = null;
-			if (onset && (tuner.state as any).lastOnsetRule) {
-				rule = (tuner.state as any).lastOnsetRule;
+			if (onset && tuner.state.lastOnsetRule) {
+				rule = tuner.state.lastOnsetRule;
 			}
 
 			history.push({
@@ -114,55 +62,9 @@
 				active: isActive,
 				frequency: tuner.state.frequency ?? null,
 				phaseDeviation,
-				spectralFlux,
-				onsetStrength
+				spectralFlux
 			});
 			history = history.filter((h) => h.t >= now - HISTORY_MS);
-
-			// Test logging: capture data 5 seconds after first note (disabled unless enabled)
-			if (ENABLE_TEST_LOGGING && onset && firstNoteTime === null) {
-				firstNoteTime = now;
-				testLogTimer = window.setTimeout(() => {
-					const startTime = firstNoteTime!;
-					const relevantHistory = history.filter(
-						(h) => h.t >= startTime && h.t <= startTime + 5000
-					);
-					console.log('=== TEST DATA: 5 seconds after first note ===');
-					console.log('First note at:', 0, 'ms');
-					console.log('\nOnset events:');
-					relevantHistory.forEach((h) => {
-						if (h.onset) {
-							const dynamicThreshold = calculateDynamicThreshold(
-								relevantHistory
-									.slice(
-										Math.max(0, relevantHistory.indexOf(h) - 29),
-										relevantHistory.indexOf(h) + 1
-									)
-									.map((s) => s.spectralFlux),
-								10,
-								3.0
-							);
-							console.log(
-								`  ${Math.round(h.t - startTime)}ms: amp=${h.amp.toFixed(3)} flux=${h.spectralFlux.toFixed(4)} phase=${h.phaseDeviation.toFixed(4)} strength=${h.onsetStrength.toFixed(4)} thresh=${dynamicThreshold.toFixed(4)} freq=${tuner.state.frequency?.toFixed(1) || 'N/A'}`
-							);
-						}
-					});
-					console.log('\nAll samples (every 3rd):');
-					relevantHistory.forEach((h, i) => {
-						if (i % 3 === 0) {
-							const dynamicThreshold = calculateDynamicThreshold(
-								relevantHistory.slice(Math.max(0, i - 29), i + 1).map((s) => s.spectralFlux),
-								10,
-								3.0
-							);
-							const marker = h.onset ? ' <-- ONSET' : '';
-							console.log(
-								`  ${Math.round(h.t - startTime)}ms: flux=${h.spectralFlux.toFixed(4)} phase=${h.phaseDeviation.toFixed(4)} strength=${h.onsetStrength.toFixed(4)} thresh=${dynamicThreshold.toFixed(4)}${marker}`
-							);
-						}
-					});
-				}, 5000);
-			}
 		}, SAMPLE_INTERVAL_MS);
 	}
 
@@ -171,15 +73,7 @@
 			clearInterval(sampleTimer);
 			sampleTimer = null;
 		}
-		if (testLogTimer !== null) {
-			clearTimeout(testLogTimer);
-			testLogTimer = null;
-		}
 		prevNoteActive = false;
-		prevPhases = null;
-		prevSpectrum = null;
-		fluxHistory = [];
-		firstNoteTime = null;
 	}
 
 	function draw() {
@@ -502,25 +396,8 @@
 		c.stroke();
 
 		// Draw Rule C threshold (raw phase deviation)
+		// Note: Threshold visualization removed - config not exposed to this visualization layer
 		// This is the threshold for detecting onsets based on phase incoherence
-		const cThresholdY = baseline - onsetDetectionConfig.c_minRawPhase * phaseDevScale;
-		if (cThresholdY > paddingTop && cThresholdY < baseline) {
-			c.strokeStyle = 'rgba(239, 68, 68, 0.6)'; // red
-			c.lineWidth = 1.5;
-			c.setLineDash([2, 2]);
-			c.beginPath();
-			c.moveTo(0, cThresholdY);
-			c.lineTo(width - 4, cThresholdY);
-			c.stroke();
-			c.fillStyle = '#ef4444';
-			c.font = '9px monospace';
-			c.textAlign = 'right';
-			c.fillText(
-				`Rule C: ${onsetDetectionConfig.c_minRawPhase.toFixed(2)}`,
-				width - 4,
-				cThresholdY - 2
-			);
-		}
 
 		c.setLineDash([]);
 
@@ -545,14 +422,6 @@
 			baseline - graphHeight / 2 + 4
 		);
 		c.fillText('0 (coherent)', width - 4, baseline + 12);
-	}
-
-	function phaseToColor(phase: number): string {
-		// Map phase from [-π, π] to [0, 1]
-		const normalized = (phase + Math.PI) / (2 * Math.PI);
-		// Use HSL for cyclical phase representation
-		const hue = normalized * 360;
-		return `hsl(${hue}, 70%, 50%)`;
 	}
 
 	function magnitudeToColor(mag: number) {

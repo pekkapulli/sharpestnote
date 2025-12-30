@@ -85,7 +85,9 @@ export function createTuner(options: TunerOptions = {}) {
 		heldSixteenths: 0,
 		spectrum: null,
 		phases: null,
-		lastOnsetRule: null
+		lastOnsetRule: null,
+		spectralFlux: 0,
+		phaseDeviation: 0
 	});
 
 	const a4 = $state({ value: options.a4 ?? 442 });
@@ -106,12 +108,14 @@ export function createTuner(options: TunerOptions = {}) {
 	let lastTickAt: number | null = null;
 	let holdMs = 0;
 	let heldNote: string | null = null;
-	let smoothedAmplitude = 0;
 	let autoGainElapsed = 0;
 
 	// Note end tracking (separate from onset detection - Step 6)
 	let peakAmplitudeSinceOnset = 0;
 	let endCandidateStart: number | null = null;
+
+	// Auto gain: track peak amplitude of notes for calibration
+	let notePeakAmplitude = 0;
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
@@ -244,6 +248,7 @@ export function createTuner(options: TunerOptions = {}) {
 		excitationHistory.length = 0;
 		phaseHistory.length = 0;
 		endCandidateStart = null;
+		notePeakAmplitude = 0;
 
 		spectrumBuffer = null;
 		state.spectrum = null;
@@ -319,6 +324,10 @@ export function createTuner(options: TunerOptions = {}) {
 			audioContext.sampleRate,
 			analyser.fftSize
 		);
+
+		// Expose analysis metrics for visualization
+		state.spectralFlux = excitationCue;
+		state.phaseDeviation = phaseCue;
 
 		// Track pitch confidence: stable pitch over multiple frames
 		if (hasPitch) {
@@ -579,9 +588,10 @@ export function createTuner(options: TunerOptions = {}) {
 		// ========================================================================
 
 		if (state.isNoteActive) {
-			// Track peak amplitude for decay detection
+			// Track peak amplitude for decay detection and auto-gain calibration
 			if (amplitude > peakAmplitudeSinceOnset) {
 				peakAmplitudeSinceOnset = amplitude;
+				notePeakAmplitude = amplitude; // Update peak for auto gain
 			}
 
 			// Note end conditions (independent of onset logic)
@@ -602,6 +612,7 @@ export function createTuner(options: TunerOptions = {}) {
 					// Gradually decay confidence rather than instant reset
 					// This helps maintain pitch tracking across quick note sequences
 					pitchConfidence *= 0.5;
+					// Mark that we have a note peak to calibrate from on next auto-gain check
 					// Suppress end logs; only log actual onsets
 				}
 			} else {
@@ -691,36 +702,35 @@ export function createTuner(options: TunerOptions = {}) {
 		lastTickAt = now;
 
 		autoGainElapsed += dt;
-		// Auto gain: adapt input level to target amplitude without raising noise floor excessively
-		// Only adjust BETWEEN notes to avoid interfering with current note detection
+		// Auto gain: adapt input level to target amplitude using note peaks (not noise)
+		// Calibrate based on the maximum amplitude observed during notes
 		if (
 			autoGainEnabled.value &&
 			gainNode &&
 			autoGainElapsed > autoGainInterval.value &&
-			!state.isNoteActive
+			!state.isNoteActive &&
+			notePeakAmplitude > 0
 		) {
 			autoGainElapsed = 0;
-			smoothedAmplitude = smoothedAmplitude * 0.9 + amplitude * 0.1;
 			const target = targetAmplitude.value;
 			const lower = target * 0.85;
 			const upper = target * 1.25;
 			const adjustStep = 1 + Math.max(0.01, Math.min(0.25, gainAdjustRate.value));
 			const currentGain = gain.value;
 
-			// Adjust gain when between notes but still have some signal to calibrate from
-			const hasSignal = smoothedAmplitude > amplitudeThreshold.value * 0.5;
-			if (hasSignal) {
-				let nextGain = currentGain;
-				if (smoothedAmplitude < lower) {
-					nextGain = clampGain(currentGain * adjustStep);
-				} else if (smoothedAmplitude > upper) {
-					nextGain = clampGain(currentGain / adjustStep);
-				}
-				if (nextGain !== currentGain) {
-					gain.value = nextGain;
-					gainNode.gain.value = nextGain;
-				}
+			// Adjust gain based on the peak amplitude from the last note
+			// This ensures we're calibrating to actual musical signal, not noise floor
+			if (notePeakAmplitude < lower) {
+				// Peak was too quiet - increase gain
+				gain.value = clampGain(currentGain * adjustStep);
+				gainNode.gain.value = clampGain(currentGain * adjustStep);
+			} else if (notePeakAmplitude > upper) {
+				// Peak was too loud - decrease gain
+				gain.value = clampGain(currentGain / adjustStep);
+				gainNode.gain.value = clampGain(currentGain / adjustStep);
 			}
+			// Reset peak for next note cycle
+			notePeakAmplitude = 0;
 		}
 
 		rafId = requestAnimationFrame(tick);
