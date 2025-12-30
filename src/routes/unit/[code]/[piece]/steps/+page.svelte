@@ -4,7 +4,7 @@
 	import type { MelodyItem } from '$lib/config/melody';
 
 	const { data } = $props();
-	const { unit, piece, code, pieceCode, keyQuery } = $derived(data);
+	const { unit, piece, code, pieceCode } = $derived(data);
 
 	// Extract unique intervals once when the page loads
 	const intervals = $derived.by(() => {
@@ -49,7 +49,7 @@
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
 		<nav class="mb-4">
-			<LinkButton href={`/unit/${code}/${pieceCode}${keyQuery}`}>← Back to piece</LinkButton>
+			<LinkButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</LinkButton>
 		</nav>
 
 		<SightGame

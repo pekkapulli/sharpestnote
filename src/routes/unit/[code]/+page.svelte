@@ -1,11 +1,19 @@
 <script lang="ts">
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
 	const { data } = $props();
-	const { unit, code, imageUrl, instrumentLabel, keyQuery, hasKeyAccess } = $derived(data);
+	const { unit, code, imageUrl, instrumentLabel } = $derived(data);
 	const hasExtras = $derived((unit.extraLinks?.length ?? 0) > 0);
 	const sheetMusicCta = '/store'; // TODO: replace with live store link when available
 	let imageLoaded = $state(false);
+	let hasKeyAccess = $state(false);
+
+	$effect(() => {
+		// Initialize key access from URL or localStorage
+		hasKeyAccess = initUnitKeyAccess(code, unit.keyCode);
+	});
+
 	$effect(() => {
 		// Reset loading state when the image URL changes
 		imageLoaded = false;
@@ -45,7 +53,7 @@
 			<h3 class="text-sm font-semibold text-slate-800">Play the Pieces</h3>
 			<div class="piece-grid">
 				{#each unit.pieces as piece (piece.code)}
-					<a href={`/unit/${code}/${piece.code}${keyQuery}`} class="piece-card">
+					<a href={`/unit/${code}/${piece.code}`} class="piece-card">
 						<div class="piece-card__content">
 							<span class="font-semibold text-slate-900">{piece.label}</span>
 							<span class="mt-1 text-sm text-slate-600">{piece.key} {piece.mode}</span>
