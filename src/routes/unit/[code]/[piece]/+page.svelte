@@ -43,6 +43,17 @@
 			<section class="mt-8">
 				<h3 class="text-sm font-semibold text-slate-800">Games</h3>
 				<div class="game-grid">
+					{#if hasKeyAccess}
+						<a href={`/unit/${code}/${pieceCode}/melody`} class="game-card">
+							<div class="game-card__content">
+								<div class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20">
+									🎵
+								</div>
+								<span class="mt-3 font-semibold text-slate-900">Melody</span>
+								<span class="mt-1 text-sm text-slate-600">Play through the piece</span>
+							</div>
+						</a>
+					{/if}
 					<a href={`/unit/${code}/${pieceCode}/blocks`} class="game-card">
 						<div class="game-card__content">
 							<img src={blocksIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />

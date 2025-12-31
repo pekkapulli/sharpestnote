@@ -151,9 +151,13 @@
 						tuner.state.note === expectedNextNote &&
 						hadPauseSinceLastSuccess
 					) {
-						// Player hit the next note with a fresh attack - advance immediately
+						// Player hit the next note with a fresh attack - advance at 50% animation or later
 						if (tuner.state.heldSixteenths >= 1) {
-							advanceToNextNote();
+							const noteLength = melody[currentIndex].length ?? 4;
+							const halfLength = noteLength / 2;
+							if (simulatedHeldSixteenths !== null && simulatedHeldSixteenths >= halfLength) {
+								advanceToNextNote();
+							}
 						}
 					}
 				}
