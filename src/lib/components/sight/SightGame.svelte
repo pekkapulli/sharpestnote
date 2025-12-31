@@ -249,7 +249,10 @@
 		// Start animation simulation for the successfully detected note
 		if (melody) {
 			const noteLength = melody[currentIndex].length ?? 4;
-			const noteDurationMs = lengthToMs(noteLength, tempoBPM);
+			const isLastNote = currentIndex === melody.length - 1;
+			// For the last note, animate only 50% of the duration for faster completion
+			const animationSpeedMultiplier = isLastNote ? 0.5 : 1.0;
+			const noteDurationMs = lengthToMs(noteLength, tempoBPM) * animationSpeedMultiplier;
 
 			animatingNoteIndex = currentIndex;
 
@@ -343,7 +346,7 @@
 		streak += 1;
 		setTimeout(() => {
 			refreshMelody();
-		}, 800);
+		}, 400);
 	}
 
 	onMount(() => {

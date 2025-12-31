@@ -22,7 +22,7 @@
 <style>
 	.card-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(160px, 300px));
 		gap: 1.25rem;
 		margin: 1.5rem 0 2rem 0;
 		padding: 0 10vw;
@@ -30,11 +30,12 @@
 		position: relative;
 		left: 50%;
 		transform: translateX(-50%);
+		justify-content: center;
 	}
 
 	@media (min-width: 768px) {
 		.card-grid {
-			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+			grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
 		}
 	}
 

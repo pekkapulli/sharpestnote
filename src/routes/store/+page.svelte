@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { instrumentMap } from '$lib/config/instruments';
 	import { units } from '$lib/config/units';
 	import type { InstrumentId } from '$lib/config/types';
-	import LinkButton from '$lib/components/ui/LinkButton.svelte';
-	import { getImageUrl } from '$lib/util/getImageUrl';
+	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
 
 	let selectedInstrument = $state<InstrumentId | 'all'>('all');
 
@@ -52,34 +50,10 @@
 		</div> -->
 
 		<!-- Units grid -->
-		<div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each filteredUnits as unit (unit.code)}
-				<article class="unit-card">
-					<div class="unit-card__header">
-						<img
-							src={getImageUrl(unit.code)}
-							alt={`${unit.title} cover art`}
-							class="mb-2 w-full rounded-lg"
-						/>
-						<h2 class="text-xl font-semibold text-slate-900">{unit.title}</h2>
-						<p class="mt-1 text-sm font-semibold text-emerald-700">
-							For {instrumentMap[unit.instrument]?.label ?? unit.instrument}
-						</p>
-					</div>
-					<p class="mt-3 text-slate-700">{unit.description}</p>
-					<div class="mt-4 flex gap-2">
-						<LinkButton href={unit.gumroadUrl} color="green">Buy on Gumroad</LinkButton>
-						<LinkButton href={`/unit/${unit.code}`}>Preview</LinkButton>
-					</div>
-				</article>
-			{/each}
-		</div>
-
-		{#if filteredUnits.length === 0}
-			<div class="mt-10 text-center text-slate-600">
-				<p>No materials available for this instrument yet.</p>
-			</div>
-		{/if}
+		<UnitGrid
+			units={filteredUnits}
+			emptyMessage="No materials available for this instrument yet."
+		/>
 	</div>
 </div>
 
@@ -108,27 +82,4 @@
 		background: var(--color-brand-green);
 		color: var(--color-off-white);
 	} */
-
-	.unit-card {
-		display: flex;
-		flex-direction: column;
-		border-radius: 1rem;
-		background: white;
-		border: 1px solid rgb(226 232 240);
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
-		padding: 1.5rem;
-		transition:
-			transform 150ms ease,
-			box-shadow 150ms ease;
-	}
-
-	.unit-card:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
-	}
-
-	.unit-card__header {
-		border-bottom: 1px solid rgb(241 245 249);
-		padding-bottom: 0.75rem;
-	}
 </style>

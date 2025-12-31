@@ -1,7 +1,6 @@
 import { browser } from '$app/environment';
 
 const STORAGE_PREFIX = 'unit_';
-const KEY_CODE_SUFFIX = '_keyCode';
 
 interface UnitStorage {
 	keyCode?: string;

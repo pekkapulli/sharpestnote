@@ -35,8 +35,8 @@
 	}
 
 	.icon-container {
-		width: 48px;
-		height: 48px;
+		width: 64px;
+		height: 64px;
 		margin-bottom: 1rem;
 		display: flex;
 		align-items: center;
@@ -52,7 +52,7 @@
 	p {
 		margin: 0;
 		color: #333;
-		font-size: 0.95rem;
 		line-height: 1.4;
+		font-weight: 600;
 	}
 </style>
