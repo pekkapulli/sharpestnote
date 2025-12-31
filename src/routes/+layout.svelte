@@ -15,7 +15,7 @@
 			Contact: <a href="mailto:support@sharpestnote.com">support@sharpestnote.com</a>
 		</p>
 		<p>
-			<a href="/privacy">Privacy Policy</a>
+			<a href="/privacy">Privacy Policy</a> | <a href="/faq">FAQ</a>
 		</p>
 	</div>
 </footer>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BackButton from '$lib/components/ui/BackButton.svelte';
 </script>
 
 <svelte:head>
@@ -6,6 +7,7 @@
 </svelte:head>
 
 <div class="privacy-container">
+	<BackButton />
 	<h1>Privacy Policy</h1>
 	<p class="last-updated">Last updated: 30th Dec 2025</p>
 
