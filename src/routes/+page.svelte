@@ -94,8 +94,8 @@
 		</p>
 		<p>
 			The project grew out of real teaching rooms and real home practice: trying to make beginner
-			material that sounds musical, feels calm to use, and actually helps students practice on their
-			own.
+			material that sounds musical, feels calm to use, and actually helps students practice between
+			classes.
 		</p>
 		<p>
 			If you have questions, feedback, or licensing inquiries, you can get in touch at: <a
