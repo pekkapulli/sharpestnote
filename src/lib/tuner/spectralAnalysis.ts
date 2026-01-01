@@ -6,6 +6,46 @@ import type { FFTResult } from './fftAnalysis';
  */
 
 /**
+ * Apply spectral whitening to FFT magnitudes
+ *
+ * Normalizes each frequency bin by its running average to:
+ * - Reduce frequency bias (lower frequencies naturally have more energy)
+ * - Enhance transients and sudden changes
+ * - Improve onset detection for subtle re-articulations
+ *
+ * @param current Current frame FFT magnitudes
+ * @param averages Running average per bin (updated in-place)
+ * @param alpha Exponential smoothing factor (0-1, higher = slower adaptation)
+ * @param epsilon Small constant to prevent division by zero
+ * @param minClamp Minimum output value
+ * @param maxClamp Maximum output value
+ * @returns New array with whitened magnitudes
+ */
+export function applySpectralWhitening(
+	current: Float32Array,
+	averages: Float32Array,
+	alpha: number = 0.95,
+	epsilon: number = 0.001,
+	minClamp: number = 0.01,
+	maxClamp: number = 10.0
+): Float32Array {
+	const whitened = new Float32Array(current.length);
+
+	for (let i = 0; i < current.length; i++) {
+		// Update running average (exponential moving average)
+		averages[i] = alpha * averages[i] + (1 - alpha) * current[i];
+
+		// Divide current by average to normalize
+		const normalized = current[i] / (averages[i] + epsilon);
+
+		// Clamp to prevent extreme values
+		whitened[i] = Math.max(minClamp, Math.min(maxClamp, normalized));
+	}
+
+	return whitened;
+}
+
+/**
  * High-frequency weighted, positive-only spectral flux
  *
  * This is the core onset detector:
@@ -13,18 +53,26 @@ import type { FFTResult } from './fftAnalysis';
  * - Higher frequencies weighted more (attacks show up in upper harmonics first)
  * - Ignores vibrato, tremolo, and slow timbral drift
  *
- * @param current Current frame FFT result
+ * @param current Current frame FFT result (or whitened magnitudes)
  * @param previous Previous frame FFT result (null on first frame)
  */
 export function calculateSpectralFluxWeighted(
-	current: FFTResult,
-	previous: FFTResult | null
+	current: FFTResult | Float32Array,
+	previous: FFTResult | Float32Array | null
 ): number {
-	if (!previous || previous.magnitudes.length !== current.magnitudes.length) {
+	if (!previous) {
 		return 0;
 	}
 
-	const length = current.magnitudes.length;
+	// Support both FFTResult and raw Float32Array (for whitened magnitudes)
+	const currentMags = current instanceof Float32Array ? current : current.magnitudes;
+	const previousMags = previous instanceof Float32Array ? previous : previous.magnitudes;
+
+	if (previousMags.length !== currentMags.length) {
+		return 0;
+	}
+
+	const length = currentMags.length;
 	let weightedFlux = 0;
 
 	// Weight higher frequencies more heavily
@@ -35,7 +83,7 @@ export function calculateSpectralFluxWeighted(
 		const freqWeight = 1.0 + (i / length) * 2.0;
 
 		// Only count positive changes (energy increases)
-		const increase = Math.max(0, current.magnitudes[i] - previous.magnitudes[i]);
+		const increase = Math.max(0, currentMags[i] - previousMags[i]);
 
 		weightedFlux += freqWeight * increase;
 	}

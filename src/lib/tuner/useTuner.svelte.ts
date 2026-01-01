@@ -13,7 +13,8 @@ import {
 	calculateSpectralFluxWeighted,
 	calculatePhaseDeviationFocused,
 	calculateHarmonicFlux,
-	calculateHighFrequencyBurst
+	calculateHighFrequencyBurst,
+	applySpectralWhitening
 } from './spectralAnalysis';
 import {
 	createAudioChain,
@@ -50,6 +51,10 @@ export function createTuner(options: TunerOptions = {}) {
 	const amplitudeDeltaHistory: number[] = []; // Amplitude slope history
 	const phaseHistory: number[] = []; // Phase deviation history
 	const HISTORY_LENGTH = onsetDetectionConfig.historyLength;
+
+	// Spectral whitening state
+	let magnitudeAverages: Float32Array | null = null; // Running average per frequency bin
+	let previousWhitenedMagnitudes: Float32Array | null = null; // For flux calculation
 
 	// Legato rebound tracking (dip→rise state)
 	let legatoDipActive = false;
@@ -246,9 +251,13 @@ export function createTuner(options: TunerOptions = {}) {
 		stablePitch = null;
 		pitchConfidence = 0;
 		excitationHistory.length = 0;
+		harmonicFluxHistory.length = 0;
+		amplitudeDeltaHistory.length = 0;
 		phaseHistory.length = 0;
 		endCandidateStart = null;
 		notePeakAmplitude = 0;
+		magnitudeAverages = null;
+		previousWhitenedMagnitudes = null;
 
 		spectrumBuffer = null;
 		state.spectrum = null;
@@ -285,6 +294,28 @@ export function createTuner(options: TunerOptions = {}) {
 		// 1.1: Compute spectrum (magnitudes + phases)
 		const fftResult = performFFT(tempData, audioContext.sampleRate, true);
 
+		// 1.1b: Apply spectral whitening (if enabled)
+		// Normalize each frequency bin by its running average to enhance transients
+		let whitenedMagnitudes: Float32Array | null = null;
+		if (onsetDetectionConfig.spectralWhiteningEnabled) {
+			// Initialize magnitude averages on first frame
+			if (magnitudeAverages === null) {
+				magnitudeAverages = new Float32Array(fftResult.magnitudes.length);
+				// Initialize with first frame magnitudes
+				magnitudeAverages.set(fftResult.magnitudes);
+			}
+
+			// Apply whitening and update averages
+			whitenedMagnitudes = applySpectralWhitening(
+				fftResult.magnitudes,
+				magnitudeAverages,
+				onsetDetectionConfig.whiteningAlpha,
+				onsetDetectionConfig.whiteningEpsilon,
+				onsetDetectionConfig.whiteningMinClamp,
+				onsetDetectionConfig.whiteningMaxClamp
+			);
+		}
+
 		// 1.2: Estimate pitch (with confidence)
 		// Update history BEFORE stability check
 		const freq = autoCorrelate(tempData, audioContext.sampleRate);
@@ -305,7 +336,10 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// 1.3: Compute excitation cue (HF spectral flux)
 		// High-frequency weighted, positive-only spectral flux
-		const excitationCue = calculateSpectralFluxWeighted(fftResult, previousFFT);
+		// Use whitened magnitudes if enabled, otherwise use raw FFT
+		const excitationCue = whitenedMagnitudes
+			? calculateSpectralFluxWeighted(whitenedMagnitudes, previousWhitenedMagnitudes)
+			: calculateSpectralFluxWeighted(fftResult, previousFFT);
 
 		// 1.3b: Harmonic-focused flux (tracks bursts on harmonic stack)
 		// If pitch is not locked, fall back to high-frequency burst detector
@@ -626,6 +660,7 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// Store current frame data for next iteration
 		previousFFT = fftResult;
+		previousWhitenedMagnitudes = whitenedMagnitudes;
 
 		// Convert magnitudes to byte range for visualization (0-255)
 		spectrumBuffer = new Uint8Array(fftResult.magnitudes.length);
