@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
+	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import { onsetDetectionConfig } from '$lib/config/onset';
@@ -19,6 +20,8 @@
 	let animationId: number | null = null;
 	let sampleTimer: number | null = null;
 	let resizeObserver: ResizeObserver | null = null;
+	let shouldPlayOnStart = false; // Track if start button was explicitly clicked
+	let selectedSource: 'file' | 'microphone' = $state('file'); // Track selected source locally
 
 	let history: {
 		t: number;
@@ -442,6 +445,16 @@
 		tuner.state.selectedDeviceId = deviceId;
 	}
 
+	async function handleSourceChange(sourceType: 'file' | 'microphone') {
+		// Update the selected source
+		selectedSource = sourceType;
+		// When source changes, don't auto-play - wait for start button
+		shouldPlayOnStart = false;
+		stopSampling();
+		startSampling();
+		// Note: Audio source will be set when user clicks Start button
+	}
+
 	onMount(async () => {
 		if (spectrumCanvasEl) {
 			spectrumCtx = spectrumCanvasEl.getContext('2d');
@@ -477,8 +490,7 @@
 		startSampling();
 		scheduleNextFrame();
 
-		// Default to looping the bundled test audio until the user opts into the mic
-		await tuner.startWithFile('/test-audio.wav');
+		// Don't auto-start audio - wait for user to click Start button
 	});
 
 	onDestroy(() => {
@@ -516,33 +528,18 @@
 
 			<div class="mb-2">
 				<p class="mb-2 text-sm font-semibold text-slate-700">Audio Source</p>
-				<div class="flex gap-2">
-					<button
-						class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'file' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
-						onclick={async () => {
-							stopSampling();
-							startSampling();
-							await tuner.startWithFile('/test-audio.wav');
-						}}
-						type="button"
-					>
-						Test Audio File
-					</button>
-					<button
-						class={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition hover:-translate-y-px hover:shadow ${tuner.sourceType === 'microphone' ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-600'}`}
-						onclick={async () => {
-							stopSampling();
-							startSampling();
-							await tuner.start();
-						}}
-						type="button"
-					>
-						Microphone
-					</button>
-				</div>
+				<PillSelector
+					options={[
+						{ value: 'file', label: 'Test Audio File' },
+						{ value: 'microphone', label: 'Microphone' }
+					]}
+					selected={selectedSource}
+					onSelect={handleSourceChange}
+					ariaLabel="Select audio source"
+				/>
 			</div>
 
-			{#if tuner.sourceType === 'microphone'}
+			{#if selectedSource === 'microphone'}
 				<MicrophoneSelector
 					tunerState={tuner.state}
 					onStartListening={tuner.start}
@@ -555,7 +552,7 @@
 				onclick={async () => {
 					if (tuner.state.needsUserGesture) {
 						await tuner.resumeAfterGesture(
-							tuner.sourceType === 'microphone' ? undefined : '/test-audio.wav'
+							selectedSource === 'microphone' ? undefined : '/test-audio.wav'
 						);
 						return;
 					}
@@ -563,7 +560,7 @@
 					if (tuner.state.isListening) {
 						stopSampling();
 						tuner.stop();
-					} else if (tuner.sourceType === 'microphone') {
+					} else if (selectedSource === 'microphone') {
 						startSampling();
 						await tuner.start();
 					} else {

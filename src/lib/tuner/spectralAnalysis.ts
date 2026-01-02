@@ -351,3 +351,138 @@ export function calculateSpectralDifference(
 
 	return sum / current.magnitudes.length;
 }
+
+/**
+ * Apply maximum filter across frequency bins (SuperFlux technique)
+ * https://github.com/CPJKU/SuperFlux
+ *
+ * Reduces tonal components while preserving transients
+ *
+ * This technique helps suppress steady-state harmonic content (sustained notes)
+ * while emphasizing rapid spectral changes (note attacks/onsets). Particularly
+ * effective for suppressing vibrato, tremolo, and slow timbral drift.
+ *
+ * Based on:
+ * Böck, S. & Widmer, G. (2013). "Maximum Filter Vibrato Suppression for Onset Detection."
+ * Proceedings of the 16th International Conference on Digital Audio Effects (DAFx-13),
+ * pp. 55-61, Maynooth, Ireland.
+ *
+ * @param magnitudes Input magnitude spectrum
+ * @param filterSize Width of maximum filter (typically 3)
+ * @returns Filtered magnitudes
+ */
+export function applyMaximumFilter(magnitudes: Float32Array, filterSize: number = 3): Float32Array {
+	const result = new Float32Array(magnitudes.length);
+	const halfSize = Math.floor(filterSize / 2);
+
+	for (let i = 0; i < magnitudes.length; i++) {
+		let maxVal = magnitudes[i];
+		for (
+			let j = Math.max(0, i - halfSize);
+			j <= Math.min(magnitudes.length - 1, i + halfSize);
+			j++
+		) {
+			maxVal = Math.max(maxVal, magnitudes[j]);
+		}
+		result[i] = maxVal;
+	}
+
+	return result;
+}
+
+/**
+ * Apply logarithmic frequency grouping (SuperFlux technique)
+ * Based on SuperFlux onset detection method:
+ * Böck, S. & Widmer, G. (2013). "Local Group Delay based Vibrato and Tremolo
+ * Suppression for Onset Detection." Proceedings of the 13th International Society
+ * for Music Information Retrieval Conference (ISMIR), pp. 589-594, Curitiba, Brazil.
+ *
+ * Groups FFT bins into log-spaced bands for better perceptual matching
+ *
+ * This reduces the dimensionality of the spectrum while emphasizing
+ * musically-relevant frequency relationships. Log spacing matches
+ * human perception of pitch intervals.
+ *
+ * @param magnitudes Input magnitude spectrum (linear frequency bins)
+ * @param sampleRate Audio sample rate
+ * @param fftSize FFT size used to generate magnitudes
+ * @param bandsPerOctave Number of bands per octave (typically 3)
+ * @returns Log-spaced magnitude bands
+ */
+export function applyLogFrequencyGrouping(
+	magnitudes: Float32Array,
+	sampleRate: number,
+	fftSize: number,
+	bandsPerOctave: number = 3
+): Float32Array {
+	const nyquist = sampleRate / 2;
+	const minFreq = 30; // Hz - below musical range
+	const maxFreq = nyquist;
+
+	// Calculate number of bands
+	const numOctaves = Math.log2(maxFreq / minFreq);
+	const numBands = Math.floor(numOctaves * bandsPerOctave);
+
+	const logMagnitudes = new Float32Array(numBands);
+
+	for (let band = 0; band < numBands; band++) {
+		// Calculate frequency range for this band
+		const freqLow = minFreq * Math.pow(2, band / bandsPerOctave);
+		const freqHigh = minFreq * Math.pow(2, (band + 1) / bandsPerOctave);
+
+		// Convert to bin indices
+		const binLow = Math.floor((freqLow * fftSize) / sampleRate);
+		const binHigh = Math.ceil((freqHigh * fftSize) / sampleRate);
+
+		// Average magnitude in this band
+		let sum = 0;
+		let count = 0;
+		for (let bin = binLow; bin < Math.min(binHigh, magnitudes.length); bin++) {
+			sum += magnitudes[bin];
+			count++;
+		}
+
+		logMagnitudes[band] = count > 0 ? sum / count : 0;
+	}
+
+	return logMagnitudes;
+}
+
+/**
+ * Compute adaptive threshold using local statistics (SuperFlux technique)
+ * Returns threshold value based on local mean and delta multiplier
+ *Part of the SuperFlux onset detection framework described in:
+ * Böck, S. & Widmer, G. (2013). "Maximum Filter Vibrato Suppression for Onset Detection."
+ * DAFx-13, pp. 55-61.
+ *
+ *
+ * This provides context-adaptive onset detection: the threshold adjusts
+ * to the local energy level, reducing false positives in loud passages
+ * and increasing sensitivity in quiet ones.
+ *
+ * @param onsetFunction Array of onset detection function values
+ * @param currentIndex Current position in the onset function
+ * @param windowSize Number of frames to average (typically 0.5-1 second)
+ * @param delta Multiplier above local mean (typically 1.1)
+ * @returns Threshold value
+ */
+export function computeAdaptiveThreshold(
+	onsetFunction: number[],
+	currentIndex: number,
+	windowSize: number = 50,
+	delta: number = 1.1
+): number {
+	const halfWindow = Math.floor(windowSize / 2);
+	const start = Math.max(0, currentIndex - halfWindow);
+	const end = Math.min(onsetFunction.length, currentIndex + halfWindow);
+
+	let sum = 0;
+	let count = 0;
+	for (let i = start; i < end; i++) {
+		sum += onsetFunction[i];
+		count++;
+	}
+
+	const localMean = count > 0 ? sum / count : 0;
+	return localMean * delta;
+}

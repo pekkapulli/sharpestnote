@@ -37,7 +37,7 @@
 				src={imageUrl}
 			/>
 		</div>
-		<h1 class="text-3xl font-semibold text-slate-900">{unit.title} — Free Unit</h1>
+		<h1 class="text-3xl font-semibold text-slate-900">{unit.title}</h1>
 		<p class="mt-1 text-sm font-semibold text-emerald-700">For {instrumentLabel}</p>
 		<p class="mt-3 text-slate-700">
 			{unit.description}

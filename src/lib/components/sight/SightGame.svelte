@@ -475,12 +475,6 @@
 					>
 						Skip
 					</button>
-					<a
-						href="/sight-game"
-						class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-px hover:bg-slate-200 hover:shadow"
-					>
-						Back to Selection
-					</a>
 				</div>
 			</div>
 		{/if}

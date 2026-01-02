@@ -14,7 +14,10 @@ import {
 	calculatePhaseDeviationFocused,
 	calculateHarmonicFlux,
 	calculateHighFrequencyBurst,
-	applySpectralWhitening
+	applySpectralWhitening,
+	applyMaximumFilter,
+	applyLogFrequencyGrouping,
+	computeAdaptiveThreshold
 } from './spectralAnalysis';
 import {
 	createAudioChain,
@@ -50,6 +53,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const harmonicFluxHistory: number[] = []; // Harmonic-focused flux history
 	const amplitudeDeltaHistory: number[] = []; // Amplitude slope history
 	const phaseHistory: number[] = []; // Phase deviation history
+	const onsetFunctionHistory: number[] = []; // Combined onset function for adaptive thresholding
 	const HISTORY_LENGTH = onsetDetectionConfig.historyLength;
 
 	// Spectral whitening state
@@ -258,6 +262,7 @@ export function createTuner(options: TunerOptions = {}) {
 		notePeakAmplitude = 0;
 		magnitudeAverages = null;
 		previousWhitenedMagnitudes = null;
+		onsetFunctionHistory.length = 0;
 
 		spectrumBuffer = null;
 		state.spectrum = null;
@@ -293,6 +298,19 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// 1.1: Compute spectrum (magnitudes + phases)
 		const fftResult = performFFT(tempData, audioContext.sampleRate, true);
+
+		// 1.1a: Apply SuperFlux preprocessing (maximum filter + log-frequency grouping)
+		// This reduces tonal components while preserving transients, and groups frequencies logarithmically
+		const maxFiltered = applyMaximumFilter(fftResult.magnitudes, 3);
+		const logMagnitudes = applyLogFrequencyGrouping(
+			maxFiltered,
+			audioContext.sampleRate,
+			analyser.fftSize,
+			3 // bands per octave
+		);
+
+		// Store previous log-grouped magnitudes for flux calculation
+		let previousLogMagnitudes: Float32Array | null = null;
 
 		// 1.1b: Apply spectral whitening (if enabled)
 		// Normalize each frequency bin by its running average to enhance transients
@@ -336,10 +354,10 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// 1.3: Compute excitation cue (HF spectral flux)
 		// High-frequency weighted, positive-only spectral flux
-		// Use whitened magnitudes if enabled, otherwise use raw FFT
+		// Use whitened magnitudes if enabled, otherwise use log-grouped magnitudes from SuperFlux
 		const excitationCue = whitenedMagnitudes
 			? calculateSpectralFluxWeighted(whitenedMagnitudes, previousWhitenedMagnitudes)
-			: calculateSpectralFluxWeighted(fftResult, previousFFT);
+			: calculateSpectralFluxWeighted(logMagnitudes, previousLogMagnitudes);
 
 		// 1.3b: Harmonic-focused flux (tracks bursts on harmonic stack)
 		// If pitch is not locked, fall back to high-frequency burst detector
@@ -434,6 +452,12 @@ export function createTuner(options: TunerOptions = {}) {
 		const normalizedPhase = computeNormalized(phaseCue, phaseHistory);
 		const normalizedAmplitude = computeNormalized(amplitude, amplitudeHistory);
 
+		// Track combined onset function for SuperFlux adaptive thresholding
+		// Combine excitation and phase as a unified onset detection function
+		const combinedOnsetFunction = normalizedExcitation + normalizedPhase * 0.5;
+		onsetFunctionHistory.push(combinedOnsetFunction);
+		if (onsetFunctionHistory.length > 200) onsetFunctionHistory.shift(); // Keep ~2 seconds
+
 		// Update dip→rise state for legato detection
 		if (normalizedAmplitude < onsetDetectionConfig.b5_minDipBelow) {
 			legatoDipActive = true;
@@ -490,6 +514,18 @@ export function createTuner(options: TunerOptions = {}) {
 		// Minimum amplitude check for all rules
 		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
 
+		// Compute adaptive threshold using SuperFlux technique
+		// This adjusts sensitivity based on local context
+		const adaptiveThreshold =
+			onsetFunctionHistory.length > 10
+				? computeAdaptiveThreshold(
+						onsetFunctionHistory,
+						onsetFunctionHistory.length - 1,
+						50, // Window size (~0.5 seconds)
+						1.15 // Delta multiplier (slightly above mean)
+					)
+				: 0;
+
 		if (!cooldownActive && hasMinAmplitude) {
 			// Rule A — Guaranteed onset: pitch change with high confidence
 			if (pitchChangeDetected) {
@@ -500,9 +536,11 @@ export function createTuner(options: TunerOptions = {}) {
 				);
 			}
 			// Rule B1 — Re-articulation: excitation only (sufficient for detecting attacks)
+			// Enhanced with SuperFlux adaptive threshold
 			else if (
 				hasPitch &&
-				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation // Moderate excitation
+				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation && // Moderate excitation
+				(onsetFunctionHistory.length < 10 || combinedOnsetFunction > adaptiveThreshold) // Adaptive check
 			) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'B1';
@@ -661,6 +699,7 @@ export function createTuner(options: TunerOptions = {}) {
 		// Store current frame data for next iteration
 		previousFFT = fftResult;
 		previousWhitenedMagnitudes = whitenedMagnitudes;
+		previousLogMagnitudes = logMagnitudes;
 
 		// Convert magnitudes to byte range for visualization (0-255)
 		spectrumBuffer = new Uint8Array(fftResult.magnitudes.length);
