@@ -55,8 +55,7 @@
 				{#each unit.pieces as piece (piece.code)}
 					<a href={`/unit/${code}/${piece.code}`} class="piece-card">
 						<div class="piece-card__content">
-							<span class="font-semibold text-slate-900">{piece.label}</span>
-							<span class="mt-1 text-sm text-slate-600">{piece.key} {piece.mode}</span>
+							<span class="text-xl font-semibold text-slate-900">{piece.label}</span>
 						</div>
 					</a>
 				{/each}
@@ -136,7 +135,7 @@
 		background: white;
 		border: 1px solid rgb(226 232 240);
 		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-		padding: 1rem;
+		padding: 1rem 2rem;
 		text-decoration: none;
 		transition:
 			transform 150ms ease,
