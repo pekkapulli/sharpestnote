@@ -47,7 +47,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		topNote: 'G5',
 		detectionConfig: {
 			...genericDetectionConfig,
-			endRelativeDropRatio: 0.4
+			endRelativeDropRatio: 0.3
 		}
 	},
 	{
@@ -58,7 +58,10 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: -12, // sounds an octave lower than written
 		bottomNote: 'E3',
 		topNote: 'E5',
-		detectionConfig: genericDetectionConfig
+		detectionConfig: {
+			...genericDetectionConfig,
+			endRelativeDropRatio: 0.5
+		}
 	},
 	{
 		id: 'viola',
@@ -70,7 +73,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		topNote: 'D5',
 		detectionConfig: {
 			...genericDetectionConfig,
-			endRelativeDropRatio: 0.4
+			endRelativeDropRatio: 0.3
 		}
 	},
 	{
