@@ -260,19 +260,19 @@ export const units: Units = {
 				label: 'In the Wind',
 				tracks: {
 					slow: {
-						tempo: 60,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+						tempo: 90,
+						audioUrl: 'In+the+Wind+Viola+90BPM+Full+track.mp3',
+						backingTrackUrl: 'In+the+Wind+Viola+90BPM+Backing+track.mp3'
 					},
 					medium: {
-						tempo: 80,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+						tempo: 100,
+						audioUrl: 'In+the+Wind+Viola+100BPM+Full+track.mp3',
+						backingTrackUrl: 'In+the+Wind+Viola+100BPM+Backing+track.mp3'
 					},
 					fast: {
-						tempo: 100,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+						tempo: 110,
+						audioUrl: 'In+the+Wind+Viola+110BPM+Full+track.mp3',
+						backingTrackUrl: 'In+the+Wind+Viola+110BPM+Backing+track.mp3'
 					}
 				},
 				key: 'D',
