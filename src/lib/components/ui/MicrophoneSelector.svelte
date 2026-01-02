@@ -3,7 +3,7 @@
 
 	interface Props {
 		tunerState: TunerState;
-		onStartListening: () => void;
+		onStartListening: () => void | Promise<void>;
 		onDeviceChange: (deviceId: string) => void;
 	}
 
@@ -11,8 +11,14 @@
 </script>
 
 <div class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-center shadow-sm">
-	<p class="text-sm font-semibold text-amber-800">Microphone is not active.</p>
-	<p class="mt-1 text-sm text-amber-800/90">Click listen to start the audio and continue.</p>
+	<p class="text-sm font-semibold text-amber-800">
+		{tunerState.needsUserGesture ? 'Audio blocked by browser' : 'Microphone is not active.'}
+	</p>
+	<p class="mt-1 text-sm text-amber-800/90">
+		{tunerState.needsUserGesture
+			? 'Click the button below to enable audio access.'
+			: 'Click listen to start the audio and continue.'}
+	</p>
 	{#if tunerState.error}
 		<p class="mt-2 text-sm text-red-600">{tunerState.error}</p>
 	{/if}
@@ -37,6 +43,6 @@
 		class="mt-3 inline-flex items-center gap-2 rounded-lg bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow"
 	>
 		<span aria-hidden="true">🎤</span>
-		<span>Listen</span>
+		<span>{tunerState.needsUserGesture ? 'Enable Audio' : 'Listen'}</span>
 	</button>
 </div>

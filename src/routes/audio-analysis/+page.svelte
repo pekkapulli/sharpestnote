@@ -9,7 +9,13 @@
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
 
-	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp', debug: false });
+	const tuner = createTuner({ 
+		a4: DEFAULT_A4, 
+		accidental: 'sharp', 
+		debug: false,
+		gain: 15,
+		maxGain: 50
+	});
 
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
 	let fluxCanvasEl: HTMLCanvasElement | null = null;

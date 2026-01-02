@@ -57,11 +57,10 @@
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
-		// svelte-ignore state_referenced_locally
-		tempoBPM,
-		debounceTime: 50,
-		// svelte-ignore state_referenced_locally
-		instrument
+		accidental: 'sharp',
+		debug: true,
+		gain: 15,
+		maxGain: 500
 	});
 
 	// Check if current note matches and fresh attack requirement is satisfied
@@ -354,9 +353,25 @@
 		tuner.refreshDevices();
 	});
 
-	function startListening() {
-		tuner.start();
-		if (!melody) refreshMelody();
+	async function startListening() {
+		console.log(
+			'[SightGame] startListening called, needsUserGesture:',
+			tuner.state.needsUserGesture
+		);
+		try {
+			// Safari may require a second user gesture after being blocked
+			if (tuner.state.needsUserGesture) {
+				console.log('[SightGame] Calling resumeAfterGesture...');
+				await tuner.resumeAfterGesture();
+			} else {
+				console.log('[SightGame] Calling start...');
+				await tuner.start();
+			}
+			console.log('[SightGame] Start/resume completed, isListening:', tuner.state.isListening);
+			if (!melody) refreshMelody();
+		} catch (err) {
+			console.error('[SightGame] Failed to start listening:', err);
+		}
 	}
 
 	function handleDeviceChange(deviceId: string) {

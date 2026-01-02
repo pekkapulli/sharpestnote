@@ -31,6 +31,15 @@ import { lengthToMs } from '$lib/config/melody';
 import type { InstrumentKind, TunerOptions, TunerState } from './types';
 export type { InstrumentKind, TunerOptions, TunerState } from './types';
 
+/**
+ * Create a tuner instance for pitch detection and audio analysis.
+ *
+ * IMPORTANT FOR SAFARI COMPATIBILITY:
+ * - The start() method must be called directly from a user gesture event (click, touch)
+ * - Do NOT call start() from within an async callback or after any awaits
+ * - Safari (especially iOS) requires getUserMedia to be in the direct call stack of user interaction
+ * - Example: onclick={tuner.start} ✓   onclick={() => setTimeout(tuner.start, 0)} ✗
+ */
 export function createTuner(options: TunerOptions = {}) {
 	let audioContext: AudioContext | null = null;
 	let audioChain: AudioChain | null = null;
@@ -44,6 +53,10 @@ export function createTuner(options: TunerOptions = {}) {
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
 	const debug = options.debug ?? false; // Capture debug flag
+
+	// Detect Safari for browser-specific handling
+	const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+	const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 	// ========================================================================
 	// ONSET DETECTION STATE (Step 0 - Analysis setup)
@@ -105,13 +118,13 @@ export function createTuner(options: TunerOptions = {}) {
 	const amplitudeThreshold = $state({ value: options.amplitudeThreshold ?? 0.02 });
 	const instrument = $state({ value: options.instrument ?? 'generic' });
 	const tempoBPM = $state({ value: options.tempoBPM ?? 120 });
-	const maxGain = $state({ value: options.maxGain ?? 12 });
+	const maxGain = $state({ value: options.maxGain ?? 200 });
 	const minGain = $state({ value: options.minGain ?? 0.1 });
 	const gain = $state({ value: options.gain ?? 2 });
 	const autoGainEnabled = $state({ value: options.autoGain ?? true });
 	const targetAmplitude = $state({ value: options.targetAmplitude ?? 0.7 });
-	const gainAdjustRate = $state({ value: options.gainAdjustRate ?? 0.12 });
-	const autoGainInterval = $state({ value: options.autoGainInterval ?? 100 });
+	const gainAdjustRate = $state({ value: options.gainAdjustRate ?? 0.3 });
+	const autoGainInterval = $state({ value: options.autoGainInterval ?? 150 });
 
 	// Internal tracking for note hold duration
 	let lastTickAt: number | null = null;
@@ -123,8 +136,9 @@ export function createTuner(options: TunerOptions = {}) {
 	let peakAmplitudeSinceOnset = 0;
 	let endCandidateStart: number | null = null;
 
-	// Auto gain: track peak amplitude of notes for calibration
-	let notePeakAmplitude = 0;
+	// Auto gain: track peak amplitude over rolling window
+	let recentPeakAmplitude = 0;
+	let peakAmplitudeWindow: number[] = [];
 
 	function clampGain(value: number): number {
 		return Math.max(minGain.value, Math.min(maxGain.value, value));
@@ -156,21 +170,45 @@ export function createTuner(options: TunerOptions = {}) {
 			desiredSourceType = 'microphone';
 			stop();
 
-			audioContext = audioContext ?? new AudioContext();
-			await audioContext.resume();
+			// CRITICAL FOR SAFARI: Create AudioContext and start getUserMedia synchronously
+			// within the user gesture event handler. Any awaits here break Safari's gesture chain.
+			if (!audioContext) {
+				audioContext = new AudioContext();
+			}
 
+			// Start getUserMedia immediately (synchronously) - do NOT await anything first
 			gain.value = clampGain(gain.value);
-			audioChain = await createAudioChain(audioContext, state.selectedDeviceId, gain.value);
+			const chainPromise = createAudioChain(audioContext, state.selectedDeviceId, gain.value);
+
+			// Resume audio context (can be done in parallel with getUserMedia)
+			const resumePromise =
+				audioContext.state === 'suspended' ? audioContext.resume() : Promise.resolve();
+
+			// Now we can await both promises
+			const [chain] = await Promise.all([chainPromise, resumePromise]);
+			audioChain = chain;
 			buffer = audioChain.buffer;
 
 			state.isListening = true;
 			refreshDevices();
 			tick();
 		} catch (err) {
-			console.error(err);
-			if (err instanceof DOMException && err.name === 'NotAllowedError') {
-				state.error = 'Tap to enable audio (browser blocked autoplay).';
-				state.needsUserGesture = true;
+			console.error('[Tuner] Start failed:', err);
+			if (err instanceof DOMException) {
+				if (err.name === 'NotAllowedError') {
+					if (isIOS || isSafari) {
+						state.error = 'Microphone access denied. Please check Settings > Safari > Microphone.';
+					} else {
+						state.error = 'Tap to enable audio (browser blocked autoplay).';
+					}
+					state.needsUserGesture = true;
+				} else if (err.name === 'NotFoundError') {
+					state.error = 'No microphone found. Please connect a microphone.';
+				} else if (err.name === 'NotReadableError') {
+					state.error = 'Microphone is already in use by another application.';
+				} else {
+					state.error = `Microphone error: ${err.message}`;
+				}
 			} else {
 				state.error = 'Unable to start microphone. Please check permissions.';
 			}
@@ -185,17 +223,23 @@ export function createTuner(options: TunerOptions = {}) {
 			desiredSourceType = 'file';
 			stop();
 
-			audioContext = audioContext ?? new AudioContext();
-			await audioContext.resume();
+			if (!audioContext) {
+				audioContext = new AudioContext();
+			}
 
 			gain.value = clampGain(gain.value);
-			audioChain = await createAudioChainFromFile(audioContext, audioUrl, gain.value);
+			const chainPromise = createAudioChainFromFile(audioContext, audioUrl, gain.value);
+			const resumePromise =
+				audioContext.state === 'suspended' ? audioContext.resume() : Promise.resolve();
+
+			const [chain] = await Promise.all([chainPromise, resumePromise]);
+			audioChain = chain;
 			buffer = audioChain.buffer;
 
 			state.isListening = true;
 			tick();
 		} catch (err) {
-			console.error(err);
+			console.error('[Tuner] Start file failed:', err);
 			if (err instanceof DOMException && err.name === 'NotAllowedError') {
 				state.error = 'Tap to enable audio (browser blocked autoplay).';
 				state.needsUserGesture = true;
@@ -211,8 +255,11 @@ export function createTuner(options: TunerOptions = {}) {
 			if (!audioContext) {
 				audioContext = new AudioContext();
 			}
-			await audioContext.resume();
+			// DON'T await here - just ensure context exists
+			// The actual resume will happen in start() or startWithFile()
 			state.needsUserGesture = false;
+
+			// Call start/startWithFile directly from user gesture (no awaits before this)
 			// Prefer the user's intended source if known, regardless of audioUrl
 			if (desiredSourceType === 'microphone') {
 				await start();
@@ -224,7 +271,7 @@ export function createTuner(options: TunerOptions = {}) {
 				await start();
 			}
 		} catch (err) {
-			console.error(err);
+			console.error('[Tuner] Resume after gesture failed:', err);
 			state.error = 'Audio still blocked; please try again.';
 		}
 	}
@@ -259,7 +306,8 @@ export function createTuner(options: TunerOptions = {}) {
 		amplitudeDeltaHistory.length = 0;
 		phaseHistory.length = 0;
 		endCandidateStart = null;
-		notePeakAmplitude = 0;
+		recentPeakAmplitude = 0;
+		peakAmplitudeWindow = [];
 		magnitudeAverages = null;
 		previousWhitenedMagnitudes = null;
 		onsetFunctionHistory.length = 0;
@@ -659,11 +707,15 @@ export function createTuner(options: TunerOptions = {}) {
 		// STEP 6 — NOTE END TRACKING (separate path, no feed into onset detection)
 		// ========================================================================
 
+		// Track rolling peak amplitude for auto-gain (whether note is active or not)
+		peakAmplitudeWindow.push(amplitude);
+		if (peakAmplitudeWindow.length > 10) peakAmplitudeWindow.shift(); // Keep last ~100-150ms
+		recentPeakAmplitude = Math.max(...peakAmplitudeWindow);
+
 		if (state.isNoteActive) {
-			// Track peak amplitude for decay detection and auto-gain calibration
+			// Track peak amplitude for decay detection
 			if (amplitude > peakAmplitudeSinceOnset) {
 				peakAmplitudeSinceOnset = amplitude;
-				notePeakAmplitude = amplitude; // Update peak for auto gain
 			}
 
 			// Note end conditions (independent of onset logic)
@@ -777,45 +829,75 @@ export function createTuner(options: TunerOptions = {}) {
 		lastTickAt = now;
 
 		autoGainElapsed += dt;
-		// Auto gain: adapt input level to target amplitude using note peaks (not noise)
-		// Calibrate based on the maximum amplitude observed during notes
-		if (
-			autoGainEnabled.value &&
-			gainNode &&
-			autoGainElapsed > autoGainInterval.value &&
-			!state.isNoteActive &&
-			notePeakAmplitude > 0
-		) {
+		// Auto gain: continuously adapt input level based on recent peak amplitude
+		// This works even when no notes are detected, helping bootstrap low signals
+		if (autoGainEnabled.value && gainNode && autoGainElapsed > autoGainInterval.value) {
 			autoGainElapsed = 0;
 			const target = targetAmplitude.value;
-			const lower = target * 0.85;
-			const upper = target * 1.25;
-			const adjustStep = 1 + Math.max(0.01, Math.min(0.25, gainAdjustRate.value));
+			// Wider tolerance range for smoother operation
+			const lower = target * 0.5; // Allow drops to 50% of target
+			const upper = target * 1.8; // Allow peaks up to 180% of target
+			const rate = Math.max(0.05, Math.min(0.5, gainAdjustRate.value));
+			const adjustStep = 1 + rate;
 			const currentGain = gain.value;
 
-			// Adjust gain based on the peak amplitude from the last note
-			// This ensures we're calibrating to actual musical signal, not noise floor
-			if (notePeakAmplitude < lower) {
-				// Peak was too quiet - increase gain
-				gain.value = clampGain(currentGain * adjustStep);
-				gainNode.gain.value = clampGain(currentGain * adjustStep);
-			} else if (notePeakAmplitude > upper) {
-				// Peak was too loud - decrease gain
-				gain.value = clampGain(currentGain / adjustStep);
-				gainNode.gain.value = clampGain(currentGain / adjustStep);
+			// Use recent peak amplitude from rolling window
+			// This includes both notes and silence, allowing gain to increase even with weak signal
+			const peak = recentPeakAmplitude;
+
+			// Only adjust if we have some signal (avoid boosting pure silence)
+			if (peak > 0.001) {
+				if (peak < lower) {
+					// Signal too quiet - increase gain more aggressively
+					const ratio = peak / target;
+					const boost = ratio < 0.1 ? adjustStep * 1.5 : adjustStep; // Extra boost for very weak signals
+					const newGain = clampGain(currentGain * boost);
+					gain.value = newGain;
+					gainNode.gain.value = newGain;
+					debugLog(
+						`Auto-gain: ${currentGain.toFixed(2)} → ${newGain.toFixed(2)} (peak ${peak.toFixed(3)} < target ${target.toFixed(2)})`
+					);
+				} else if (peak > upper) {
+					// Signal too loud - decrease gain
+					const newGain = clampGain(currentGain / adjustStep);
+					gain.value = newGain;
+					gainNode.gain.value = newGain;
+					debugLog(
+						`Auto-gain: ${currentGain.toFixed(2)} → ${newGain.toFixed(2)} (peak ${peak.toFixed(3)} > target ${target.toFixed(2)})`
+					);
+				}
 			}
-			// Reset peak for next note cycle
-			notePeakAmplitude = 0;
 		}
 
 		rafId = requestAnimationFrame(tick);
 	}
 
-	function checkSupport() {
+	async function checkSupport() {
 		if (!navigator.mediaDevices?.getUserMedia) {
 			state.error = 'Microphone access is not available in this browser.';
 			return false;
 		}
+
+		// Check if microphone permission was previously denied (helps on Safari)
+		if (navigator.permissions && navigator.permissions.query) {
+			try {
+				const permissionStatus = await navigator.permissions.query({
+					name: 'microphone' as PermissionName
+				});
+				if (permissionStatus.state === 'denied') {
+					if (isIOS || isSafari) {
+						state.error = 'Microphone blocked. Go to Settings > Safari > Microphone to enable.';
+					} else {
+						state.error = 'Microphone access denied. Please check browser settings.';
+					}
+					return false;
+				}
+			} catch (e) {
+				// Permissions API might not be fully supported, continue anyway
+				debugLog('Permissions API check failed:', e);
+			}
+		}
+
 		return true;
 	}
 
@@ -877,7 +959,7 @@ export function createTuner(options: TunerOptions = {}) {
 			return targetAmplitude.value;
 		},
 		set targetAmplitude(value: number) {
-			targetAmplitude.value = Math.max(0.001, Math.min(0.5, value));
+			targetAmplitude.value = Math.max(0.001, Math.min(0.8, value));
 		},
 		get autoGainInterval() {
 			return autoGainInterval.value;
