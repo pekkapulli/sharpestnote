@@ -109,7 +109,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const minGain = $state({ value: options.minGain ?? 0.1 });
 	const gain = $state({ value: options.gain ?? 2 });
 	const autoGainEnabled = $state({ value: options.autoGain ?? true });
-	const targetAmplitude = $state({ value: options.targetAmplitude ?? 0.4 });
+	const targetAmplitude = $state({ value: options.targetAmplitude ?? 0.7 });
 	const gainAdjustRate = $state({ value: options.gainAdjustRate ?? 0.12 });
 	const autoGainInterval = $state({ value: options.autoGainInterval ?? 100 });
 
