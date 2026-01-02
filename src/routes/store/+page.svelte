@@ -24,7 +24,7 @@
 			Practice materials with accompaniment tracks and interactive games.
 		</p>
 		<p class="mt-3 text-lg font-bold text-slate-700">
-			We're launching soon. In the meantime, join the mailing list on <a
+			We're launching soon. In the meantime, try the demo unit and join the mailing list on <a
 				href="https://sharpestnote.gumroad.com">Gumroad</a
 			>!
 		</p>
