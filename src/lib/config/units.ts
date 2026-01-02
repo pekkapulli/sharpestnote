@@ -352,6 +352,91 @@ export const units: Units = {
 						{ note: null, length: 8 }
 					]
 				]
+			},
+			{
+				code: 'raindrops',
+				label: 'Raindrops',
+				tracks: {
+					slow: {
+						tempo: 90,
+						audioUrl: 'Raindrops+Viola+90BPM+Full+track.mp3',
+						backingTrackUrl: 'Raindrops+Viola+90BPM+Backing+track.mp3'
+					},
+					medium: {
+						tempo: 100,
+						audioUrl: 'Raindrops+Viola+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Raindrops+Viola+100BPM+Backing+track.mp3'
+					},
+					fast: {
+						tempo: 110,
+						audioUrl: 'Raindrops+Viola+110BPM+Full+track.mp3',
+						backingTrackUrl: 'Raindrops+Viola+110BPM+Backing+track.mp3'
+					}
+				},
+				key: 'C',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'G3', length: 4 },
+					{ note: 'A3', length: 4 },
+					{ note: 'D4', length: 4 },
+					{ note: 'E4', length: 4 },
+					{ note: 'A4', length: 4 },
+					{ note: 'B4', length: 4 }
+				],
+				melody: [
+					[
+						{ note: 'G3', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G3', length: 4 },
+						{ note: 'B4', length: 4 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'B4', length: 2 },
+						{ note: 'D4', length: 2 },
+						{ note: 'E4', length: 4 },
+						{ note: 'B4', length: 4 }
+					],
+					[
+						{ note: 'G3', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G3', length: 4 },
+						{ note: 'B4', length: 4 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'B4', length: 2 },
+						{ note: 'D4', length: 2 },
+						{ note: 'A4', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G3', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G3', length: 4 },
+						{ note: 'B4', length: 4 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'B4', length: 2 },
+						{ note: 'D4', length: 2 },
+						{ note: 'E4', length: 4 },
+						{ note: 'B4', length: 4 }
+					],
+					[
+						{ note: 'G3', length: 4 },
+						{ note: 'A4', length: 4 },
+						{ note: 'G3', length: 4 },
+						{ note: 'B4', length: 4 }
+					],
+					[
+						{ note: 'D4', length: 4 },
+						{ note: 'B4', length: 2 },
+						{ note: 'G3', length: 2 },
+						{ note: 'G3', length: 8 }
+					]
+				]
 			}
 		]
 	}

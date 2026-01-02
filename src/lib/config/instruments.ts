@@ -45,7 +45,10 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'G3',
 		topNote: 'G5',
-		detectionConfig: genericDetectionConfig
+		detectionConfig: {
+			...genericDetectionConfig,
+			endRelativeDropRatio: 0.4
+		}
 	},
 	{
 		id: 'guitar',
@@ -65,7 +68,10 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C3',
 		topNote: 'D5',
-		detectionConfig: genericDetectionConfig
+		detectionConfig: {
+			...genericDetectionConfig,
+			endRelativeDropRatio: 0.4
+		}
 	},
 	{
 		id: 'cello',

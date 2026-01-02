@@ -669,6 +669,7 @@ export function createTuner(options: TunerOptions = {}) {
 			// Note end conditions (independent of onset logic)
 			const lowAmplitude = amplitude < tuning.onsetMinAmplitude * tuning.endMinAmplitudeRatio;
 			// End when amplitude dips significantly relative to the post-onset peak
+			// Use a more forgiving threshold (40% vs 80%) to handle pizzicato decay curves
 			const relativeDrop = amplitude < peakAmplitudeSinceOnset * tuning.endRelativeDropRatio;
 			const pitchLost = !hasPitch || pitchConfidence < 0.3;
 			const endCondition = lowAmplitude || pitchLost || relativeDrop;
