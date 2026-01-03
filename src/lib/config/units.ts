@@ -262,19 +262,19 @@ export const units: Units = {
 				label: 'Twinkle Twinkle Little Star',
 				tracks: {
 					slow: {
-						tempo: 60,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+						tempo: 80,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+80BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+80BPM+Backing+track.mp3'
 					},
 					medium: {
-						tempo: 80,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+						tempo: 90,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+90BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+90BPM+Backing+track.mp3'
 					},
 					fast: {
 						tempo: 100,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+100BPM+Backing+track.mp3'
 					}
 				},
 				key: 'C',
