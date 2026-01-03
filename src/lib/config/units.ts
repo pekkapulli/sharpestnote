@@ -247,6 +247,112 @@ export const units: Units = {
 			}
 		]
 	},
+	'tw-r': {
+		published: false,
+		code: 'tw-r',
+		keyCode: 'AEIH',
+		instrument: 'recorder',
+		title: 'Twinkle Twinkle Little Star for Recorder',
+		description:
+			'A musical, playable way to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-recorder',
+		pieces: [
+			{
+				code: 'twinkle-twinkle-little-star',
+				label: 'Twinkle Twinkle Little Star',
+				tracks: {
+					slow: {
+						tempo: 60,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+					},
+					medium: {
+						tempo: 80,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+					},
+					fast: {
+						tempo: 100,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+					}
+				},
+				key: 'C',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+					{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+					{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+					{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+					{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+					{ note: 'A4', length: 4, finger: 1, string: 'Mom' }
+				],
+				melody: [
+					[
+						{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+						{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'A4', length: 4, finger: 1, string: 'Mom' },
+						{ note: 'A4', length: 4, finger: 1, string: 'Mom' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+						{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+						{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+						{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: 'A4', length: 4, finger: 1, string: 'Mom' },
+						{ note: 'A4', length: 4, finger: 1, string: 'Mom' },
+						{ note: 'G4', length: 4, finger: 0, string: 'Mom' },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'F4', length: 4, finger: 3, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'E4', length: 4, finger: 2, string: 'Dad' },
+						{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+						{ note: 'D4', length: 4, finger: 1, string: 'Dad' },
+						{ note: 'C4', length: 4, finger: 0, string: 'Dad' },
+						{ note: null, length: 4 }
+					]
+				]
+			}
+		]
+	},
 	'1st-finger-nature-va': {
 		code: '1st-finger-nature-va',
 		keyCode: 'ZKWD',
