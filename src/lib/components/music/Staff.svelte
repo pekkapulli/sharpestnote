@@ -26,6 +26,7 @@
 		isCurrentNoteHit?: boolean;
 		isSequenceComplete?: boolean;
 		barLength?: number;
+		minWidth?: number; // Minimum width in pixels. If not set, will use content width
 	}
 
 	const HEIGHT = 150;
@@ -41,7 +42,8 @@
 		keySignature,
 		isCurrentNoteHit = false,
 		isSequenceComplete = false,
-		barLength
+		barLength,
+		minWidth = 400
 	}: Props = $props();
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
@@ -60,6 +62,9 @@
 
 	// Container size binding
 	let containerWidth = $state(400);
+	$effect(() => {
+		containerWidth = Math.max(containerWidth, minWidth);
+	});
 	const ledgerStart = 90;
 	const ledgerEnd = $derived(containerWidth - 10);
 
@@ -120,7 +125,11 @@
 	);
 </script>
 
-<div class="flex w-full max-w-md flex-col items-center gap-4" bind:clientWidth={containerWidth}>
+<div
+	class="flex w-full flex-col items-center gap-4"
+	bind:clientWidth={containerWidth}
+	style="min-width: {minWidth}px;"
+>
 	<div class="relative w-full" style="height: {HEIGHT}px;">
 		<!-- Staff with clef symbol -->
 		<svg class="absolute inset-0 h-full w-full" width={containerWidth} height={HEIGHT}>

@@ -2,6 +2,7 @@
 	import { fileStore, type Piece, type Speed, type UnitMaterial } from '$lib/config/units';
 	import { onMount, onDestroy } from 'svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
+	import RollingStaff from './RollingStaff.svelte';
 
 	interface Props {
 		unit: UnitMaterial;
@@ -186,6 +187,7 @@
 	<div>
 		<h3 class="mb-3 text-sm font-semibold text-dark-blue">Listen and practice</h3>
 		<div class="player-box">
+			<RollingStaff {piece} progress={currentTime / duration} {selectedSpeed} />
 			<!-- Play/Pause and Repeat Buttons -->
 			<div class="mb-3 flex items-center justify-center gap-4">
 				<button

@@ -16,6 +16,8 @@ export interface Piece {
 	barLength: number;
 	melody: MelodyItem[][];
 	scale: MelodyItem[];
+	notationStartPercent: number;
+	notationEndPercent: number;
 }
 
 export interface TrackVariant {
@@ -52,6 +54,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				notationEndPercent: 0.9,
+				notationStartPercent: 0.1,
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -156,6 +160,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				notationEndPercent: 0.9,
+				notationStartPercent: 0.1,
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -262,6 +268,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				notationEndPercent: 0.9,
+				notationStartPercent: 0.1,
 				tracks: {
 					slow: {
 						tempo: 80,
@@ -366,6 +374,8 @@ export const units: Units = {
 			{
 				code: 'in-the-wind',
 				label: 'In the Wind',
+				notationEndPercent: 0.9,
+				notationStartPercent: 0.1,
 				tracks: {
 					slow: {
 						tempo: 90,
@@ -464,6 +474,8 @@ export const units: Units = {
 			{
 				code: 'raindrops',
 				label: 'Raindrops',
+				notationEndPercent: 0.9,
+				notationStartPercent: 0.1,
 				tracks: {
 					slow: {
 						tempo: 90,
