@@ -27,7 +27,7 @@
 		<article class="rounded-2xl bg-white p-8 shadow-md">
 			<h1 class="text-3xl font-semibold text-slate-900">{piece.label}</h1>
 
-			<AudioPlayer unit={code} tracks={piece.tracks} />
+			<AudioPlayer {unit} {piece} />
 
 			{#if !hasKeyAccess}
 				<section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">

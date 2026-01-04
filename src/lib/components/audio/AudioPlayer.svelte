@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { fileStore, type Speed, type TrackVariant } from '$lib/config/units';
+	import { fileStore, type Piece, type Speed, type UnitMaterial } from '$lib/config/units';
 	import { onMount, onDestroy } from 'svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 
 	interface Props {
-		unit: string;
-		tracks: Record<Speed, TrackVariant>;
+		unit: UnitMaterial;
+		piece: Piece;
 	}
 
-	let { unit, tracks }: Props = $props();
+	let { unit, piece }: Props = $props();
 	let selectedSpeed: Speed = $state('medium');
-	let selectedTrack: 'full' | 'backing' = $state('full');
+	let selectedTrack: 'full' | 'backing' = $state('backing');
 	let isPlaying: boolean = $state(false);
 	let isLoading: boolean = $state(false);
 	let isRepeat: boolean = $state(false);
@@ -20,9 +20,10 @@
 
 	let audioElement: HTMLAudioElement | null = null;
 
-	const currentVariant = $derived(tracks[selectedSpeed]);
+	const currentVariant = $derived(piece.tracks[selectedSpeed]);
+
 	const currentUrl = $derived(
-		`${fileStore}/${unit}/${selectedTrack === 'full' ? currentVariant.audioUrl : currentVariant.backingTrackUrl}`
+		`${fileStore}/${unit.code}/${selectedTrack === 'backing' ? currentVariant.backingTrackUrl : currentVariant.audioUrl}`
 	);
 
 	function setupAudioElement() {
@@ -269,8 +270,8 @@
 					<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
 					<PillSelector
 						options={[
-							{ value: 'full', label: 'Full track' },
-							{ value: 'backing', label: 'Backing track' }
+							{ value: 'backing', label: 'Backing track' },
+							{ value: 'full', label: 'Full track' }
 						]}
 						selected={selectedTrack}
 						onSelect={(track) => handleTrackChange(track)}

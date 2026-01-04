@@ -7,6 +7,17 @@ export type Units = Record<string, UnitMaterial>;
 
 export type Speed = 'slow' | 'medium' | 'fast';
 
+export interface Piece {
+	code: string;
+	label: string;
+	tracks: Record<Speed, TrackVariant>;
+	mode: Mode;
+	key: NoteName;
+	barLength: number;
+	melody: MelodyItem[][];
+	scale: MelodyItem[];
+}
+
 export interface TrackVariant {
 	tempo: number;
 	audioUrl: string;
@@ -21,16 +32,7 @@ export interface UnitMaterial {
 	title: string;
 	description: string;
 	gumroadUrl: string;
-	pieces: {
-		code: string;
-		label: string;
-		tracks: Record<Speed, TrackVariant>;
-		mode: Mode;
-		key: NoteName;
-		barLength: number;
-		melody: MelodyItem[][];
-		scale: MelodyItem[];
-	}[];
+	pieces: Piece[];
 	extraLinks?: { label: string; url: string }[];
 }
 
