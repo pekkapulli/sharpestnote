@@ -164,6 +164,15 @@
 		}
 	}
 
+	function playFromStart() {
+		if (audioElement) {
+			audioElement.currentTime = 0;
+			currentTime = 0;
+			displayTime = 0;
+			audioElement.play();
+		}
+	}
+
 	function formatTime(seconds: number): string {
 		const mins = Math.floor(seconds / 60);
 		const secs = Math.floor(seconds % 60);
@@ -190,6 +199,12 @@
 			<RollingStaff {piece} progress={currentTime / duration} {selectedSpeed} />
 			<!-- Play/Pause and Repeat Buttons -->
 			<div class="mb-3 flex items-center justify-center gap-4">
+				<button onclick={playFromStart} class="control-button" aria-label="Play from start">
+					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+						<rect x="6" y="5" width="2" height="14" />
+						<path d="M10 5v14l10-7z" />
+					</svg>
+				</button>
 				<button
 					onclick={togglePlay}
 					class="play-button"
@@ -346,6 +361,29 @@
 
 	.play-button:disabled {
 		cursor: not-allowed;
+	}
+
+	.control-button {
+		display: flex;
+		height: 2.5rem;
+		width: 2.5rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.5rem;
+		background-color: rgb(241 245 249);
+		color: rgb(100 116 139);
+		border: 1px solid rgb(226 232 240);
+		transition: all 150ms ease-in-out;
+		cursor: pointer;
+	}
+
+	.control-button:hover {
+		background-color: rgb(226 232 240);
+		color: var(--color-dark-blue);
+	}
+
+	.control-button:active {
+		transform: scale(0.95);
 	}
 
 	@keyframes spin {

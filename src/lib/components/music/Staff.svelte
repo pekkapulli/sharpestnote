@@ -30,6 +30,7 @@
 		minWidth?: number; // Minimum width in pixels. If not set, will use content width
 		firstNoteX?: number; // Bindable prop to expose the first note's X position
 		lastNoteX?: number; // Bindable prop to expose the last note's X position
+		showAllBlack?: boolean; // If true, render all notes in black instead of colored by state
 	}
 
 	const HEIGHT = 150;
@@ -48,7 +49,8 @@
 		barLength,
 		minWidth = 400,
 		firstNoteX = $bindable(0),
-		lastNoteX = $bindable(0)
+		lastNoteX = $bindable(0),
+		showAllBlack = false
 	}: Props = $props();
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
@@ -200,13 +202,15 @@
 									class="note"
 									{x}
 									y={centerY + lineSpacing / 2}
-									fill={i < currentIndex || (isSequenceComplete && i === currentIndex)
-										? '#16a34a'
-										: i === currentIndex
-											? isHit
-												? '#16a34a'
-												: 'black'
-											: '#9ca3af'}
+									fill={showAllBlack
+										? 'black'
+										: i < currentIndex || (isSequenceComplete && i === currentIndex)
+											? '#16a34a'
+											: i === currentIndex
+												? isHit
+													? '#16a34a'
+													: 'black'
+												: '#9ca3af'}
 									font-size={lineSpacing * 4}
 									text-anchor="middle"
 								>
@@ -235,19 +239,27 @@
 								y={centerY - (rn.position ?? 0) * lineSpacing}
 								accidental={rn.accidental}
 								length={sequence?.[i]?.length}
-								fill={i < currentIndex ||
-								(isSequenceComplete && i === currentIndex) ||
-								i === animatingIndex
-									? '#16a34a'
-									: i === currentIndex
-										? isHit
-											? '#16a34a'
-											: 'black'
-										: '#9ca3af'}
-								stroke={i < currentIndex || (isSequenceComplete && i === currentIndex)
-									? '#22c55e'
-									: 'none'}
-								strokeWidth={i < currentIndex || (isSequenceComplete && i === currentIndex) ? 2 : 0}
+								fill={showAllBlack
+									? 'black'
+									: i < currentIndex ||
+										  (isSequenceComplete && i === currentIndex) ||
+										  i === animatingIndex
+										? '#16a34a'
+										: i === currentIndex
+											? isHit
+												? '#16a34a'
+												: 'black'
+											: '#9ca3af'}
+								stroke={showAllBlack
+									? 'none'
+									: i < currentIndex || (isSequenceComplete && i === currentIndex)
+										? '#22c55e'
+										: 'none'}
+								strokeWidth={showAllBlack
+									? 0
+									: i < currentIndex || (isSequenceComplete && i === currentIndex)
+										? 2
+										: 0}
 								{lineSpacing}
 								progress={i === animatingIndex && !isSequenceComplete ? animationProgress : null}
 							/>

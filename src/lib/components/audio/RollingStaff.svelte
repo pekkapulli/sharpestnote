@@ -70,6 +70,7 @@
 <div class="rolling-staff-container" bind:clientWidth={containerWidth}>
 	<div class="border-light-blue overflow-hidden rounded-lg border bg-white">
 		<div class="staff-viewport">
+			<div class="fade-overlay"></div>
 			<!-- Playhead line at 40% -->
 			<div class="playhead" style="left: {containerWidth * 0.4}px;"></div>
 			<div
@@ -87,6 +88,7 @@
 					minWidth={minStaffWidth}
 					bind:firstNoteX
 					bind:lastNoteX
+					showAllBlack={true}
 				/>
 			</div>
 		</div>
@@ -111,7 +113,8 @@
 		top: 0;
 		bottom: 0;
 		width: 2px;
-		background: rgba(59, 130, 246, 0.6);
+		background: var(--color-brand-green);
+		opacity: 0.3;
 		z-index: 10;
 		pointer-events: none;
 	}
@@ -124,5 +127,22 @@
 		height: 180px;
 		background: white;
 		will-change: transform;
+	}
+
+	.fade-overlay {
+		pointer-events: none;
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: linear-gradient(
+			to right,
+			rgba(255, 255, 255, 1) 0%,
+			rgba(255, 255, 255, 0) 40%,
+			rgba(255, 255, 255, 0) 90%,
+			rgba(255, 255, 255, 1) 100%
+		);
+		z-index: 5;
 	}
 </style>
