@@ -210,6 +210,26 @@
 					Unlock rolling sheet music by purchasing the unit.
 				</p>
 			{/if}
+
+			<!-- Progress Bar -->
+			<div class="mb-2">
+				<input
+					type="range"
+					min="0"
+					max={duration || 100}
+					step="0.1"
+					value={displayTime}
+					oninput={(e) => seek(parseFloat(e.currentTarget.value))}
+					class="progress-bar"
+					style="--progress: {(displayTime / duration) * 100}%"
+				/>
+			</div>
+
+			<!-- Time Display -->
+			<div class="flex justify-between text-xs text-slate-600">
+				<span>{formatTime(displayTime)}</span>
+				<span>{formatTime(duration)}</span>
+			</div>
 			<!-- Play/Pause and Repeat Buttons -->
 			<div class="mb-3 flex items-center justify-center gap-4">
 				<button onclick={playFromStart} class="control-button" aria-label="Play from start">
@@ -259,26 +279,6 @@
 						<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
 					</svg>
 				</button>
-			</div>
-
-			<!-- Progress Bar -->
-			<div class="mb-2">
-				<input
-					type="range"
-					min="0"
-					max={duration || 100}
-					step="0.1"
-					value={displayTime}
-					oninput={(e) => seek(parseFloat(e.currentTarget.value))}
-					class="progress-bar"
-					style="--progress: {(displayTime / duration) * 100}%"
-				/>
-			</div>
-
-			<!-- Time Display -->
-			<div class="flex justify-between text-xs text-slate-600">
-				<span>{formatTime(displayTime)}</span>
-				<span>{formatTime(duration)}</span>
 			</div>
 
 			<!-- Speed + Track Selection -->
