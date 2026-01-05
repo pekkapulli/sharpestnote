@@ -9,6 +9,7 @@
 	import KeySignatureSymbol from './KeySignature.svelte';
 	import FingerMarking from './FingerMarking.svelte';
 	import { lengthRestMap, type MelodyItem } from '$lib/config/melody';
+	import { STAFF_NOTE_START } from './constants';
 
 	interface Props {
 		// Provide sequence as an array of { note, length }
@@ -27,11 +28,13 @@
 		isSequenceComplete?: boolean;
 		barLength?: number;
 		minWidth?: number; // Minimum width in pixels. If not set, will use content width
+		firstNoteX?: number; // Bindable prop to expose the first note's X position
+		lastNoteX?: number; // Bindable prop to expose the last note's X position
 	}
 
 	const HEIGHT = 150;
 
-	const {
+	let {
 		sequence = [],
 		currentIndex = 0,
 		animatingIndex = null,
@@ -43,7 +46,9 @@
 		isCurrentNoteHit = false,
 		isSequenceComplete = false,
 		barLength,
-		minWidth = 400
+		minWidth = 400,
+		firstNoteX = $bindable(0),
+		lastNoteX = $bindable(0)
 	}: Props = $props();
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
@@ -65,13 +70,12 @@
 	$effect(() => {
 		containerWidth = Math.max(containerWidth, minWidth);
 	});
-	const ledgerStart = 90;
+	const ledgerStart = STAFF_NOTE_START - 10;
 	const ledgerEnd = $derived(containerWidth - 10);
 
 	// Horizontal layout for multi-note melodies, spaced by note lengths
-	const startX = $derived(100);
 	const endX = $derived(containerWidth - 30);
-	const available = $derived(endX - startX);
+	const available = $derived(endX - STAFF_NOTE_START);
 	const basePixelsPerSixteenth = 15; // 60px per quarter note (4 sixteenths)
 	const noteXs = $derived(
 		sequence && sequence.length
@@ -87,11 +91,20 @@
 					const scale = totalWidth > available ? available / totalWidth : 1;
 					const scaledPositions = positions.map((p) => p * scale);
 					const groupWidth = scaledPositions[scaledPositions.length - 1] ?? 0;
-					const centerOffset = startX + (available - groupWidth) / 2;
+					const centerOffset = STAFF_NOTE_START + (available - groupWidth) / 2;
 					return scaledPositions.map((p) => centerOffset + p);
 				})()
 			: null
 	);
+
+	// Update firstNoteX and lastNoteX when noteXs changes
+	$effect(() => {
+		if (noteXs && noteXs.length > 0) {
+			firstNoteX = noteXs[0];
+			lastNoteX = noteXs[noteXs.length - 1];
+		}
+	});
+
 	const currentGhostX = $derived(
 		noteXs && sequence && sequence.length
 			? noteXs[Math.min(Math.max(currentIndex, 0), sequence.length - 1)]

@@ -54,8 +54,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
-				notationEndPercent: 0.9,
-				notationStartPercent: 0.1,
+				notationStartPercent: 0.118,
+				notationEndPercent: 0.794,
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -160,8 +160,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
-				notationEndPercent: 0.9,
-				notationStartPercent: 0.1,
+				notationStartPercent: 0.118,
+				notationEndPercent: 0.794,
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -268,8 +268,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
-				notationEndPercent: 0.9,
-				notationStartPercent: 0.1,
+				notationStartPercent: 0.118,
+				notationEndPercent: 0.794,
 				tracks: {
 					slow: {
 						tempo: 80,
@@ -374,8 +374,8 @@ export const units: Units = {
 			{
 				code: 'in-the-wind',
 				label: 'In the Wind',
-				notationEndPercent: 0.9,
-				notationStartPercent: 0.1,
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.86,
 				tracks: {
 					slow: {
 						tempo: 90,
@@ -474,8 +474,8 @@ export const units: Units = {
 			{
 				code: 'raindrops',
 				label: 'Raindrops',
-				notationEndPercent: 0.9,
-				notationStartPercent: 0.1,
+				notationStartPercent: 0.182,
+				notationEndPercent: 0.864,
 				tracks: {
 					slow: {
 						tempo: 90,
