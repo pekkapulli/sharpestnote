@@ -375,7 +375,7 @@ export const units: Units = {
 				code: 'in-the-wind',
 				label: 'In the Wind',
 				notationStartPercent: 0.18,
-				notationEndPercent: 0.86,
+				notationEndPercent: 0.88,
 				tracks: {
 					slow: {
 						tempo: 90,
