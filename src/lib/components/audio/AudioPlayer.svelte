@@ -3,6 +3,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import RollingStaff from './RollingStaff.svelte';
+	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
 	interface Props {
 		unit: UnitMaterial;
@@ -18,6 +19,12 @@
 	let currentTime: number = $state(0);
 	let displayTime: number = $state(0);
 	let duration: number = $state(0);
+	let hasKeyAccess = $state(false);
+
+	$effect(() => {
+		// Initialize key access from URL or localStorage
+		hasKeyAccess = initUnitKeyAccess(unit.code, unit.keyCode);
+	});
 
 	let audioElement: HTMLAudioElement | null = null;
 
@@ -196,7 +203,13 @@
 	<div>
 		<h3 class="mb-3 text-sm font-semibold text-dark-blue">Listen and practice</h3>
 		<div class="player-box">
-			<RollingStaff {piece} progress={currentTime / duration} {selectedSpeed} />
+			{#if hasKeyAccess}
+				<RollingStaff {piece} progress={currentTime / duration} {selectedSpeed} />
+			{:else}
+				<p class="mb-4 text-center text-sm text-slate-600">
+					Unlock rolling sheet music by purchasing the unit.
+				</p>
+			{/if}
 			<!-- Play/Pause and Repeat Buttons -->
 			<div class="mb-3 flex items-center justify-center gap-4">
 				<button onclick={playFromStart} class="control-button" aria-label="Play from start">

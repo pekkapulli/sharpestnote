@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
 	const { data } = $props();
@@ -19,6 +20,10 @@
 		imageLoaded = false;
 		imageUrl;
 	});
+
+	function handleKeySuccess() {
+		hasKeyAccess = true;
+	}
 </script>
 
 <div class="flex min-h-screen items-center justify-center bg-off-white px-4 py-12">
@@ -44,9 +49,12 @@
 		</p>
 
 		{#if !hasKeyAccess}
-			<LinkButton size="large" href={sheetMusicCta} color="green"
-				>Get the sheet music – accompaniment included!</LinkButton
-			>
+			<KeyEntry
+				unitCode={code}
+				expectedKeyCode={unit.keyCode}
+				onSuccess={handleKeySuccess}
+				purchaseUrl={sheetMusicCta}
+			/>
 		{/if}
 
 		<section class="mt-8">
