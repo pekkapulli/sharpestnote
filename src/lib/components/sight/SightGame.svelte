@@ -4,6 +4,7 @@
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import AmplitudeBar from '$lib/components/ui/AmplitudeBar.svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
+	import { createSynth } from '$lib/synth/useSynth.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import { instrumentMap } from '$lib/config/instruments';
 	import { getKeySignature, type Mode } from '$lib/config/keys';
@@ -12,7 +13,7 @@
 		transposeForTransposition,
 		transposeDetectedNoteForDisplay as transposeDetectedForDisplay
 	} from '$lib/util/noteNames';
-	import type { MelodyItem, NoteLength } from '$lib/config/melody';
+	import type { MelodyItem } from '$lib/config/melody';
 	import { lengthToMs } from '$lib/config/melody';
 
 	interface Props {
@@ -34,11 +35,6 @@
 			tuner.accidental = keySignature.preferredAccidental;
 		}
 	});
-
-	function getRequiredHoldLength(length: NoteLength): number {
-		// Always require just 1 sixteenth for success
-		return 1;
-	}
 
 	let melody = $state<MelodyItem[] | null>(null);
 	let currentIndex = $state(0);
@@ -63,9 +59,32 @@
 		maxGain: 500
 	});
 
+	// Create synth voice for playing back melodies
+	const synth = createSynth({
+		waveform: 'sine',
+		volume: 0.3,
+		attack: 0.02,
+		decay: 0.1,
+		sustain: 0.7,
+		release: 0.1,
+		a4: DEFAULT_A4,
+		reverbMix: 0.1,
+		reverbDecay: 2
+	});
+
+	// Update synth with instrument-specific ADSR settings
+	$effect(() => {
+		if (selectedInstrument.adsrConfig) {
+			synth.setOptions(selectedInstrument.adsrConfig);
+		}
+	});
+
+	let isPlayingMelody = $state(false);
+	let playheadPosition = $state<number | null>(null); // Position in sixteenths for playback animation
+
 	// Check if current note matches and fresh attack requirement is satisfied
 	const isCurrentNoteHit = $derived(() => {
-		if (!melody || !melody.length) return false;
+		if (!melody || !melody.length || isPlayingMelody) return false;
 		const target = melody[currentIndex].note;
 
 		// Rests are automatically "hit"
@@ -107,7 +126,7 @@
 
 	// Watch for correct note detection
 	$effect(() => {
-		if (tuner.state.note && melody && melody.length && !showSuccess) {
+		if (tuner.state.note && melody && melody.length && !showSuccess && !isPlayingMelody) {
 			const target = melody[currentIndex].note;
 
 			// Skip if current note is a rest
@@ -268,16 +287,14 @@
 			// Start animation from 0
 			simulatedHeldSixteenths = 0;
 			const updateInterval = 50; // Update every 50ms
-			const sixteenthDurationMs = lengthToMs(1, tempoBPM);
 			const totalUpdates = Math.ceil(noteDurationMs / updateInterval);
 			let updateCount = 0;
 
 			animationIntervalId = setInterval(() => {
 				updateCount++;
-				simulatedHeldSixteenths = Math.min(
-					(updateCount * updateInterval) / sixteenthDurationMs,
-					noteLength
-				);
+				// Calculate progress based on adjusted animation duration
+				const progress = Math.min(updateCount / totalUpdates, 1);
+				simulatedHeldSixteenths = progress * noteLength;
 
 				if (updateCount >= totalUpdates) {
 					clearInterval(animationIntervalId!);
@@ -328,6 +345,47 @@
 		hadPauseSinceLastSuccess = true;
 		lastSuccessNote = null;
 		currentNoteSuccess = false;
+
+		// Automatically play the new melody
+		playMelodyWithSynth();
+	}
+
+	async function playMelodyWithSynth() {
+		if (!melody || isPlayingMelody) return;
+
+		isPlayingMelody = true;
+		playheadPosition = 0;
+
+		try {
+			let currentSixteenth = 0;
+
+			for (const item of melody) {
+				const noteLength = item.length;
+				const noteDurationMs = lengthToMs(noteLength, tempoBPM);
+				const startTime = performance.now();
+
+				// Animate playhead during note playback
+				const animatePlayhead = () => {
+					const elapsed = performance.now() - startTime;
+					const progress = Math.min(elapsed / noteDurationMs, 1);
+					playheadPosition = currentSixteenth + progress * noteLength;
+
+					if (progress < 1) {
+						requestAnimationFrame(animatePlayhead);
+					}
+				};
+				requestAnimationFrame(animatePlayhead);
+
+				await synth.playNote(item, tempoBPM);
+				currentSixteenth += noteLength;
+				playheadPosition = currentSixteenth;
+			}
+		} catch (err) {
+			console.error('Error playing melody:', err);
+		} finally {
+			isPlayingMelody = false;
+			playheadPosition = null;
+		}
 	}
 
 	function handleCorrectNote() {
@@ -421,16 +479,19 @@
 					{currentIndex}
 					animatingIndex={animatingNoteIndex}
 					animationProgress={simulatedHeldSixteenths}
-					ghostNote={requireFreshAttack && !hadPauseSinceLastSuccess
+					{playheadPosition}
+					ghostNote={isPlayingMelody
 						? null
-						: selectedInstrument
-							? transposeDetectedForDisplay(
-									tuner.state.note,
-									selectedInstrument.transpositionSemitones,
-									keySignature.preferredAccidental
-								)
-							: tuner.state.note}
-					cents={tuner.state.cents}
+						: requireFreshAttack && !hadPauseSinceLastSuccess
+							? null
+							: selectedInstrument
+								? transposeDetectedForDisplay(
+										tuner.state.note,
+										selectedInstrument.transpositionSemitones,
+										keySignature.preferredAccidental
+									)
+								: tuner.state.note}
+					cents={isPlayingMelody ? null : tuner.state.cents}
 					clef={selectedInstrument.clef}
 					{keySignature}
 					isCurrentNoteHit={isCurrentNoteHit()}
@@ -489,6 +550,13 @@
 						class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-px hover:bg-slate-200 hover:shadow"
 					>
 						Skip
+					</button>
+					<button
+						onclick={playMelodyWithSynth}
+						disabled={isPlayingMelody}
+						class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-indigo-600 hover:shadow disabled:cursor-not-allowed disabled:bg-slate-300"
+					>
+						{isPlayingMelody ? 'Playing...' : 'Play Melody'}
 					</button>
 				</div>
 			</div>

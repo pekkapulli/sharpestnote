@@ -37,6 +37,7 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
-		"fft.js": "^4.0.4"
+		"fft.js": "^4.0.4",
+		"soundbank-reverb": "^1.1.2"
 	}
 }

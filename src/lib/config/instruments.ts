@@ -23,6 +23,12 @@ export interface InstrumentConfig {
 	bottomNote: string; // lowest written note
 	topNote: string; // highest written note
 	detectionConfig: DetectionConfig;
+	adsrConfig?: {
+		attack: number;
+		decay: number;
+		sustain: number;
+		release: number;
+	};
 }
 
 export const genericDetectionConfig: DetectionConfig = {
@@ -48,6 +54,12 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.3
+		},
+		adsrConfig: {
+			attack: 0.05, // Slow bow attack
+			decay: 0.15, // Gentle decay to sustain
+			sustain: 0.85, // High sustain for bowed notes
+			release: 0.15 // Smooth bow release
 		}
 	},
 	{
@@ -61,6 +73,12 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.5
+		},
+		adsrConfig: {
+			attack: 0.005, // Very fast pluck
+			decay: 0.3, // Natural string decay
+			sustain: 0.4, // Moderate sustain as string rings
+			release: 0.2 // Gradual fade
 		}
 	},
 	{
@@ -74,6 +92,12 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.3
+		},
+		adsrConfig: {
+			attack: 0.05, // Slow bow attack
+			decay: 0.15, // Gentle decay
+			sustain: 0.85, // High sustain for bowed notes
+			release: 0.15 // Smooth bow release
 		}
 	},
 	{
@@ -84,7 +108,13 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C2',
 		topNote: 'G4',
-		detectionConfig: genericDetectionConfig
+		detectionConfig: genericDetectionConfig,
+		adsrConfig: {
+			attack: 0.06, // Slightly slower bow attack for deeper tone
+			decay: 0.2, // Rich decay
+			sustain: 0.8, // Strong sustain
+			release: 0.18 // Warm release
+		}
 	},
 	{
 		id: 'flute',
@@ -94,7 +124,13 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C4',
 		topNote: 'C6',
-		detectionConfig: genericDetectionConfig
+		detectionConfig: genericDetectionConfig,
+		adsrConfig: {
+			attack: 0.03, // Quick breath attack
+			decay: 0.08, // Short decay
+			sustain: 0.9, // Very high sustain with steady breath
+			release: 0.1 // Quick breath cutoff
+		}
 	},
 	{
 		id: 'recorder',
@@ -104,7 +140,13 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 12, // sounds an octave higher than written
 		bottomNote: 'C4',
 		topNote: 'C5',
-		detectionConfig: genericDetectionConfig
+		detectionConfig: genericDetectionConfig,
+		adsrConfig: {
+			attack: 0.02, // Very quick breath attack
+			decay: 0.05, // Minimal decay
+			sustain: 0.92, // Nearly full sustain
+			release: 0.08 // Quick cutoff
+		}
 	}
 ];
 

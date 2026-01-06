@@ -29,7 +29,7 @@
 			instrument={unit.instrument}
 			keyNote={piece.key}
 			mode={piece.mode}
-			tempoBPM={piece.tracks?.medium?.tempo ?? 100}
+			tempoBPM={piece.tracks?.fast?.tempo ?? 100}
 			{newMelody}
 			barLength={piece.barLength}
 		/>

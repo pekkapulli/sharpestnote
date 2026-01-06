@@ -19,6 +19,7 @@
 		// Index of the note currently being animated (for held sixteenths display)
 		animatingIndex?: number | null;
 		animationProgress?: number | null;
+		playheadPosition?: number | null; // Position in sixteenths for playback animation
 		ghostNote?: string | null;
 		cents?: number | null;
 		clef?: Clef;
@@ -40,6 +41,7 @@
 		currentIndex = 0,
 		animatingIndex = null,
 		animationProgress = null,
+		playheadPosition = null,
 		ghostNote = null,
 		cents = null,
 		clef = 'treble',
@@ -138,6 +140,27 @@
 				})()
 			: []
 	);
+
+	// Calculate playhead X position
+	const playheadX = $derived(() => {
+		if (!playheadPosition || !noteXs || !sequence.length) return 0;
+		let cumulativeSixteenths = 0;
+		for (let i = 0; i < sequence.length; i++) {
+			const noteLength = sequence[i].length ?? 4;
+			const nextCumulative = cumulativeSixteenths + noteLength;
+
+			if (playheadPosition >= cumulativeSixteenths && playheadPosition <= nextCumulative) {
+				// Playhead is within this note
+				const noteProgress = (playheadPosition - cumulativeSixteenths) / noteLength;
+				const currentNoteX = noteXs[i] ?? 0;
+				const nextNoteX = noteXs[i + 1] ?? currentNoteX + noteLength * basePixelsPerSixteenth;
+				return currentNoteX + (nextNoteX - currentNoteX) * noteProgress;
+			}
+
+			cumulativeSixteenths = nextCumulative;
+		}
+		return noteXs[noteXs.length - 1] ?? STAFF_NOTE_START;
+	});
 </script>
 
 <div
@@ -146,6 +169,13 @@
 	style="min-width: {minWidth}px;"
 >
 	<div class="relative w-full" style="height: {HEIGHT}px;">
+		<!-- Playhead line during synth playback (behind staff) -->
+		<div
+			class="playhead"
+			class:visible={playheadPosition !== null && noteXs && sequence.length}
+			style="left: {playheadX()}px;"
+		></div>
+
 		<!-- Staff with clef symbol -->
 		<svg class="absolute inset-0 h-full w-full" width={containerWidth} height={HEIGHT}>
 			<!-- Clef staff lines -->
@@ -289,7 +319,6 @@
 				{/if}
 			{/if}
 		</svg>
-
 		<!-- Clef symbol overlay -->
 		<div
 			class="absolute left-2 flex items-center justify-center overflow-visible"
@@ -303,5 +332,21 @@
 <style>
 	:global(svg) {
 		overflow: visible;
+	}
+
+	.playhead {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 2px;
+		background: var(--color-brand-green);
+		opacity: 0;
+		z-index: 5;
+		pointer-events: none;
+		transition: opacity 0.5s ease;
+	}
+
+	.playhead.visible {
+		opacity: 0.3;
 	}
 </style>
