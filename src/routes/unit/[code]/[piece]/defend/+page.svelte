@@ -173,7 +173,7 @@
 
 	function stopGame() {
 		gameActive = false;
-		tuner.stop();
+		// Don't stop tuner - keep it listening so mic selector doesn't pop up
 		if (spawnInterval) clearInterval(spawnInterval);
 		if (autoShootInterval) clearInterval(autoShootInterval);
 		if (gameLoop) cancelAnimationFrame(gameLoop);
