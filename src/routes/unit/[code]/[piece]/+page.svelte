@@ -21,10 +21,6 @@
 
 <div class="min-h-screen bg-off-white px-4 py-8">
 	<div class="mx-auto w-full max-w-3xl">
-		<nav class="mb-4">
-			<LinkButton href={`/unit/${code}`}>← {unit.title}</LinkButton>
-		</nav>
-
 		<article class="rounded-2xl bg-white p-8 shadow-md">
 			<h1 class="text-3xl font-semibold text-slate-900">{piece.label}</h1>
 			<p class="mb-8">From {unit.title}</p>

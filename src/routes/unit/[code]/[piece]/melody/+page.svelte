@@ -30,9 +30,6 @@
 {#if !hasKeyAccess}
 	<div class="min-h-screen bg-off-white py-8">
 		<div class="mx-auto w-full max-w-3xl px-4">
-			<nav class="mb-4">
-				<LinkButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</LinkButton>
-			</nav>
 			<div class="rounded-lg border border-slate-200 bg-white p-8 shadow-md">
 				<h2 class="mb-4 text-2xl font-semibold text-slate-900">Access Required</h2>
 				<p class="text-slate-700">
@@ -48,10 +45,6 @@
 {:else}
 	<div class="min-h-screen bg-off-white py-8">
 		<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
-			<nav class="mb-4">
-				<LinkButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</LinkButton>
-			</nav>
-
 			<SightGame
 				instrument={unit.instrument}
 				keyNote={piece.key}

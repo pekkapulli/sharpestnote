@@ -18,10 +18,6 @@
 
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
-		<nav class="mb-4">
-			<LinkButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</LinkButton>
-		</nav>
-
 		<SightGame
 			instrument={unit.instrument}
 			keyNote={piece.key}

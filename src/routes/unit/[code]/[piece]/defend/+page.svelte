@@ -302,10 +302,6 @@
 
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
-		<nav class="mb-4">
-			<LinkButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</LinkButton>
-		</nav>
-
 		<div class="flex flex-col items-center">
 			<h1 class="mb-4 text-center">Defend</h1>
 			<p class="mb-6 text-center text-slate-700">

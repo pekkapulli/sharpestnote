@@ -1,11 +1,13 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import Breadcrumbs from '$lib/components/ui/Breadcrumbs.svelte';
 
 	let { children } = $props();
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<Breadcrumbs />
 {@render children()}
 
 <footer>
