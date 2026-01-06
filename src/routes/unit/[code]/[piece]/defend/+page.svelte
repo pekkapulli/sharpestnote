@@ -30,6 +30,7 @@
 		// svelte-ignore state_referenced_locally
 		instrument: unit.instrument
 	});
+
 	const STAFF_HEIGHT = 150;
 	const lineSpacing = STAFF_HEIGHT / 12;
 	const centerY = STAFF_HEIGHT / 2;
@@ -55,11 +56,11 @@
 	let monsterSpawnCount = 0;
 	let gameLoop: number | null = null;
 	let spawnInterval: number | null = null;
+	let autoShootInterval: number | null = null;
 
 	// Spaceship position controlled by tuner
 	let spaceshipY = $state(centerY);
-	let lastShootTime = 0;
-	const SHOOT_COOLDOWN = 150; // milliseconds between shots (auto-fire rate)
+	const SHOOT_COOLDOWN = 300; // milliseconds between shots (auto-fire rate)
 
 	// Game progression
 	let gameStartTime = 0;
@@ -100,15 +101,15 @@
 		const gameKey = `${pieceCode}_defend_highScore`;
 		highScore = (storage as any)[gameKey] || 0;
 
-		// Set initial container width
+		// Set initial container width (subtract padding: 1rem on each side = 32px total)
 		if (containerElement) {
-			containerWidth = containerElement.offsetWidth;
+			containerWidth = Math.max(200, containerElement.offsetWidth - 32);
 		}
 
 		// Update width on window resize
 		const handleResize = () => {
 			if (containerElement) {
-				containerWidth = containerElement.offsetWidth;
+				containerWidth = Math.max(200, containerElement.offsetWidth - 32);
 			}
 		};
 
@@ -125,12 +126,6 @@
 			const targetY = noteToY[tuner.state.note];
 			if (targetY !== undefined) {
 				spaceshipY = targetY;
-				// Auto-shoot when a note is being played
-				const now = Date.now();
-				if (now - lastShootTime > SHOOT_COOLDOWN) {
-					shoot();
-					lastShootTime = now;
-				}
 			}
 		}
 	});
@@ -162,6 +157,13 @@
 
 		spawnInterval = window.setTimeout(spawnNextMonster, BASE_SPAWN_INTERVAL);
 
+		// Auto-shoot interval
+		autoShootInterval = window.setInterval(() => {
+			if (gameActive && tuner.state.note) {
+				shoot();
+			}
+		}, SHOOT_COOLDOWN);
+
 		// Game loop
 		gameLoop = window.requestAnimationFrame(updateGame);
 	}
@@ -170,6 +172,7 @@
 		gameActive = false;
 		tuner.stop();
 		if (spawnInterval) clearInterval(spawnInterval);
+		if (autoShootInterval) clearInterval(autoShootInterval);
 		if (gameLoop) cancelAnimationFrame(gameLoop);
 	}
 
@@ -189,9 +192,12 @@
 		monsterSpawnCount++;
 
 		const randomY = noteToY[note];
+		// Speed increases over time
+		const elapsedSeconds = (Date.now() - gameStartTime) / 1000;
+		const speedMultiplier = 1 + elapsedSeconds * 0.025; // Speeds up by 2.5% per second
 		// Speed as percentage of container width per frame (capped at 60fps)
-		// 0.05% to 0.11% per frame means crossing screen in ~15-33 seconds
-		const speedPercentage = 0.0005 + Math.random() * 0.0001;
+		// 0.05% to 0.11% per frame base speed, multiplied by elapsed time
+		const speedPercentage = (0.0005 + Math.random() * 0.0001) * speedMultiplier;
 		const speed = containerWidth * speedPercentage;
 
 		monsters = [
@@ -276,7 +282,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="min-h-screen bg-off-white py-8">
-	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
+	<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
 		<nav class="mb-4">
 			<LinkButton href={`/unit/${code}/${pieceCode}`}>← Back to piece</LinkButton>
 		</nav>
@@ -305,7 +311,7 @@
 			{/if}
 
 			<!-- Game area with staff background -->
-			<div bind:this={containerElement} class="w-full">
+			<div bind:this={containerElement} class="box-border w-full p-4">
 				<HZForceStaff
 					{clef}
 					keySignature={{

@@ -51,7 +51,10 @@
 	const ledgerLinePositions = [-3, -2, -1, 5, 6, 7];
 </script>
 
-<div class="relative w-full overflow-hidden rounded-lg border-2 border-slate-300 bg-white">
+<div
+	class="relative overflow-hidden rounded-lg border-2 border-slate-300 bg-white"
+	style="width: {width}px; height: {height}px;"
+>
 	<svg {width} {height} class="block">
 		<!-- Staff lines -->
 		{#each staffLines as line (line.position)}
@@ -89,7 +92,7 @@
 				font-size={lineSpacing * 2}
 				text-anchor="middle"
 				dominant-baseline="middle"
-				transform="rotate(45, 100, {spaceshipY})">🚀</text
+				transform="rotate(43, 100, {spaceshipY})">🚀</text
 			>
 		{/if}
 
