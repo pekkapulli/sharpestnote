@@ -29,10 +29,39 @@
 
 <div class="py-2rem flex min-h-screen flex-col items-center justify-center bg-off-white px-1">
 	<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
+
 	<h2 class="mb-4 text-center text-4xl font-light">
 		Musical beginner units with interactive practice tools.
 	</h2>
 	<p class="text-center">Designed for teachers. Built for curious ears.</p>
+	<nav
+		class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
+	>
+		<a
+			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+			href="/units"
+		>
+			Units
+		</a>
+		<a
+			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+			href="/unit/tw-v"
+		>
+			FREE DEMO
+		</a>
+		<a
+			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+			href="/faq"
+		>
+			FAQ
+		</a>
+		<a
+			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+			href="/parents"
+		>
+			For Parents
+		</a>
+	</nav>
 	<section class="mt-24 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">What this is</h2>
 		<p>
@@ -74,7 +103,7 @@
 			emptyMessage="No materials available for this instrument yet."
 		/>
 		<div class="mt-6 flex w-full flex-col items-center">
-			<LinkButton href="/store" size="large" color="green">Browse the store</LinkButton>
+			<LinkButton href="/units" size="large" color="green">Browse the units</LinkButton>
 		</div>
 	</section>
 

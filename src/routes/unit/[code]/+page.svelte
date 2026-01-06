@@ -6,7 +6,7 @@
 	const { data } = $props();
 	const { unit, code, imageUrl, instrumentLabel } = $derived(data);
 	const hasExtras = $derived((unit.extraLinks?.length ?? 0) > 0);
-	const sheetMusicCta = '/store'; // TODO: replace with live store link when available
+	const sheetMusicCta = '/units'; // TODO: replace with live store link when available
 	let imageLoaded = $state(false);
 	let hasKeyAccess = $state(false);
 

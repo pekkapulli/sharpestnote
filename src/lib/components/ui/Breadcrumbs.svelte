@@ -42,8 +42,8 @@
 	const derivedBreadcrumbs = $derived([
 		{ label: 'Home', href: '/', icon: homeIcon },
 		...segments.reduce((crumbs, segment, index) => {
-			// Skip showing the route prefix '/unit'; treat its children as direct descendants of home.
 			if (index === 0 && segment === 'unit') {
+				crumbs.push({ label: 'Units', href: '/units' });
 				return crumbs;
 			}
 

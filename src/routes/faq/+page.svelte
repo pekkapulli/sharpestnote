@@ -7,7 +7,6 @@
 </svelte:head>
 
 <div class="faq-container">
-	<BackButton />
 	<h1>Frequently Asked Questions</h1>
 	<p class="last-updated">Last updated: 31st Dec 2025</p>
 
@@ -130,8 +129,14 @@
 	<section>
 		<h2>Who makes The Sharpest Note?</h2>
 		<p>
-			The Sharpest Note is created by an independent teacher and composer, developed and tested in
-			real teaching studios.
+			The Sharpest Note is created by Pekka Pulli, a Finnish sound and UX designer, developer,
+			composer, and dad of two string instrument players (a cellist and a violist). Other composers
+			on the platform are experienced music pedagogists.
+		</p>
+		<p>
+			The project grew out of real teaching rooms and real home practice: trying to make beginner
+			material that sounds musical, feels calm to use, and actually helps students practice between
+			classes.
 		</p>
 	</section>
 

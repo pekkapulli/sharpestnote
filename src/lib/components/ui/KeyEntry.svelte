@@ -9,7 +9,7 @@
 		purchaseUrl?: string;
 	}
 
-	let { unitCode, expectedKeyCode, onSuccess, purchaseUrl = '/store' }: Props = $props();
+	let { unitCode, expectedKeyCode, onSuccess, purchaseUrl = '/units' }: Props = $props();
 	let keyInput = $state('');
 	let keyError = $state('');
 

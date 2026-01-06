@@ -7,7 +7,7 @@
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
-	const sheetMusicCta = '/store'; // TODO: replace with live store link when available
+	const sheetMusicCta = '/units'; // TODO: replace with live store link when available
 
 	const { data } = $props();
 	const { piece, code, pieceCode, previousPiece, nextPiece, unit } = $derived(data);

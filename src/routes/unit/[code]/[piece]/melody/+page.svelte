@@ -37,7 +37,7 @@
 					features.
 				</p>
 				<div class="mt-4">
-					<LinkButton href="/store">Get the sheet music</LinkButton>
+					<LinkButton href="/units">Get the sheet music</LinkButton>
 				</div>
 			</div>
 		</div>
