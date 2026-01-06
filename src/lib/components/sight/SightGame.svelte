@@ -3,6 +3,7 @@
 	import Staff from '$lib/components/music/Staff.svelte';
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import AmplitudeBar from '$lib/components/ui/AmplitudeBar.svelte';
+	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { createSynth } from '$lib/synth/useSynth.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
@@ -47,6 +48,7 @@
 	let animationIntervalId: number | null = null;
 	let simulatedHeldSixteenths = $state<number | null>(null);
 	let animatingNoteIndex = $state<number | null>(null);
+	let synthEnabled = $state(true);
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
@@ -325,8 +327,10 @@
 		currentNoteSuccess = false;
 		lastOnsetHeldSixteenths = -1;
 
-		// Automatically play the new melody
-		playMelodyWithSynth();
+		// Automatically play the new melody if synth is enabled
+		if (synthEnabled) {
+			playMelodyWithSynth();
+		}
 	}
 
 	async function playMelodyWithSynth() {
@@ -480,9 +484,23 @@
 				/>
 			</div>
 
+			<!-- Synth toggle -->
+			<div class="flex justify-center">
+				<PillSelector
+					options={[
+						{ label: 'Play melodies', value: 'play' },
+						{ label: 'Mute', value: 'mute' }
+					]}
+					selected={synthEnabled ? 'play' : 'mute'}
+					onSelect={(value) => {
+						synthEnabled = value === 'play';
+					}}
+				/>
+			</div>
+
 			<!-- Note labels -->
 			<div class="flex justify-center">
-				<details class="rounded-lg bg-dark-blue px-8 py-4 text-center" open>
+				<details class="rounded-lg bg-dark-blue px-8 py-4 text-center">
 					<summary
 						class="cursor-pointer text-sm tracking-[0.08em] text-slate-300 uppercase hover:text-white"
 					>

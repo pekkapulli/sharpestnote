@@ -123,13 +123,15 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 		gainCenter.connect(reverbNode);
 		voices.push({ osc: oscCenter, gain: gainCenter });
 
+		const DETUNE = 5; // cents
+
 		// Left voice (slightly detuned down, lower volume)
 		const oscLeft = audioContext.createOscillator();
 		const gainLeft = audioContext.createGain();
 		const panLeft = audioContext.createStereoPanner();
 		oscLeft.type = waveform;
 		oscLeft.frequency.value = frequency;
-		oscLeft.detune.value = -10; // 10 cents flat
+		oscLeft.detune.value = -DETUNE; // 10 cents flat
 		panLeft.pan.value = -0.5; // Pan left
 		oscLeft.connect(gainLeft);
 		gainLeft.connect(panLeft);
@@ -143,7 +145,7 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 		const panRight = audioContext.createStereoPanner();
 		oscRight.type = waveform;
 		oscRight.frequency.value = frequency;
-		oscRight.detune.value = 10; // 10 cents sharp
+		oscRight.detune.value = DETUNE; // 10 cents sharp
 		panRight.pan.value = 0.5; // Pan right
 		oscRight.connect(gainRight);
 		gainRight.connect(panRight);
