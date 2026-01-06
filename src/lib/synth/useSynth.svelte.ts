@@ -161,7 +161,9 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 		voices.forEach((voice, index) => {
 			const { gain } = voice;
 			// Center voice: full amplitude, side voices: 40% amplitude for subtle width
-			const amplitude = index === 0 ? 1 : 0.4;
+			// Normalize to prevent summing distortion (1 + 0.4 + 0.4 = 1.8, so divide by 1.8)
+			const rawAmplitude = index === 0 ? 1 : 0.4;
+			const amplitude = rawAmplitude / 2;
 
 			// Attack: 0 -> amplitude
 			gain.gain.setValueAtTime(0, now);

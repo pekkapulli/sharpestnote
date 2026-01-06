@@ -59,7 +59,7 @@
 	// Create synth voice for playing back melodies
 	const synth = createSynth({
 		waveform: 'sine',
-		volume: 0.3,
+		volume: 0.25,
 		attack: 0.02,
 		decay: 0.1,
 		sustain: 0.7,
