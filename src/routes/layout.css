@@ -86,3 +86,7 @@ ul {
 li {
 	list-style-type: disc;
 }
+
+button {
+	cursor: pointer;
+}

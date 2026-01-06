@@ -40,7 +40,7 @@
 	{/if}
 	<button
 		onclick={onStartListening}
-		class="mt-3 inline-flex items-center gap-2 rounded-lg bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow"
+		class="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow"
 	>
 		<span aria-hidden="true">🎤</span>
 		<span>{tunerState.needsUserGesture ? 'Enable Audio' : 'Listen'}</span>
