@@ -28,40 +28,42 @@
 </script>
 
 <div class="py-2rem flex min-h-screen flex-col items-center justify-center bg-off-white px-1">
-	<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
+	<header class="mt-6 mb-12 flex flex-col items-center px-4 text-center">
+		<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
 
-	<h2 class="mb-4 text-center text-4xl font-light">
-		Musical beginner units with interactive practice tools.
-	</h2>
-	<p class="text-center">Designed for teachers. Built for curious ears.</p>
-	<nav
-		class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
-	>
-		<a
-			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-			href="/units"
+		<h2 class="mb-4 text-center text-2xl font-light">
+			Beginner units for orchestral instruments, with interactive practice tools.
+		</h2>
+		<p class="text-center">Built for music educators and curious ears.</p>
+		<nav
+			class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
 		>
-			Units
-		</a>
-		<a
-			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-			href="/unit/tw-v"
-		>
-			FREE DEMO
-		</a>
-		<a
-			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-			href="/faq"
-		>
-			FAQ
-		</a>
-		<a
-			class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-			href="/parents"
-		>
-			For Parents
-		</a>
-	</nav>
+			<a
+				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+				href="/units"
+			>
+				Units
+			</a>
+			<a
+				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+				href="/unit/tw-v"
+			>
+				FREE DEMO
+			</a>
+			<a
+				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+				href="/faq"
+			>
+				FAQ
+			</a>
+			<a
+				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
+				href="/parents"
+			>
+				For Parents
+			</a>
+		</nav>
+	</header>
 	<section class="mt-24 w-full max-w-md">
 		<p class="text-md">
 			The Sharpest Note creates short, musical units for early orchestral players. Each unit
