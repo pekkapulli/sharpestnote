@@ -63,13 +63,12 @@
 		</a>
 	</nav>
 	<section class="mt-24 w-full max-w-md">
-		<h2 class="mb-4 text-2xl font-semibold">What this is</h2>
-		<p>
+		<p class="text-md">
 			The Sharpest Note creates short, musical units for early orchestral players. Each unit
 			combines:
 		</p>
 		<CardGrid items={whatThisIs} />
-		<p class="mt-4">
+		<p class="text-md mt-4">
 			The focus is on listening, phrasing, and musical sense from the very beginning.
 		</p>
 	</section>
