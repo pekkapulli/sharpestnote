@@ -39,15 +39,19 @@
 	<p class="mt-4 text-sm text-slate-600">Enter your 4-letter key code:</p>
 	<form onsubmit={handleKeySubmit} class="mt-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
 		<div class="flex-1">
+			<label for="key-code-input" class="sr-only">4-letter key code</label>
 			<input
+				id="key-code-input"
 				type="text"
 				bind:value={keyInput}
 				placeholder="e.g., ABCD"
 				maxlength="4"
+				aria-describedby="key-error"
+				aria-invalid={keyError ? 'true' : 'false'}
 				class="w-full rounded-lg border border-slate-300 px-4 py-2 text-center text-lg font-semibold tracking-widest uppercase focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
 			/>
 			{#if keyError}
-				<p class="mt-1 text-sm text-red-600">{keyError}</p>
+				<p id="key-error" class="mt-1 text-sm text-red-600" role="alert">{keyError}</p>
 			{/if}
 		</div>
 		<button

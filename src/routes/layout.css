@@ -90,3 +90,33 @@ li {
 button {
 	cursor: pointer;
 }
+
+/* Screen reader only - for accessibility */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+/* Skip link - becomes visible on focus */
+.skip-link {
+	position: absolute;
+	top: -100px;
+	left: 0;
+	background: var(--color-dark-blue);
+	color: var(--color-off-white);
+	padding: 0.5rem 1rem;
+	text-decoration: none;
+	z-index: 100;
+	border-radius: 0 0 0.5rem 0;
+}
+
+.skip-link:focus {
+	top: 0;
+}

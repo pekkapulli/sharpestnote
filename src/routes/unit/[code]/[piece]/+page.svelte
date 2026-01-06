@@ -27,7 +27,7 @@
 
 			<AudioPlayer {unit} {piece} />
 
-			<section class="mt-8 flex justify-between">
+			<nav aria-label="Piece navigation" class="mt-8 flex justify-between">
 				{#if previousPiece}
 					<a
 						href={`/unit/${code}/${previousPiece.code}`}
@@ -47,7 +47,7 @@
 						{nextPiece.label} →
 					</a>
 				{/if}
-			</section>
+			</nav>
 
 			{#if !hasKeyAccess}
 				<section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -64,9 +64,16 @@
 				<h3 class="text-sm font-semibold text-slate-800">Learn through games</h3>
 				<div class="game-grid">
 					{#if hasKeyAccess}
-						<a href={`/unit/${code}/${pieceCode}/melody`} class="game-card">
+						<a
+							href={`/unit/${code}/${pieceCode}/melody`}
+							class="game-card"
+							aria-label="Play Melody game - Play through the piece"
+						>
 							<div class="game-card__content">
-								<div class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20">
+								<div
+									class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20"
+									aria-hidden="true"
+								>
 									🎵
 								</div>
 								<span class="mt-3 font-semibold text-slate-900">Melody</span>
@@ -74,21 +81,33 @@
 							</div>
 						</a>
 					{/if}
-					<a href={`/unit/${code}/${pieceCode}/blocks`} class="game-card">
+					<a
+						href={`/unit/${code}/${pieceCode}/blocks`}
+						class="game-card"
+						aria-label="Play Blocks game - Practice random phrases"
+					>
 						<div class="game-card__content">
 							<img src={blocksIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
 							<span class="mt-3 font-semibold text-slate-900">Blocks</span>
 							<span class="mt-1 text-sm text-slate-600">Practice random phrases</span>
 						</div>
 					</a>
-					<a href={`/unit/${code}/${pieceCode}/scales`} class="game-card">
+					<a
+						href={`/unit/${code}/${pieceCode}/scales`}
+						class="game-card"
+						aria-label="Play Scales game - Climb up and down the scale"
+					>
 						<div class="game-card__content">
 							<img src={scalesIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
 							<span class="mt-3 font-semibold text-slate-900">Scales</span>
 							<span class="mt-1 text-sm text-slate-600">Climb up and down the scale</span>
 						</div>
 					</a>
-					<a href={`/unit/${code}/${pieceCode}/steps`} class="game-card">
+					<a
+						href={`/unit/${code}/${pieceCode}/steps`}
+						class="game-card"
+						aria-label="Play Steps game - Play note pairs"
+					>
 						<div class="game-card__content">
 							<img src={stepsIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
 							<span class="mt-3 font-semibold text-slate-900">Steps</span>
@@ -96,7 +115,11 @@
 						</div>
 					</a>
 					{#if hasKeyAccess}
-						<a href={`/unit/${code}/${pieceCode}/defend`} class="game-card">
+						<a
+							href={`/unit/${code}/${pieceCode}/defend`}
+							class="game-card"
+							aria-label="Play Defend game - Use the piece's notes to defend against space monsters"
+						>
 							<div class="game-card__content">
 								<div class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20">
 									<img src={defendIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />

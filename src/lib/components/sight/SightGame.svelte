@@ -546,17 +546,21 @@
 						: 'Microphone not active.'}
 				</p>
 				{#if showSuccess}
-					<p class="mt-2 text-lg font-bold text-green-600">✓ Correct! Next note coming...</p>
+					<p class="mt-2 text-lg font-bold text-green-600" role="status" aria-live="polite">
+						✓ Correct!
+					</p>
 				{/if}
 
 				<div class="mt-4 flex justify-center gap-2">
 					<button
+						type="button"
 						onclick={refreshMelody}
 						class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-px hover:bg-slate-200 hover:shadow"
 					>
 						Skip
 					</button>
 					<button
+						type="button"
 						onclick={playMelodyWithSynth}
 						disabled={isPlayingMelody}
 						class="rounded-lg bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-dark-blue-highlight hover:shadow disabled:cursor-not-allowed disabled:bg-slate-300"

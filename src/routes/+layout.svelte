@@ -7,8 +7,11 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<a href="#main-content" class="skip-link">Skip to main content</a>
 <Breadcrumbs />
-{@render children()}
+<main id="main-content">
+	{@render children()}
+</main>
 
 <footer>
 	<div class="footer-content">

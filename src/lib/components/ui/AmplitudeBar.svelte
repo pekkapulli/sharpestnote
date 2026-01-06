@@ -14,6 +14,7 @@
 
 <div
 	class="amplitude-bar"
+	aria-hidden="true"
 	style="width: {width}px; height: {height}px; background: #e5e7eb; border-radius: 4px; overflow: hidden;"
 >
 	<div

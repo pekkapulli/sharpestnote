@@ -229,13 +229,16 @@
 
 			<!-- Progress Bar -->
 			<div class="mb-2">
+				<label for="audio-progress" class="sr-only">Audio playback progress</label>
 				<input
+					id="audio-progress"
 					type="range"
 					min="0"
 					max={duration || 100}
 					step="0.1"
 					value={displayTime}
 					oninput={(e) => seek(parseFloat(e.currentTarget.value))}
+					aria-valuetext="{formatTime(displayTime)} of {formatTime(duration)}"
 					class="progress-bar"
 					style="--progress: {(displayTime / duration) * 100}%"
 				/>
@@ -248,7 +251,12 @@
 			</div>
 			<!-- Play/Pause and Repeat Buttons -->
 			<div class="mb-3 flex items-center justify-center gap-4">
-				<button onclick={playFromStart} class="control-button" aria-label="Play from start">
+				<button
+					onclick={playFromStart}
+					class="control-button"
+					aria-label="Play from start"
+					type="button"
+				>
 					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
 						<rect x="6" y="5" width="2" height="14" />
 						<path d="M10 5v14l10-7z" />
@@ -259,6 +267,7 @@
 					class="play-button"
 					aria-label={isPlaying ? 'Pause' : 'Play'}
 					disabled={isLoading}
+					type="button"
 				>
 					{#if isLoading}
 						<svg class="h-6 w-6 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -290,6 +299,8 @@
 					onclick={toggleRepeat}
 					class="repeat-button {isRepeat ? 'active' : ''}"
 					aria-label="Toggle repeat"
+					aria-pressed={isRepeat}
+					type="button"
 				>
 					<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
 						<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />

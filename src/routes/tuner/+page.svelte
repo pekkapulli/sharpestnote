@@ -78,9 +78,10 @@
 
 		<div class="rounded-2xl bg-white p-6 shadow-sm">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<label class="flex flex-col text-sm font-medium text-slate-700">
+				<label for="a4-frequency" class="flex flex-col text-sm font-medium text-slate-700">
 					A4 Frequency
 					<select
+						id="a4-frequency"
 						class="mt-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base focus:border-dark-blue focus:ring-1 focus:ring-dark-blue focus:outline-none"
 						onchange={handleA4Change}
 						value={tuner.a4}
@@ -91,9 +92,10 @@
 					</select>
 				</label>
 
-				<label class="flex flex-col text-sm font-medium text-slate-700">
+				<label for="input-device" class="flex flex-col text-sm font-medium text-slate-700">
 					Input device
 					<select
+						id="input-device"
 						class="mt-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base focus:border-dark-blue focus:ring-1 focus:ring-dark-blue focus:outline-none"
 						bind:value={tuner.state.selectedDeviceId}
 						disabled={!tuner.state.devices.length}

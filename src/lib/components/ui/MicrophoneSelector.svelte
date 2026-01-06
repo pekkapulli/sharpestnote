@@ -20,13 +20,14 @@
 			: 'Click listen to start the audio and continue.'}
 	</p>
 	{#if tunerState.error}
-		<p class="mt-2 text-sm text-red-600">{tunerState.error}</p>
+		<p class="mt-2 text-sm text-red-600" role="alert">{tunerState.error}</p>
 	{/if}
 	{#if tunerState.devices.length > 0}
 		<div class="mt-3 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-			<label class="text-sm font-medium text-amber-800">
+			<label for="mic-device-select" class="text-sm font-medium text-amber-800">
 				Select input device:
 				<select
+					id="mic-device-select"
 					value={tunerState.selectedDeviceId}
 					onchange={(e) => onDeviceChange((e.target as HTMLSelectElement).value)}
 					class="ml-2 rounded border border-amber-300 bg-white px-2 py-1 text-sm text-slate-900"
@@ -39,6 +40,7 @@
 		</div>
 	{/if}
 	<button
+		type="button"
 		onclick={onStartListening}
 		class="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow"
 	>
