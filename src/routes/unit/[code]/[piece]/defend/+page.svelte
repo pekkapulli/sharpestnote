@@ -337,7 +337,7 @@
 				{/if}
 
 				<!-- Game area with staff background -->
-				<div bind:this={containerElement} class="box-border w-full p-4">
+				<div bind:this={containerElement} class="box-border flex w-full justify-center p-4">
 					<HZForceStaff
 						{clef}
 						keySignature={{
