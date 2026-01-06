@@ -1,16 +1,14 @@
 <script lang="ts">
-	import BackButton from '$lib/components/ui/BackButton.svelte';
+	import QAContainer from '$lib/components/ui/QAContainer.svelte';
+	import QASection from '$lib/components/ui/QASection.svelte';
 </script>
 
 <svelte:head>
 	<title>For Parents - SharpestNote</title>
 </svelte:head>
 
-<div class="faq-container">
-	<h1>For parents</h1>
-
-	<section>
-		<h2>What is The Sharpest Note?</h2>
+<QAContainer title="For parents">
+	<QASection title="What is The Sharpest Note?">
 		<p>
 			The Sharpest Note is a collection of beginner music units designed to help children practice
 			their instrument in a more musical and engaging way.
@@ -25,25 +23,19 @@
 			It is not a replacement for lessons, but a companion that helps practice feel clearer and more
 			rewarding between lessons.
 		</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>How does my child use it?</h2>
+	<QASection title="How does my child use it?">
 		<p>Your child:</p>
-		<ol>
+		<ul>
 			<li>plays from printed sheet music (just like in lessons)</li>
 			<li>scans a QR code on the page</li>
 			<li>practices with short musical activities on a phone, tablet, or computer</li>
-		</ol>
+		</ul>
 		<p>No accounts, logins, or setup needed.</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>Is this meant to be used alone?</h2>
+	<QASection title="Is this meant to be used alone?">
 		<p>No, and that is intentional.</p>
 		<p>The Sharpest Note works best:</p>
 		<ul>
@@ -52,12 +44,9 @@
 			<li>in short practice sessions at home</li>
 		</ul>
 		<p>The goal is to make practice focused and musical, not longer.</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>What age is this for?</h2>
+	<QASection title="What age is this for?">
 		<p>The material is written for beginner-level students, typically:</p>
 		<ul>
 			<li>children starting an orchestral instrument</li>
@@ -65,12 +54,9 @@
 			<li>students in their first couple of years of lessons</li>
 		</ul>
 		<p>Exact ages vary, and teachers choose what fits best.</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>Do the games replace practice?</h2>
+	<QASection title="Do the games replace practice?">
 		<p>No.</p>
 		<p>The games are there to support:</p>
 		<ul>
@@ -83,12 +69,9 @@
 			They are designed to reinforce what the student is already playing on their instrument, not to
 			turn practice into screen time.
 		</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>Is my child’s data collected?</h2>
+	<QASection title="Is my child’s data collected?">
 		<p>No personal data from children is collected.</p>
 		<p>There are:</p>
 		<ul>
@@ -100,89 +83,29 @@
 		<p>
 			You can read more in the <a href="/privacy">Privacy Policy</a>.
 		</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>Do I need to buy something?</h2>
+	<QASection title="Do I need to buy something?">
 		<p>Some units are free, and others are paid.</p>
 		<p>
 			Teachers or parents can choose what to use. There are no subscriptions, hidden fees, or
 			automatic renewals.
 		</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>Who makes this?</h2>
+	<QASection title="Who makes this?">
 		<p>
 			The Sharpest Note is created by Pekka Pulli, a Finnish sound and UX designer, developer,
 			part-time composer, and parent of two string instrument players. Pekka is joined on the
 			platform by other composers, all experienced music pedagogists.
 		</p>
 		<p>The material is built from real teaching and home practice experience.</p>
-	</section>
+	</QASection>
 
-	<hr />
-
-	<section>
-		<h2>Questions?</h2>
+	<QASection title="Questions?">
 		<p>If you have questions or concerns, feel free to get in touch at:</p>
 		<p>
 			<a href="mailto:support@sharpestnote.com">support@sharpestnote.com</a>
 		</p>
-	</section>
-</div>
-
-<style>
-	.faq-container {
-		max-width: 800px;
-		margin: 0 auto;
-		padding: 2rem;
-		line-height: 1.6;
-	}
-
-	h1 {
-		margin-bottom: 1rem;
-	}
-
-	h2 {
-		font-size: 1.5rem;
-		margin-top: 1.5rem;
-		margin-bottom: 0.75rem;
-		color: #333;
-	}
-
-	p {
-		margin-bottom: 1rem;
-		color: #555;
-	}
-
-	ul,
-	ol {
-		margin-left: 1.5rem;
-		margin-bottom: 1rem;
-	}
-
-	li {
-		margin-bottom: 0.5rem;
-		color: #555;
-	}
-
-	hr {
-		border: none;
-		border-top: 1px solid #e5e5e5;
-		margin: 2rem 0;
-	}
-
-	a {
-		color: #0066cc;
-		text-decoration: none;
-	}
-
-	a:hover {
-		text-decoration: underline;
-	}
-</style>
+	</QASection>
+</QAContainer>
