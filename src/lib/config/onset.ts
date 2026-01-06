@@ -9,20 +9,20 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE A: Pitch change with high confidence
 	// ========================================================================
-	pitchChangeThresholdCents: 20, // Pitch change > 20 cents = new note (quicker alternations)
-	minPitchConfidenceForChange: 0.5, // Confidence must be > 0.5 (a bit more permissive)
+	pitchChangeThresholdCents: 15, // Pitch change > 15 cents = new note (faster detection)
+	minPitchConfidenceForChange: 0.4, // Confidence must be > 0.4 (more permissive)
 
 	// ========================================================================
 	// RULE B1: Both excitation + phase cues moderate
 	// ========================================================================
-	b1_minNormalizedExcitation: 1.0, // Excitation must be > 1.0 sigma (more sensitive)
-	b1_minNormalizedPhase: 1.3, // Phase must be > 1.3 sigma
+	b1_minNormalizedExcitation: 0.8, // Excitation must be > 0.8 sigma (more sensitive)
+	b1_minNormalizedPhase: 1.0, // Phase must be > 1.0 sigma
 
 	// ========================================================================
 	// RULE B2: Asymmetric - phase dominant with weak excitation
 	// ========================================================================
-	b2_minNormalizedPhase: 1.5, // Strong phase (> 1.5 sigma)
-	b2_minNormalizedExcitation: -0.6, // Allow weaker/negative excitation (> -0.6 sigma)
+	b2_minNormalizedPhase: 1.2, // Strong phase (> 1.2 sigma)
+	b2_minNormalizedExcitation: -0.8, // Allow weaker/negative excitation (> -0.8 sigma)
 
 	// ========================================================================
 	// RULE B3: Very strong excitation alone
@@ -32,18 +32,18 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE B4: Harmonic-focused excitation (bow direction changes)
 	// ========================================================================
-	b4_minNormalizedHarmonicFlux: 1.4, // Harmonic flux > 1.4 sigma
-	b4_minRelativeIncrease: 0.25, // Require ≥25% increase vs previous frame
+	b4_minNormalizedHarmonicFlux: 1.1, // Harmonic flux > 1.1 sigma (more sensitive)
+	b4_minRelativeIncrease: 0.2, // Require ≥20% increase vs previous frame
 
 	// ========================================================================
 	// RULE B6: Burst-on-rise without pitch lock (fallback)
 	// Triggers when harmonic/high-frequency energy jumps and amplitude is rising,
 	// even if pitch tracking temporarily drops during re-articulation.
 	// ========================================================================
-	b6_minNormalizedHarmonicFlux: 0.8, // Need at least moderate normalized harmonic flux
-	b6_minRelativeIncrease: 0.3, // Require ≥30% increase vs previous frame
-	b6_minAmplitudeSlope: 0.25, // Amplitude must be rising
-	b6_minAmplitudeGateMultiplier: 1.0, // Amplitude must exceed onsetMinAmplitude * multiplier
+	b6_minNormalizedHarmonicFlux: 0.6, // Need at least moderate normalized harmonic flux
+	b6_minRelativeIncrease: 0.25, // Require ≥25% increase vs previous frame
+	b6_minAmplitudeSlope: 0.2, // Amplitude must be rising
+	b6_minAmplitudeGateMultiplier: 0.8, // Amplitude must exceed onsetMinAmplitude * multiplier
 
 	// ========================================================================
 	// RULE B5: Legato rebound (dip then rise on harmonic stack)
@@ -70,16 +70,16 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// COOLDOWN & AMPLITUDE
 	// ========================================================================
-	cooldownMs: 60, // Refractory period after onset (60ms) to catch quick D–E–D
+	cooldownMs: 30, // Refractory period after onset (30ms) to catch quick notes
 	minAmplitudeRequired: true, // Require minimum amplitude for all rules
 
 	// ========================================================================
 	// PITCH TRACKING
 	// ========================================================================
-	pitchStabilityThresholdCents: 30, // Max drift to consider pitch stable
-	pitchConfidenceIncrement: 0.15, // How much to increase confidence per stable frame
-	pitchConfidenceDecrement: 0.2, // How much to decrease on unstable frame
-	minPitchConfidenceForDetection: 0.3, // Minimum confidence for basic detection
+	pitchStabilityThresholdCents: 40, // Max drift to consider pitch stable (more lenient)
+	pitchConfidenceIncrement: 0.2, // How much to increase confidence per stable frame (faster)
+	pitchConfidenceDecrement: 0.15, // How much to decrease on unstable frame (slower decay)
+	minPitchConfidenceForDetection: 0.2, // Minimum confidence for basic detection (lower)
 
 	// ========================================================================
 	// NORMALIZATION

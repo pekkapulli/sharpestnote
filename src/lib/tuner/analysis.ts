@@ -17,7 +17,7 @@ export function calculateAmplitude(data: Float32Array): number {
 export function isFrequencyStable(
 	freq: number,
 	frequencyHistory: number[],
-	windowSize: number = 5
+	windowSize: number = 10
 ): boolean {
 	if (frequencyHistory.length < windowSize) return false;
 	const recent = frequencyHistory.slice(-windowSize);

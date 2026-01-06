@@ -89,7 +89,6 @@ export function createTuner(options: TunerOptions = {}) {
 
 	// Cooldown enforcement (refractory period)
 	let lastOnsetTime = 0;
-	const COOLDOWN_MS = onsetDetectionConfig.cooldownMs;
 
 	let spectrumBuffer: Uint8Array | null = null; // Latest magnitude spectrum (byte values)
 
@@ -146,7 +145,7 @@ export function createTuner(options: TunerOptions = {}) {
 
 	function debugLog(...args: unknown[]): void {
 		if (debug) {
-			console.log('[Tuner Debug]', ...args);
+			console.log('[Tuner]', ...args);
 		}
 	}
 
@@ -557,7 +556,13 @@ export function createTuner(options: TunerOptions = {}) {
 		let onsetDetected = false;
 
 		// Check cooldown FIRST (Step 5 enforcement)
-		const cooldownActive = timeSinceLastOnset < COOLDOWN_MS;
+		// Cooldown is one sixteenth note duration based on tempo
+		const tempo = Math.max(
+			1,
+			untrack(() => tempoBPM.value)
+		);
+		const cooldownMs = lengthToMs(1, tempo);
+		const cooldownActive = timeSinceLastOnset < cooldownMs;
 
 		// Minimum amplitude check for all rules
 		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
@@ -680,11 +685,13 @@ export function createTuner(options: TunerOptions = {}) {
 			// 	);
 			// }
 			// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
-			else if (normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase) {
-				// Very strong phase
+			else if (hasPitch && normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase) {
+				// Very strong phase with pitch lock
 				onsetDetected = true;
 				state.lastOnsetRule = 'D';
-				debugLog(`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ`);
+				debugLog(
+					`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+				);
 			}
 			// Suppress near-miss logs; only log actual onsets
 		} else {
@@ -854,17 +861,17 @@ export function createTuner(options: TunerOptions = {}) {
 					const newGain = clampGain(currentGain * boost);
 					gain.value = newGain;
 					gainNode.gain.value = newGain;
-					debugLog(
-						`Auto-gain: ${currentGain.toFixed(2)} → ${newGain.toFixed(2)} (peak ${peak.toFixed(3)} < target ${target.toFixed(2)})`
-					);
+					// debugLog(
+					// 	`Auto-gain: ${currentGain.toFixed(2)} → ${newGain.toFixed(2)} (peak ${peak.toFixed(3)} < target ${target.toFixed(2)})`
+					// );
 				} else if (peak > upper) {
 					// Signal too loud - decrease gain
 					const newGain = clampGain(currentGain / adjustStep);
 					gain.value = newGain;
 					gainNode.gain.value = newGain;
-					debugLog(
-						`Auto-gain: ${currentGain.toFixed(2)} → ${newGain.toFixed(2)} (peak ${peak.toFixed(3)} > target ${target.toFixed(2)})`
-					);
+					// debugLog(
+					// 	`Auto-gain: ${currentGain.toFixed(2)} → ${newGain.toFixed(2)} (peak ${peak.toFixed(3)} > target ${target.toFixed(2)})`
+					// );
 				}
 			}
 		}

@@ -40,12 +40,9 @@
 	let currentIndex = $state(0);
 	let streak = $state(0);
 	let showSuccess = $state(false);
-	let requireFreshAttack = $state(false);
-	let hadPauseSinceLastSuccess = $state(true);
 	let lastSuccessNote = $state<string | null>(null);
 	let currentNoteSuccess = $state(false);
-	const MIN_INACTIVE_MS = 120;
-	let inactiveSince = $state<number | null>(null);
+	let lastOnsetHeldSixteenths = $state<number>(0);
 	let animationTimeoutId: number | null = null;
 	let animationIntervalId: number | null = null;
 	let simulatedHeldSixteenths = $state<number | null>(null);
@@ -82,7 +79,23 @@
 	let isPlayingMelody = $state(false);
 	let playheadPosition = $state<number | null>(null); // Position in sixteenths for playback animation
 
-	// Check if current note matches and fresh attack requirement is satisfied
+	// Detect new onsets by watching for heldSixteenths resetting to near-zero
+	// This is more reliable than waiting for note to become inactive
+	$effect(() => {
+		const held = tuner.state.heldSixteenths;
+
+		// Detect onset: heldSixteenths drops below 0.5 (indicating a new attack)
+		// and we previously saw it above 1 (indicating the last note was held)
+		if (held < 0.5 && lastOnsetHeldSixteenths >= 1) {
+			// New onset detected! Reset success state for this new attack
+			currentNoteSuccess = false;
+			lastSuccessNote = null;
+		}
+
+		lastOnsetHeldSixteenths = held;
+	});
+
+	// Check if current note matches
 	const isCurrentNoteHit = $derived(() => {
 		if (!melody || !melody.length || isPlayingMelody) return false;
 		const target = melody[currentIndex].note;
@@ -99,29 +112,7 @@
 				)
 			: target;
 		if (expectedNote !== tuner.state.note) return false;
-		// If fresh attack is required, check that we've had a pause
-		if (requireFreshAttack && !hadPauseSinceLastSuccess) return false;
 		return true;
-	});
-
-	// Track when note becomes inactive (amplitude drops) or note changes to detect fresh attacks
-	// Require a short inactive window to avoid flicker-based pauses on sustained instruments
-	$effect(() => {
-		const now = performance.now();
-
-		if (!tuner.state.isNoteActive) {
-			if (inactiveSince === null) {
-				inactiveSince = now;
-			}
-			if (now - inactiveSince >= MIN_INACTIVE_MS) {
-				hadPauseSinceLastSuccess = true;
-			}
-		} else {
-			inactiveSince = null;
-			if (tuner.state.note !== lastSuccessNote) {
-				hadPauseSinceLastSuccess = true;
-			}
-		}
 	});
 
 	// Watch for correct note detection
@@ -140,9 +131,9 @@
 					)
 				: target;
 			if (expectedNote && tuner.state.note === expectedNote) {
-				// Require a fresh attack after each successful note
-				if (requireFreshAttack && !hadPauseSinceLastSuccess) {
-					return; // Don't count this note until there's a fresh attack
+				// Check if this is a fresh attack (not already succeeded)
+				if (currentNoteSuccess) {
+					return; // Already succeeded on this note
 				}
 
 				// Only require 1 sixteenth to be held
@@ -167,16 +158,11 @@
 					if (
 						expectedNextNote &&
 						tuner.state.note === expectedNextNote &&
-						hadPauseSinceLastSuccess
+						tuner.state.heldSixteenths < 0.5
 					) {
-						// Player hit the next note with a fresh attack - advance at 50% animation or later
-						if (tuner.state.heldSixteenths >= 1) {
-							const noteLength = melody[currentIndex].length ?? 4;
-							const halfLength = noteLength / 2;
-							if (simulatedHeldSixteenths !== null && simulatedHeldSixteenths >= halfLength) {
-								advanceToNextNote();
-							}
-						}
+						// Player hit the next note with a fresh attack (low heldSixteenths)
+						// Allow advancing even during animation
+						advanceToNextNote();
 					}
 				}
 			}
@@ -191,13 +177,14 @@
 			// If current note is a rest (null), automatically advance after the rest duration
 			if (currentNote === null) {
 				const restLength = melody[currentIndex].length ?? 4;
-				const restDurationMs = lengthToMs(restLength, tempoBPM);
+				const restDurationMs = lengthToMs(restLength, tempoBPM) * 0.5; // Double speed
 
 				animatingNoteIndex = currentIndex;
 
 				// Clear any existing animation
 				if (animationTimeoutId !== null) {
 					clearTimeout(animationTimeoutId);
+					animationTimeoutId = null;
 				}
 				if (animationIntervalId !== null) {
 					clearInterval(animationIntervalId);
@@ -206,18 +193,16 @@
 				// Simulate held sixteenths progressing
 				simulatedHeldSixteenths = 0;
 				const updateInterval = 50; // Update every 50ms
-				const sixteenthDurationMs = lengthToMs(1, tempoBPM);
-				const updates = Math.ceil(restDurationMs / updateInterval);
+				const totalUpdates = Math.ceil(restDurationMs / updateInterval);
 				let updateCount = 0;
 
 				animationIntervalId = setInterval(() => {
 					updateCount++;
-					simulatedHeldSixteenths = Math.min(
-						(updateCount * updateInterval) / sixteenthDurationMs,
-						restLength
-					);
+					// Calculate progress based on animation duration
+					const progress = Math.min(updateCount / totalUpdates, 1);
+					simulatedHeldSixteenths = progress * restLength;
 
-					if (updateCount >= updates) {
+					if (updateCount >= totalUpdates) {
 						clearInterval(animationIntervalId!);
 						animationIntervalId = null;
 					}
@@ -227,7 +212,7 @@
 				animationTimeoutId = setTimeout(() => {
 					simulatedHeldSixteenths = null;
 					animatingNoteIndex = null;
-					handleCorrectNote();
+					advanceToNextNote();
 					animationTimeoutId = null;
 				}, restDurationMs) as unknown as number;
 
@@ -258,11 +243,6 @@
 
 		currentNoteSuccess = true;
 		lastSuccessNote = tuner.state.note;
-		requireFreshAttack = true;
-		hadPauseSinceLastSuccess = false;
-
-		// Reset hold duration so player must start a fresh note
-		tuner.resetHoldDuration();
 
 		// Start animation simulation for the successfully detected note
 		if (melody) {
@@ -270,7 +250,7 @@
 			const isLastNote = currentIndex === melody.length - 1;
 			// For the last note, animate only 50% of the duration for faster completion
 			const animationSpeedMultiplier = isLastNote ? 0.5 : 1.0;
-			const noteDurationMs = lengthToMs(noteLength, tempoBPM) * animationSpeedMultiplier;
+			const noteDurationMs = lengthToMs(noteLength, tempoBPM) * animationSpeedMultiplier * 0.5; // Double speed animation
 
 			animatingNoteIndex = currentIndex;
 
@@ -341,10 +321,9 @@
 		melody = nextMelody.map((i) => ({ ...i }));
 		currentIndex = 0;
 		showSuccess = false;
-		requireFreshAttack = false;
-		hadPauseSinceLastSuccess = true;
 		lastSuccessNote = null;
 		currentNoteSuccess = false;
+		lastOnsetHeldSixteenths = -1;
 
 		// Automatically play the new melody
 		playMelodyWithSynth();
@@ -374,7 +353,7 @@
 						requestAnimationFrame(animatePlayhead);
 					}
 				};
-				requestAnimationFrame(animatePlayhead);
+				animatePlayhead();
 
 				await synth.playNote(item, tempoBPM);
 				currentSixteenth += noteLength;
@@ -384,7 +363,10 @@
 			console.error('Error playing melody:', err);
 		} finally {
 			isPlayingMelody = false;
-			playheadPosition = null;
+			// Delay clearing playhead to allow CSS fade-out transition to complete
+			setTimeout(() => {
+				playheadPosition = null;
+			}, 500); // Match the CSS transition duration
 		}
 	}
 
@@ -482,15 +464,13 @@
 					{playheadPosition}
 					ghostNote={isPlayingMelody
 						? null
-						: requireFreshAttack && !hadPauseSinceLastSuccess
-							? null
-							: selectedInstrument
-								? transposeDetectedForDisplay(
-										tuner.state.note,
-										selectedInstrument.transpositionSemitones,
-										keySignature.preferredAccidental
-									)
-								: tuner.state.note}
+						: selectedInstrument
+							? transposeDetectedForDisplay(
+									tuner.state.note,
+									selectedInstrument.transpositionSemitones,
+									keySignature.preferredAccidental
+								)
+							: tuner.state.note}
 					cents={isPlayingMelody ? null : tuner.state.cents}
 					clef={selectedInstrument.clef}
 					{keySignature}
