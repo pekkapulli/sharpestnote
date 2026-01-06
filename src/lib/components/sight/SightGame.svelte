@@ -37,6 +37,13 @@
 		}
 	});
 
+	// Update tuner instrument when prop changes
+	$effect(() => {
+		if (tuner) {
+			tuner.instrument = instrument;
+		}
+	});
+
 	let melody = $state<MelodyItem[] | null>(null);
 	let currentIndex = $state(0);
 	let streak = $state(0);
@@ -552,7 +559,7 @@
 					<button
 						onclick={playMelodyWithSynth}
 						disabled={isPlayingMelody}
-						class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-indigo-600 hover:shadow disabled:cursor-not-allowed disabled:bg-slate-300"
+						class="rounded-lg bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-dark-blue-highlight hover:shadow disabled:cursor-not-allowed disabled:bg-slate-300"
 					>
 						{isPlayingMelody ? 'Playing...' : 'Play Melody'}
 					</button>

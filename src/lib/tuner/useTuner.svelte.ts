@@ -7,7 +7,12 @@ import {
 	noteNameFromMidi,
 	type Accidental
 } from '$lib/tuner/tune';
-import { calculateAmplitude, getDetectionConfig, isFrequencyStable } from './analysis';
+import {
+	calculateAmplitude,
+	getDetectionConfig,
+	isFrequencyStable,
+	isFrequencyInInstrumentRange
+} from './analysis';
 import { performFFT, type FFTResult } from './fftAnalysis';
 import {
 	calculateSpectralFluxWeighted,
@@ -397,7 +402,31 @@ export function createTuner(options: TunerOptions = {}) {
 		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
 		if (amplitudeDeltaHistory.length > 20) amplitudeDeltaHistory.shift();
 
-		const hasPitch = freq > 0 && isFrequencyStable(freq, frequencyHistory);
+		// Check frequency stability first
+		const isStable = freq > 0 && isFrequencyStable(freq, frequencyHistory);
+
+		// Then check if it's in the instrument's range (if instrument specified)
+		const currentInstrument =
+			instrument.value !== 'generic' ? instrumentMap[instrument.value] : null;
+		const currentA4 = untrack(() => a4.value);
+
+		let inRange = true;
+		if (currentInstrument) {
+			inRange = isFrequencyInInstrumentRange(freq, currentInstrument, currentA4);
+
+			// Additional octave error check: if freq/2 would also be in range and stable,
+			// reject this frequency as it's likely a harmonic
+			if (inRange && freq > 0) {
+				const halfFreq = freq / 2;
+				const halfInRange = isFrequencyInInstrumentRange(halfFreq, currentInstrument, currentA4);
+				if (halfInRange) {
+					// If half the frequency is also in range, this is likely an octave error
+					inRange = false;
+				}
+			}
+		}
+
+		const hasPitch = isStable && inRange;
 
 		// 1.3: Compute excitation cue (HF spectral flux)
 		// High-frequency weighted, positive-only spectral flux

@@ -1,4 +1,6 @@
-import type { DetectionConfig } from '$lib/config/instruments';
+import type { DetectionConfig, InstrumentConfig } from '$lib/config/instruments';
+import { frequencyFromNoteNumber } from './tune';
+import { noteNameToMidi } from '$lib/util/noteNames';
 
 /**
  * Calculate RMS amplitude of time-domain signal
@@ -9,6 +11,30 @@ export function calculateAmplitude(data: Float32Array): number {
 		sum += data[i] * data[i];
 	}
 	return Math.sqrt(sum / data.length);
+}
+
+/**
+ * Get the sounding range of an instrument in Hz, accounting for transposition
+ */
+export function getInstrumentSoundingRange(
+	instrument: InstrumentConfig,
+	a4: number = 442
+): { minFreq: number; maxFreq: number } {
+	const bottomMidi = noteNameToMidi(instrument.bottomNote);
+	const topMidi = noteNameToMidi(instrument.topNote);
+
+	if (bottomMidi === null || topMidi === null) {
+		return { minFreq: 0, maxFreq: Infinity };
+	}
+
+	// Apply transposition to the written range to get sounding range
+	const soundingBottomMidi = bottomMidi + instrument.transpositionSemitones;
+	const soundingTopMidi = topMidi + instrument.transpositionSemitones;
+
+	const minFreq = frequencyFromNoteNumber(soundingBottomMidi, a4);
+	const maxFreq = frequencyFromNoteNumber(soundingTopMidi, a4);
+
+	return { minFreq, maxFreq };
 }
 
 /**
@@ -25,6 +51,22 @@ export function isFrequencyStable(
 	const variance = recent.reduce((sum, f) => sum + Math.abs(f - avg), 0) / recent.length;
 	const tolerancePercent = freq < 100 ? 0.04 : 0.03;
 	return variance < avg * tolerancePercent;
+}
+
+/**
+ * Check if a frequency is within an instrument's sounding range (with tolerance)
+ */
+export function isFrequencyInInstrumentRange(
+	freq: number,
+	instrument: InstrumentConfig,
+	a4: number = 442
+): boolean {
+	const { minFreq, maxFreq } = getInstrumentSoundingRange(instrument, a4);
+	// Add small margins: 1% below minimum, 2% above maximum
+	// This accounts for slight pitch deviations while preventing octave errors
+	const lowerMargin = minFreq * 0.01;
+	const upperMargin = maxFreq * 0.02;
+	return freq >= minFreq - lowerMargin && freq <= maxFreq + upperMargin;
 }
 
 /**
