@@ -4,6 +4,7 @@
 	import blocksIcon from '$lib/assets/blocks_icon.png';
 	import scalesIcon from '$lib/assets/scales_icon.png';
 	import stepsIcon from '$lib/assets/steps_icon.png';
+	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
 	const sheetMusicCta = '/store'; // TODO: replace with live store link when available
@@ -75,6 +76,19 @@
 							<span class="mt-1 text-sm text-slate-600">Play note pairs</span>
 						</div>
 					</a>
+					{#if hasKeyAccess}
+						<a href={`/unit/${code}/${pieceCode}/defend`} class="game-card">
+							<div class="game-card__content">
+								<div class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20">
+									<img src={defendIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
+								</div>
+								<span class="mt-3 font-semibold text-slate-900">Defend</span>
+								<span class="mt-1 text-sm text-slate-600"
+									>Use the piece's notes to defend against space monsters</span
+								>
+							</div>
+						</a>
+					{/if}
 				</div>
 			</section>
 
