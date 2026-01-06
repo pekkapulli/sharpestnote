@@ -22,13 +22,36 @@
 <div class="min-h-screen bg-off-white px-4 py-8">
 	<div class="mx-auto w-full max-w-3xl">
 		<nav class="mb-4">
-			<LinkButton href={`/unit/${code}`}>← Back to unit</LinkButton>
+			<LinkButton href={`/unit/${code}`}>← {unit.title}</LinkButton>
 		</nav>
 
 		<article class="rounded-2xl bg-white p-8 shadow-md">
 			<h1 class="text-3xl font-semibold text-slate-900">{piece.label}</h1>
+			<p class="mb-8">From {unit.title}</p>
 
 			<AudioPlayer {unit} {piece} />
+
+			<section class="mt-8 flex justify-between">
+				{#if previousPiece}
+					<a
+						href={`/unit/${code}/${previousPiece.code}`}
+						class="flex items-center gap-2 text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
+					>
+						← {previousPiece.label}
+					</a>
+				{:else}
+					<div></div>
+				{/if}
+
+				{#if nextPiece}
+					<a
+						href={`/unit/${code}/${nextPiece.code}`}
+						class="flex items-center gap-2 text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
+					>
+						{nextPiece.label} →
+					</a>
+				{/if}
+			</section>
 
 			{#if !hasKeyAccess}
 				<section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -42,7 +65,7 @@
 			{/if}
 
 			<section class="mt-8">
-				<h3 class="text-sm font-semibold text-slate-800">Games</h3>
+				<h3 class="text-sm font-semibold text-slate-800">Learn through games</h3>
 				<div class="game-grid">
 					{#if hasKeyAccess}
 						<a href={`/unit/${code}/${pieceCode}/melody`} class="game-card">
@@ -90,28 +113,6 @@
 						</a>
 					{/if}
 				</div>
-			</section>
-
-			<section class="mt-8 flex justify-between">
-				{#if previousPiece}
-					<a
-						href={`/unit/${code}/${previousPiece.code}`}
-						class="flex items-center gap-2 text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
-					>
-						← {previousPiece.label}
-					</a>
-				{:else}
-					<div></div>
-				{/if}
-
-				{#if nextPiece}
-					<a
-						href={`/unit/${code}/${nextPiece.code}`}
-						class="flex items-center gap-2 text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
-					>
-						{nextPiece.label} →
-					</a>
-				{/if}
 			</section>
 		</article>
 	</div>

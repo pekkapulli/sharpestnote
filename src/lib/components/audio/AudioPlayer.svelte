@@ -190,6 +190,22 @@
 		setupAudioElement();
 	});
 
+	// Update audio when piece changes
+	$effect(() => {
+		// Track the currentUrl to trigger when piece or speed/track changes
+		const url = currentUrl;
+		if (audioElement) {
+			const wasPlaying = isPlaying;
+			audioElement.pause();
+			audioElement.src = url;
+			audioElement.load();
+
+			if (wasPlaying) {
+				audioElement.play();
+			}
+		}
+	});
+
 	onDestroy(() => {
 		if (audioElement) {
 			audioElement.pause();
