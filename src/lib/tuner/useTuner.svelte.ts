@@ -58,6 +58,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
 	const debug = options.debug ?? false; // Capture debug flag
+	const onOnsetCallback = options.onOnset; // Callback for onset events
 
 	// Detect Safari for browser-specific handling
 	const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -122,7 +123,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const amplitudeThreshold = $state({ value: options.amplitudeThreshold ?? 0.02 });
 	const instrument = $state({ value: options.instrument ?? 'generic' });
 	const tempoBPM = $state({ value: options.tempoBPM ?? 120 });
-	const maxGain = $state({ value: options.maxGain ?? 200 });
+	const maxGain = $state({ value: options.maxGain ?? 500 });
 	const minGain = $state({ value: options.minGain ?? 0.1 });
 	const gain = $state({ value: options.gain ?? 2 });
 	const autoGainEnabled = $state({ value: options.autoGain ?? true });
@@ -414,14 +415,24 @@ export function createTuner(options: TunerOptions = {}) {
 		if (currentInstrument) {
 			inRange = isFrequencyInInstrumentRange(freq, currentInstrument, currentA4);
 
-			// Additional octave error check: if freq/2 would also be in range and stable,
-			// reject this frequency as it's likely a harmonic
-			if (inRange && freq > 0) {
+			// Additional octave error check: only reject if there's evidence the lower octave
+			// is the actual fundamental (check if it was recently stable or has strong energy)
+			if (inRange && freq > 0 && frequencyHistory.length > 5) {
 				const halfFreq = freq / 2;
 				const halfInRange = isFrequencyInInstrumentRange(halfFreq, currentInstrument, currentA4);
+
+				// Only reject if the half frequency was recently detected as stable
+				// (meaning it's likely the real fundamental and current freq is a harmonic)
 				if (halfInRange) {
-					// If half the frequency is also in range, this is likely an octave error
-					inRange = false;
+					const recentFrequencies = frequencyHistory.slice(-5);
+					const wasHalfFreqStable = recentFrequencies.some(
+						(f) => f > 0 && Math.abs(f - halfFreq) / halfFreq < 0.02
+					);
+
+					if (wasHalfFreqStable) {
+						// The lower octave was stable recently, so this is likely an octave error
+						inRange = false;
+					}
 				}
 			}
 		}
@@ -736,6 +747,16 @@ export function createTuner(options: TunerOptions = {}) {
 			// Otherwise let it build naturally through the tracking above
 			if (pitchChangeDetected && hasPitch) {
 				stablePitch = freq;
+			}
+			// Trigger onset callback with current pitch and rule
+			if (onOnsetCallback) {
+				onOnsetCallback({
+					frequency: freq,
+					note: state.note,
+					rule: state.lastOnsetRule,
+					amplitude,
+					timestamp: now
+				});
 			}
 		}
 

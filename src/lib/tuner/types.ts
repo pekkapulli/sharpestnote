@@ -38,4 +38,13 @@ export interface TunerOptions {
 	gainAdjustRate?: number;
 	autoGainInterval?: number;
 	debug?: boolean; // Enable debug logging
+	onOnset?: (event: OnsetEvent) => void; // Callback when an onset is detected
+}
+
+export interface OnsetEvent {
+	frequency: number; // Detected frequency in Hz
+	note: string | null; // Detected note name (may not be debounced yet)
+	rule: string | null; // Which rule triggered (A, B1, B2, B3, B4, B5, D)
+	amplitude: number; // Current amplitude
+	timestamp: number; // Performance.now() timestamp
 }

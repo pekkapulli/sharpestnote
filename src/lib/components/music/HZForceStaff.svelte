@@ -88,7 +88,8 @@
 				y={spaceshipY}
 				font-size={lineSpacing * 2}
 				text-anchor="middle"
-				dominant-baseline="middle">🚀</text
+				dominant-baseline="middle"
+				transform="rotate(45, 100, {spaceshipY})">🚀</text
 			>
 		{/if}
 
@@ -101,8 +102,8 @@
 		{#each monsters as monster (monster.id)}
 			<text
 				x={monster.x}
-				y={monster.y}
-				font-size={lineSpacing * 2}
+				y={monster.y + 2}
+				font-size={lineSpacing * 1.1}
 				text-anchor="middle"
 				dominant-baseline="middle">👾</text
 			>
