@@ -1,10 +1,12 @@
 import type { RequestHandler } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const body = await request.json();
 
-		const res = await fetch('http://localhost:8787/access', {
+		const workerBase = env.WORKER_URL ?? 'http://localhost:8787';
+		const res = await fetch(`${workerBase}/access`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify(body)
