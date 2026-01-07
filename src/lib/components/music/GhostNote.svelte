@@ -9,6 +9,7 @@
 		opacity?: number;
 		lineSpacing?: number;
 		cents?: number | null;
+		direction?: 'up' | 'down' | null;
 	}
 
 	const {
@@ -20,8 +21,14 @@
 		strokeWidth = 0,
 		opacity = 0.6,
 		lineSpacing = 8,
-		cents = null
+		cents = null,
+		direction = null
 	}: Props = $props();
+
+	// Calculate arrow points based on direction
+	const arrowSize = $derived(lineSpacing * 0.8);
+	const arrowOffset = $derived(lineSpacing * 1.2);
+	const arrowWidth = $derived(lineSpacing * 0.8);
 </script>
 
 <g>
@@ -62,4 +69,26 @@
 			{accidental.symbol}
 		</text>
 	{/if}
+
+	<!-- Direction arrow -->
+	{#if direction}
+		<polygon
+			points="0,-{arrowSize * 0.5} {arrowWidth * 0.5},{arrowSize * 0.5} -{arrowWidth *
+				0.5},{arrowSize * 0.5}"
+			{fill}
+			opacity={opacity * (cents !== null ? 1 - Math.abs(cents) / 100 : 1)}
+			transform="translate({x + arrowOffset}, {y -
+				(cents !== null ? (cents / 50) * (lineSpacing / 2) : 0)}) rotate({direction === 'up'
+				? 180
+				: 0})"
+		/>
+	{/if}
 </g>
+
+<style>
+	polygon {
+		transition:
+			fill 200ms ease,
+			opacity 200ms ease;
+	}
+</style>

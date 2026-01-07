@@ -10,6 +10,7 @@
 	import FingerMarking from './FingerMarking.svelte';
 	import { lengthRestMap, type MelodyItem } from '$lib/config/melody';
 	import { STAFF_NOTE_START } from './constants';
+	import { noteNameToMidi } from '$lib/util/noteNames';
 
 	interface Props {
 		// Provide sequence as an array of { note, length }
@@ -68,6 +69,22 @@
 	const ghostNotePosition = $derived(ghostNoteRendered?.position ?? null);
 	const ghostAccidental = $derived(ghostNoteRendered?.accidental ?? null);
 	const isHit = $derived(isCurrentNoteHit || isSequenceComplete);
+
+	// Calculate direction for ghost note arrow by comparing MIDI note numbers
+	const ghostDirection = $derived(() => {
+		if (!ghostNote || currentIndex >= notes.length) return null;
+		const currentNote = notes[currentIndex];
+		if (!currentNote || currentNote === null) return null;
+
+		const ghostMidi = noteNameToMidi(ghostNote);
+		const currentMidi = noteNameToMidi(currentNote);
+
+		if (ghostMidi === null || currentMidi === null) return null;
+
+		if (ghostMidi > currentMidi) return 'up';
+		if (ghostMidi < currentMidi) return 'down';
+		return null;
+	});
 
 	// Container size binding
 	let containerWidth = $state(400);
@@ -314,6 +331,7 @@
 						strokeWidth={0}
 						{cents}
 						{lineSpacing}
+						direction={ghostDirection()}
 					/>
 				{/if}
 			{/if}
