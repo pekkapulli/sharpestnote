@@ -29,7 +29,6 @@ export interface TrackVariant {
 export interface UnitMaterial {
 	published?: boolean;
 	code: string;
-	// keyCode: string;
 	instrument: InstrumentId;
 	title: string;
 	description: string;
@@ -44,7 +43,6 @@ export const units: Units = {
 	'tw-v': {
 		published: true,
 		code: 'tw-v',
-		// keyCode: 'LHXQ',
 		instrument: 'violin',
 		title: 'Twinkle Twinkle Little Star for Violin',
 		description:
@@ -151,7 +149,6 @@ export const units: Units = {
 	},
 	'tw-va': {
 		code: 'tw-va',
-		// keyCode: 'QPRT',
 		instrument: 'viola',
 		title: 'Twinkle Twinkle Little Star for Viola',
 		description: 'See how the Sharpest Note materials work with a classic tune.',
@@ -258,7 +255,6 @@ export const units: Units = {
 	'tw-r': {
 		published: false,
 		code: 'tw-r',
-		// keyCode: 'AEIH',
 		instrument: 'recorder',
 		title: 'Twinkle Twinkle Little Star for Recorder',
 		description:
@@ -365,7 +361,6 @@ export const units: Units = {
 	},
 	'tw-c': {
 		code: 'tw-c',
-		// keyCode: 'AOEG',
 		instrument: 'cello',
 		title: 'Twinkle Twinkle Little Star for Cello',
 		description: 'See how the Sharpest Note materials work with a classic tune.',
@@ -471,7 +466,6 @@ export const units: Units = {
 	},
 	'1st-finger-nature-va': {
 		code: '1st-finger-nature-va',
-		// keyCode: 'ZKWD',
 		instrument: 'viola',
 		title: 'First-finger Nature Pieces for Viola',
 		description: 'Musical pieces for first-finger performance.',
