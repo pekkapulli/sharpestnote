@@ -8,6 +8,7 @@
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { getKeySignature } from '$lib/config/keys.js';
 
 	interface Monster {
 		id: number;
@@ -67,16 +68,11 @@
 	let gameStartTime = 0;
 	const BASE_SPAWN_INTERVAL = 3000; // milliseconds
 
+	const keySignature = $derived(getKeySignature(piece.key, piece.mode));
+
 	// Generate note to Y position mapping based on piece scale
 	function generateNoteToYMapping(scaleNotes: MelodyItem[]) {
 		const noteToY: Record<string, number> = {};
-		const keySignature = {
-			note: piece.key,
-			mode: piece.mode,
-			preferredAccidental: 'sharp' as const,
-			sharps: [],
-			flats: []
-		};
 
 		// Map each note from the scale to a Y position
 		for (const item of scaleNotes) {
@@ -336,13 +332,7 @@
 				<div bind:this={containerElement} class="box-border flex w-full justify-center p-4">
 					<HZForceStaff
 						{clef}
-						keySignature={{
-							note: piece.key,
-							mode: piece.mode,
-							preferredAccidental: 'sharp',
-							sharps: [],
-							flats: []
-						}}
+						{keySignature}
 						width={containerWidth}
 						height={STAFF_HEIGHT}
 						{spaceshipY}
