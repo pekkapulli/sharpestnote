@@ -1,5 +1,4 @@
 <script lang="ts">
-	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
@@ -9,10 +8,13 @@
 	const sheetMusicCta = '/units'; // TODO: replace with live store link when available
 	let imageLoaded = $state(false);
 	let hasKeyAccess = $state(false);
+	let showSuccessMessage = $state(false);
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage
-		hasKeyAccess = initUnitKeyAccess(code, unit.keyCode);
+		void initUnitKeyAccess(code).then((access) => {
+			hasKeyAccess = access;
+		});
 	});
 
 	$effect(() => {
@@ -23,6 +25,7 @@
 
 	function handleKeySuccess() {
 		hasKeyAccess = true;
+		showSuccessMessage = true;
 	}
 </script>
 
@@ -48,13 +51,17 @@
 			{unit.description}
 		</p>
 
+		{#if showSuccessMessage}
+			<div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+				<p class="text-sm font-semibold text-emerald-800">✓ Access unlocked!</p>
+				<p class="mt-1 text-sm text-emerald-700">
+					You can now access all the content for this unit.
+				</p>
+			</div>
+		{/if}
+
 		{#if !hasKeyAccess}
-			<KeyEntry
-				unitCode={code}
-				expectedKeyCode={unit.keyCode}
-				onSuccess={handleKeySuccess}
-				purchaseUrl={sheetMusicCta}
-			/>
+			<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
 		{/if}
 
 		<section class="mt-8">

@@ -1,0 +1,10 @@
+name = "cloudflare-unit-access"
+main = "src/index.ts"
+
+account_id = "369114b7c2479604a4d3bc348677c8d8"
+workers_dev = true
+compatibility_date = "2024-11-15"
+
+[env.production]
+route = "sharpestnote.com/*"
+zone_id = "997410d58cedc70c717cd833336df893"

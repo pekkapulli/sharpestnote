@@ -1,0 +1,28 @@
+{
+	"name": "cloudflare-unit-access",
+	"version": "1.0.0",
+	"description": "A mini backend to store unit codes and match them to backend codes, returning user key access status for each unit.",
+	"main": "src/index.ts",
+	"scripts": {
+		"build": "tsc",
+		"start": "wrangler dev",
+		"deploy": "wrangler publish"
+	},
+	"dependencies": {
+		"itty-router": "^4.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.0.0",
+		"typescript": "^5.0.0",
+		"wrangler": "^4.54.0"
+	},
+	"keywords": [
+		"cloudflare",
+		"workers",
+		"backend",
+		"unit codes",
+		"access"
+	],
+	"author": "Your Name",
+	"license": "MIT"
+}

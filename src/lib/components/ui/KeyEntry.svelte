@@ -4,32 +4,49 @@
 
 	interface Props {
 		unitCode: string;
-		expectedKeyCode: string;
 		onSuccess: () => void;
 		purchaseUrl?: string;
 	}
 
-	let { unitCode, expectedKeyCode, onSuccess, purchaseUrl = '/units' }: Props = $props();
+	let { unitCode, onSuccess, purchaseUrl = '/units' }: Props = $props();
 	let keyInput = $state('');
 	let keyError = $state('');
+	let isSubmitting = $state(false);
 
-	function handleKeySubmit(event: Event) {
+	async function handleKeySubmit(event: Event) {
 		event.preventDefault();
 		keyError = '';
+		isSubmitting = true;
 
 		const trimmedKey = keyInput.trim().toUpperCase();
 
 		if (trimmedKey.length !== 4) {
 			keyError = 'Key code must be 4 characters';
+			isSubmitting = false;
 			return;
 		}
 
-		if (trimmedKey === expectedKeyCode.toUpperCase()) {
-			setUnitKeyCode(unitCode, trimmedKey);
-			keyInput = '';
-			onSuccess();
-		} else {
-			keyError = 'Invalid key code';
+		try {
+			const res = await fetch('/api/access', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ unitCode, keyCode: trimmedKey })
+			});
+
+			const data = (await res.json()) as { hasAccess?: boolean };
+
+			if (data.hasAccess) {
+				setUnitKeyCode(unitCode, trimmedKey);
+				keyInput = '';
+				onSuccess();
+			} else {
+				keyError = 'Invalid key code';
+			}
+		} catch (error) {
+			console.error('Key validation failed:', error);
+			keyError = 'Network error. Please try again.';
+		} finally {
+			isSubmitting = false;
 		}
 	}
 </script>
@@ -56,9 +73,10 @@
 		</div>
 		<button
 			type="submit"
-			class="rounded-lg bg-brand-green px-6 py-2 font-semibold text-white transition-colors hover:opacity-90"
+			disabled={isSubmitting}
+			class="rounded-lg bg-brand-green px-6 py-2 font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
 		>
-			Unlock
+			{isSubmitting ? 'Checking...' : 'Unlock'}
 		</button>
 	</form>
 	<p class="mt-8 text-sm text-slate-600">

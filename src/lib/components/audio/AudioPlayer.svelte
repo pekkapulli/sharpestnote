@@ -23,7 +23,9 @@
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage
-		hasKeyAccess = initUnitKeyAccess(unit.code, unit.keyCode);
+		void initUnitKeyAccess(unit.code).then((access) => {
+			hasKeyAccess = access;
+		});
 	});
 
 	let audioElement: HTMLAudioElement | null = null;

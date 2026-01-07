@@ -11,7 +11,9 @@
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage
-		hasKeyAccess = initUnitKeyAccess(code, unit.keyCode);
+		void initUnitKeyAccess(code).then((access) => {
+			hasKeyAccess = access;
+		});
 	});
 
 	function newMelody(): MelodyItem[] {
