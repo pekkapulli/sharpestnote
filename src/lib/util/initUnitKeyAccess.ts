@@ -24,6 +24,10 @@ export async function initUnitKeyAccess(unitCode: string): Promise<boolean> {
 			if (data.hasAccess) {
 				// Valid key - store it for future visits
 				setUnitKeyCode(unitCode, urlKey);
+				// Remove the key parameter from URL
+				const newUrl = new URL(currentPage.url);
+				newUrl.searchParams.delete('key');
+				window.history.replaceState({}, '', newUrl.toString());
 				return true;
 			}
 		} catch (error) {
