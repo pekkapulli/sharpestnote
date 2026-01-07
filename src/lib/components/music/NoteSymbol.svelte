@@ -29,7 +29,7 @@
 </script>
 
 <g>
-	<!-- Note head circle -->
+	<!-- Note symbol -->
 	{#if length}
 		<text
 			class="note"
@@ -82,3 +82,15 @@
 		</text>
 	{/if}
 </g>
+
+<style>
+	/* Smoothly animate color-related changes within this symbol */
+	.note,
+	circle {
+		transition:
+			fill 200ms ease,
+			stroke 200ms ease,
+			color 200ms ease,
+			opacity 200ms ease;
+	}
+</style>

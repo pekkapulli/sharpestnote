@@ -291,7 +291,6 @@
 										? 2
 										: 0}
 								{lineSpacing}
-								progress={i === animatingIndex && !isSequenceComplete ? animationProgress : null}
 							/>
 							<!-- Finger marking under ledger lines -->
 							<FingerMarking
