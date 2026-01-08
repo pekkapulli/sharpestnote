@@ -4,7 +4,7 @@
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
 	const { data } = $props();
-	const { unit, code, imageUrl, instrumentLabel } = $derived(data);
+	const { unit, code, imageUrl, instrumentLabel, pageUrl } = $derived(data);
 	const hasExtras = $derived((unit.extraLinks?.length ?? 0) > 0);
 	const sheetMusicCta = '/units'; // TODO: replace with live store link when available
 	let imageLoaded = $state(false);
@@ -16,7 +16,8 @@
 		sharePreviewStore.set({
 			title: unit.title,
 			description: unit.description,
-			image: imageUrl
+			image: imageUrl,
+			url: pageUrl
 		});
 	});
 

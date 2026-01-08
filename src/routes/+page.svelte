@@ -11,11 +11,20 @@
 	import { units } from '$lib/config/units';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
-	sharePreviewStore.set({
-		title: 'The Sharpest Note',
-		description: 'Beginner music units with interactive practice tools for orchestral instruments',
-		type: 'website'
+	let { data } = $props();
+
+	onMount(() => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.set({
+			title: 'The Sharpest Note',
+			description:
+				'Beginner music units with interactive practice tools for orchestral instruments',
+			type: 'website',
+			image: `${origin}/og-logo.png`,
+			url: `${origin}${data.pathname}`
+		});
 	});
 
 	const whatThisIs = [

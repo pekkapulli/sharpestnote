@@ -4,10 +4,21 @@
 	import Breadcrumbs from '$lib/components/ui/Breadcrumbs.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	const sharePreviewData = $derived($sharePreviewStore);
+
+	// Update default share preview with absolute URL for logo
+	onMount(() => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.update((prev) => ({
+			...prev,
+			image: prev.image?.startsWith('http') ? prev.image : `${origin}${prev.image}`,
+			url: prev.url || `${origin}${data.pathname || window.location.pathname}`
+		}));
+	});
 </script>
 
 <SharePreview data={sharePreviewData} />

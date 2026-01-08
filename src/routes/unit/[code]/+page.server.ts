@@ -4,7 +4,7 @@ import { instrumentMap } from '$lib/config/instruments';
 import { getUnitByCode, normalizeUnitCode } from '$lib/config/units';
 import { getImageUrl } from '$lib/util/getImageUrl';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
 	const unit = getUnitByCode(params.code);
 	const imageUrl = getImageUrl(params.code);
 	const instrumentLabel = unit ? (instrumentMap[unit.instrument]?.label ?? unit.instrument) : '';
@@ -17,6 +17,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		unit,
 		code: normalizeUnitCode(params.code),
 		imageUrl,
-		instrumentLabel
+		instrumentLabel,
+		pageUrl: url.href
 	};
 };

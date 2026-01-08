@@ -2,11 +2,19 @@
 	import QAContainer from '$lib/components/ui/QAContainer.svelte';
 	import QASection from '$lib/components/ui/QASection.svelte';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
-	sharePreviewStore.set({
-		title: 'FAQ - The Sharpest Note',
-		description: 'Frequently asked questions about The Sharpest Note music learning platform',
-		type: 'website'
+	let { data } = $props();
+
+	onMount(() => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.set({
+			title: 'FAQ - The Sharpest Note',
+			description: 'Frequently asked questions about The Sharpest Note music learning platform',
+			type: 'website',
+			image: `${origin}/og-logo.png`,
+			url: `${origin}${data.pathname}`
+		});
 	});
 </script>
 
