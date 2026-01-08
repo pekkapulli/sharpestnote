@@ -7,8 +7,7 @@
 	import stepsIcon from '$lib/assets/steps_icon.png';
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
-	import { sharePreviewStore } from '$lib/stores/sharePreview.js';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	const { data } = $props();
 	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl } =
@@ -16,14 +15,11 @@
 	let hasKeyAccess = $state(false);
 	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
 
-	// Update share preview when unit data changes
-	onMount(() => {
-		sharePreviewStore.set({
-			title: `${piece.label} - ${unit.title}`,
-			description: unit.description,
-			image: imageUrl,
-			url: pageUrl
-		});
+	const sharePreviewData = $derived({
+		title: `${piece.label} - ${unit.title}`,
+		description: unit.description,
+		image: imageUrl,
+		url: pageUrl
 	});
 
 	$effect(() => {
@@ -33,6 +29,8 @@
 		});
 	});
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 <div class="min-h-screen bg-off-white px-4 py-8">
 	<div class="mx-auto w-full max-w-3xl">

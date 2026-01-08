@@ -1,8 +1,7 @@
 <script lang="ts">
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	const { data } = $props();
 	const { unit, code, imageUrl, instrumentLabel, pageUrl } = $derived(data);
@@ -12,14 +11,11 @@
 	let hasKeyAccess = $state(false);
 	let showSuccessMessage = $state(false);
 
-	// Update share preview when unit data changes
-	onMount(() => {
-		sharePreviewStore.set({
-			title: unit.title,
-			description: unit.description,
-			image: imageUrl,
-			url: pageUrl
-		});
+	const sharePreviewData = $derived({
+		title: unit.title,
+		description: unit.description,
+		image: imageUrl,
+		url: pageUrl
 	});
 
 	$effect(() => {
@@ -40,6 +36,8 @@
 		showSuccessMessage = true;
 	}
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 <div class="flex min-h-screen items-center justify-center bg-off-white px-4 py-12">
 	<article class="w-full max-w-3xl rounded-2xl bg-white p-8 shadow-md">

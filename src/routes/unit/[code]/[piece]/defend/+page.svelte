@@ -12,7 +12,7 @@
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess.js';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	interface Monster {
 		id: number;
@@ -103,14 +103,14 @@
 	const scaleNotes = $derived(piece.scale.filter((s) => s.note != null));
 	const noteToY = $derived(generateNoteToYMapping(scaleNotes));
 
-	onMount(() => {
-		sharePreviewStore.set({
-			title: `Defend - ${piece.label} - ${unit.title}`,
-			description: `Practice defend game for ${piece.label}`,
-			image: imageUrl,
-			url: pageUrl
-		});
+	const sharePreviewData = $derived({
+		title: `Defend - ${piece.label} - ${unit.title}`,
+		description: `Practice defend game for ${piece.label}`,
+		image: imageUrl,
+		url: pageUrl
+	});
 
+	onMount(() => {
 		// Ensure tuner is ready
 		tuner.checkSupport();
 
@@ -314,6 +314,8 @@
 		}
 	}
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 <svelte:window onkeydown={handleKeydown} />
 

@@ -5,21 +5,18 @@
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import type { MelodyItem } from '$lib/config/melody';
 	import melodyIcon from '$lib/assets/melody_icon.png';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	const { data } = $props();
 	const { unit, piece, code, imageUrl, pageUrl } = $derived(data);
 	let hasKeyAccess = $state(false);
 	let melodyIndex = $state(0);
 
-	onMount(() => {
-		sharePreviewStore.set({
-			title: `Melody - ${piece.label} - ${unit.title}`,
-			description: `Practice melody for ${piece.label}`,
-			image: imageUrl,
-			url: pageUrl
-		});
+	const sharePreviewData = $derived({
+		title: `Melody - ${piece.label} - ${unit.title}`,
+		description: `Practice melody for ${piece.label}`,
+		image: imageUrl,
+		url: pageUrl
 	});
 
 	$effect(() => {
@@ -41,6 +38,8 @@
 		return phrase.map((i) => ({ ...i }));
 	}
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 {#if !hasKeyAccess}
 	<div class="min-h-screen bg-off-white py-8">

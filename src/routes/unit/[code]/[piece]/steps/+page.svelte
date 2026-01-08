@@ -3,19 +3,16 @@
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import stepsIcon from '$lib/assets/steps_icon.png';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	const { data } = $props();
 	const { unit, piece, imageUrl, pageUrl } = $derived(data);
 
-	onMount(() => {
-		sharePreviewStore.set({
-			title: `Steps - ${piece.label} - ${unit.title}`,
-			description: `Practice steps for ${piece.label}`,
-			image: imageUrl,
-			url: pageUrl
-		});
+	const sharePreviewData = $derived({
+		title: `Steps - ${piece.label} - ${unit.title}`,
+		description: `Practice steps for ${piece.label}`,
+		image: imageUrl,
+		url: pageUrl
 	});
 
 	// Extract unique intervals once when the page loads
@@ -57,6 +54,8 @@
 		return result;
 	}
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">

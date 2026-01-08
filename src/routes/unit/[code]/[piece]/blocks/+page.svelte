@@ -3,19 +3,16 @@
 	import type { MelodyItem } from '$lib/config/melody';
 	import blocksIcon from '$lib/assets/blocks_icon.png';
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	const { data } = $props();
 	const { unit, piece, imageUrl, pageUrl } = $derived(data);
 
-	onMount(() => {
-		sharePreviewStore.set({
-			title: `Blocks - ${piece.label} - ${unit.title}`,
-			description: `Practice blocks game for ${piece.label}`,
-			image: imageUrl,
-			url: pageUrl
-		});
+	const sharePreviewData = $derived({
+		title: `Blocks - ${piece.label} - ${unit.title}`,
+		description: `Practice blocks game for ${piece.label}`,
+		image: imageUrl,
+		url: pageUrl
 	});
 
 	function newMelody(): MelodyItem[] {
@@ -27,6 +24,8 @@
 		return phrase.map((i) => ({ ...i }));
 	}
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
