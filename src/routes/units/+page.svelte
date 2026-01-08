@@ -2,6 +2,14 @@
 	import { units } from '$lib/config/units';
 	import type { InstrumentId } from '$lib/config/types';
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'Units - The Sharpest Note',
+		description:
+			'Practice materials with accompaniment tracks and interactive games for beginner musicians',
+		type: 'website'
+	});
 
 	let selectedInstrument = $state<InstrumentId | 'all'>('all');
 

@@ -2,9 +2,15 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Breadcrumbs from '$lib/components/ui/Breadcrumbs.svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
 	let { children } = $props();
+
+	const sharePreviewData = $derived($sharePreviewStore);
 </script>
+
+<SharePreview data={sharePreviewData} />
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 <a href="#main-content" class="skip-link">Skip to main content</a>

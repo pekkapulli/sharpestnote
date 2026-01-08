@@ -4,6 +4,13 @@
 	import type { InstrumentId } from '$lib/config/types';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { onMount } from 'svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'Sight Reading Game - The Sharpest Note',
+		description: 'Interactive sight reading practice game for beginner musicians',
+		type: 'website'
+	});
 
 	let selectedInstrument = $state<InstrumentId>(defaultInstrumentId);
 	let selectedKey = $state('C');

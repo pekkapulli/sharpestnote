@@ -5,13 +5,20 @@
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import { onsetDetectionConfig } from '$lib/config/onset';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'Audio Analysis - The Sharpest Note',
+		description: 'Advanced audio analysis tool for analyzing musical performance and tuning',
+		type: 'website'
+	});
 
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
 
-	const tuner = createTuner({ 
-		a4: DEFAULT_A4, 
-		accidental: 'sharp', 
+	const tuner = createTuner({
+		a4: DEFAULT_A4,
+		accidental: 'sharp',
 		debug: false,
 		gain: 15,
 		maxGain: 50

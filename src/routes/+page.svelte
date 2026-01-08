@@ -10,6 +10,13 @@
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
 	import { units } from '$lib/config/units';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'The Sharpest Note',
+		description: 'Beginner music units with interactive practice tools for orchestral instruments',
+		type: 'website'
+	});
 
 	const whatThisIs = [
 		{ icon: printableSheetMusicImage, text: 'Printable sheet music' },

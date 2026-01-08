@@ -1,6 +1,13 @@
 <script lang="ts">
 	import QAContainer from '$lib/components/ui/QAContainer.svelte';
 	import QASection from '$lib/components/ui/QASection.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'For Parents - The Sharpest Note',
+		description: 'Learn how The Sharpest Note helps your child practice music more effectively',
+		type: 'website'
+	});
 </script>
 
 <svelte:head>

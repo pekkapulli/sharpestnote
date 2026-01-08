@@ -1,6 +1,7 @@
 <script lang="ts">
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
 	const { data } = $props();
 	const { unit, code, imageUrl, instrumentLabel } = $derived(data);
@@ -9,6 +10,15 @@
 	let imageLoaded = $state(false);
 	let hasKeyAccess = $state(false);
 	let showSuccessMessage = $state(false);
+
+	// Update share preview when unit data changes
+	$effect(() => {
+		sharePreviewStore.set({
+			title: unit.title,
+			description: unit.description,
+			image: imageUrl
+		});
+	});
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage

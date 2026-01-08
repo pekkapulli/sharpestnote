@@ -2,6 +2,13 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'Tuner - The Sharpest Note',
+		description: 'Free online tuner for musicians learning orchestral instruments',
+		type: 'website'
+	});
 
 	const a4Options = [440, 442];
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });

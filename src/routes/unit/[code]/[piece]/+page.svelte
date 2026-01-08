@@ -7,12 +7,21 @@
 	import stepsIcon from '$lib/assets/steps_icon.png';
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
-
-	const sheetMusicCta = '/units'; // TODO: replace with live store link when available
+	import { sharePreviewStore } from '$lib/stores/sharePreview.js';
 
 	const { data } = $props();
-	const { piece, code, pieceCode, previousPiece, nextPiece, unit } = $derived(data);
+	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl } = $derived(data);
 	let hasKeyAccess = $state(false);
+	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
+
+	// Update share preview when unit data changes
+	$effect(() => {
+		sharePreviewStore.set({
+			title: unit.title,
+			description: unit.description,
+			image: imageUrl
+		});
+	});
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage

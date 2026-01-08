@@ -1,5 +1,12 @@
 <script lang="ts">
 	import BackButton from '$lib/components/ui/BackButton.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+
+	sharePreviewStore.set({
+		title: 'Privacy Policy - The Sharpest Note',
+		description: 'Privacy policy for The Sharpest Note - how we protect your data',
+		type: 'website'
+	});
 </script>
 
 <svelte:head>
