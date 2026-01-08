@@ -6,9 +6,10 @@
 	import ClefSymbol from './ClefSymbol.svelte';
 	import NoteSymbol from './NoteSymbol.svelte';
 	import GhostNote from './GhostNote.svelte';
+	import RestSymbol from './RestSymbol.svelte';
 	import KeySignatureSymbol from './KeySignature.svelte';
 	import FingerMarking from './FingerMarking.svelte';
-	import { lengthRestMap, type MelodyItem } from '$lib/config/melody';
+	import { type MelodyItem } from '$lib/config/melody';
 	import { STAFF_NOTE_START } from './constants';
 	import { noteNameToMidi } from '$lib/util/noteNames';
 
@@ -244,42 +245,24 @@
 						{#if n === null}
 							<!-- Render rest symbol -->
 							{@const restLength = sequence?.[i]?.length ?? 4}
-							<g>
-								<text
-									class="note"
-									{x}
-									y={centerY + lineSpacing / 2}
-									fill={showAllBlack
-										? 'black'
-										: i < currentIndex || (isSequenceComplete && i === currentIndex)
-											? '#16a34a'
-											: i === currentIndex
-												? isHit
-													? '#16a34a'
-													: 'black'
-												: '#9ca3af'}
-									font-size={lineSpacing * 4}
-									text-anchor="middle"
-								>
-									{lengthRestMap[restLength]}
-								</text>
-								{#if i === (animatingIndex ?? currentIndex) && !isSequenceComplete && isHit && animationProgress !== null}
-									<!-- Rest hold duration indicator -->
-									<rect
-										class="note"
-										x={x - lineSpacing}
-										y={centerY + lineSpacing * 1.5}
-										width={Math.min(
-											(animationProgress / restLength) * lineSpacing * 2,
-											lineSpacing * 2
-										)}
-										height={lineSpacing / 4}
-										fill="#16a34a"
-										font-size={lineSpacing * 1.5}
-										text-anchor="middle"
-									/>
-								{/if}
-							</g>
+							<RestSymbol
+								{x}
+								y={centerY - lineSpacing}
+								length={restLength}
+								fill={showAllBlack
+									? 'black'
+									: i < currentIndex || (isSequenceComplete && i === currentIndex)
+										? '#16a34a'
+										: i === currentIndex
+											? isHit
+												? '#16a34a'
+												: 'black'
+											: '#9ca3af'}
+								progress={i === (animatingIndex ?? currentIndex) && !isSequenceComplete && isHit
+									? animationProgress
+									: null}
+								{lineSpacing}
+							/>
 						{:else if rn}
 							<NoteSymbol
 								{x}

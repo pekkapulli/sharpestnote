@@ -1,7 +1,8 @@
 <script lang="ts">
-	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SightGame from '$lib/components/sight/SightGame.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
+	import blocksIcon from '$lib/assets/blocks_icon.png';
+	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 
 	const { data } = $props();
 	const { unit, piece, code, pieceCode } = $derived(data);
@@ -18,6 +19,7 @@
 
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
+		<TitleWithIcon title="Blocks" iconUrl={blocksIcon} />
 		<SightGame
 			instrument={unit.instrument}
 			keyNote={piece.key}

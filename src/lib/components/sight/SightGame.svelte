@@ -438,8 +438,6 @@
 	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-1 sm:px-4">
 		<header class="text-center">
 			<div class="flex flex-col items-center justify-center gap-2">
-				<p class="text-sm tracking-[0.08em] text-slate-500 uppercase">Sight reading game</p>
-				<h1 class="mt-1">Read the melody</h1>
 				<p class="mx-auto mt-2 max-w-2xl text-center text-slate-700">
 					Play the notes shown on the {selectedInstrument.clef} staff with your {instrument}.
 					{#if keySignature}

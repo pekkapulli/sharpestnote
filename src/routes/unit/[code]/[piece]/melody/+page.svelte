@@ -1,11 +1,13 @@
 <script lang="ts">
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SightGame from '$lib/components/sight/SightGame.svelte';
+	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import type { MelodyItem } from '$lib/config/melody';
+	import melodyIcon from '$lib/assets/melody_icon.png';
 
 	const { data } = $props();
-	const { unit, piece, code, pieceCode } = $derived(data);
+	const { unit, piece, code } = $derived(data);
 	let hasKeyAccess = $state(false);
 	let melodyIndex = $state(0);
 
@@ -39,7 +41,7 @@
 					features.
 				</p>
 				<div class="mt-4">
-					<LinkButton href="/units">Get the sheet music</LinkButton>
+					<LinkButton href={`/unit/${code}`}>Get the sheet music or enter your code.</LinkButton>
 				</div>
 			</div>
 		</div>
@@ -47,6 +49,7 @@
 {:else}
 	<div class="min-h-screen bg-off-white py-8">
 		<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
+			<TitleWithIcon title="Melody" iconUrl={melodyIcon} />
 			<SightGame
 				instrument={unit.instrument}
 				keyNote={piece.key}

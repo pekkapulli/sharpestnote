@@ -4,11 +4,14 @@
 	import HZForceStaff from '$lib/components/music/HZForceStaff.svelte';
 	import { instrumentMap } from '$lib/config/instruments';
 	import { renderNote } from '$lib/components/music/noteRenderer';
-	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
 	import { getKeySignature } from '$lib/config/keys.js';
+	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
+	import defendIcon from '$lib/assets/defend_icon.png';
+	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess.js';
+	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 
 	interface Monster {
 		id: number;
@@ -27,6 +30,15 @@
 
 	const { data } = $props();
 	const { unit, piece, code, pieceCode } = $derived(data);
+
+	let hasKeyAccess = $state(false);
+
+	$effect(() => {
+		// Initialize key access from URL or localStorage
+		void initUnitKeyAccess(code).then((access) => {
+			hasKeyAccess = access;
+		});
+	});
 
 	const tuner = createTuner({
 		// svelte-ignore state_referenced_locally
@@ -296,116 +308,133 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="min-h-screen bg-off-white py-8">
-	<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
-		<div class="flex flex-col items-center">
-			<h1 class="mb-4 text-center">Defend</h1>
-			<p class="mb-6 text-center text-slate-700">
-				Control your spaceship with your instrument. Match scale notes to move up and down and
-				auto-shoot!
-			</p>
-
-			{#if !tuner.state.isListening}
-				<MicrophoneSelector
-					tunerState={tuner.state}
-					onStartListening={startListening}
-					onDeviceChange={handleDeviceChange}
-				/>
-			{:else}
-				{#if gameActive}
-					<div class="mb-4 text-center">
-						<p class="text-2xl font-bold text-dark-blue">Score: {score}</p>
-						<p class="text-sm text-slate-600">
-							Current note: {tuner.state.note ?? '—'} ({tuner.state.frequency?.toFixed(1) ?? '—'}
-							Hz)
-						</p>
-					</div>
-				{:else if highScore > 0}
-					<div class="mb-4 text-center">
-						<p class="text-lg text-slate-600">
-							High Score: <span class="font-bold text-dark-blue">{highScore}</span>
-						</p>
-					</div>
-				{/if}
-
-				<!-- Game area with staff background -->
-				<div bind:this={containerElement} class="box-border flex w-full justify-center p-4">
-					<HZForceStaff
-						{clef}
-						{keySignature}
-						width={containerWidth}
-						height={STAFF_HEIGHT}
-						{spaceshipY}
-						{monsters}
-						{bullets}
-						{gameActive}
-					/>
+{#if !hasKeyAccess}
+	<div class="min-h-screen bg-off-white py-8">
+		<div class="mx-auto w-full max-w-3xl px-4">
+			<div class="rounded-lg border border-slate-200 bg-white p-8 shadow-md">
+				<h2 class="mb-4 text-2xl font-semibold text-slate-900">Access Required</h2>
+				<p class="text-slate-700">
+					The Defend game is only available with full access. Get the sheet music pack to unlock all
+					features.
+				</p>
+				<div class="mt-4">
+					<LinkButton href={`/unit/${code}`}>Get the sheet music or enter your code.</LinkButton>
 				</div>
-
-				{#if tuner.state.error}
-					<p class="mb-4 text-center text-sm text-red-600">{tuner.state.error}</p>
-				{/if}
-
-				<!-- Game Over Screen -->
-				{#if gameOver}
-					<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-						<div class="mx-4 max-w-lg rounded-2xl bg-off-white p-6 shadow-2xl">
-							<div class="flex items-center justify-between gap-6">
-								<div class="flex-1">
-									<h2 class="mb-2 text-xl font-bold text-slate-900">Game Over!</h2>
-
-									{#if isNewHighScore}
-										<p class="mb-3 text-sm font-semibold text-amber-600">🏆 New High Score!</p>
-									{/if}
-
-									<div class="flex items-center gap-4">
-										<div class="rounded-lg bg-white p-3 shadow-sm">
-											<p class="text-xs text-slate-600">Your Score</p>
-											<p class="text-2xl font-bold text-dark-blue">{score}</p>
-										</div>
-
-										{#if highScore > 0}
-											<div class="rounded-lg bg-white p-3 shadow-sm">
-												<p class="text-xs text-slate-600">High Score</p>
-												<p class="text-2xl font-bold text-amber-700">{highScore}</p>
-											</div>
-										{/if}
-									</div>
-								</div>
-
-								<button
-									onclick={() => (gameOver = false)}
-									class="rounded-lg bg-dark-blue px-6 py-3 font-semibold text-white transition hover:-translate-y-px hover:shadow-lg"
-								>
-									OK
-								</button>
-							</div>
-						</div>
-					</div>
-				{/if}
-
-				<div class="mt-6 flex justify-center gap-4">
-					{#if !gameActive}
-						<button
-							onclick={startGame}
-							class="rounded-lg bg-dark-blue px-8 py-4 text-lg font-semibold text-white transition hover:-translate-y-px hover:shadow"
-						>
-							Start Game
-						</button>
-					{:else}
-						<button
-							onclick={stopGame}
-							class="rounded-lg bg-red-600 px-8 py-4 text-lg font-semibold text-white transition hover:-translate-y-px hover:shadow"
-						>
-							Stop Game
-						</button>
-					{/if}
-				</div>
-
-				<div class="mt-6 text-center text-sm text-slate-600">
-					<p>🎵 Play scale notes to control your spaceship and auto-shoot</p>
-				</div>
-			{/if}
+			</div>
 		</div>
 	</div>
-</div>
+{:else}
+	<div class="min-h-screen bg-off-white py-8">
+		<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
+			<div class="flex flex-col items-center">
+				<TitleWithIcon title="Defend" iconUrl={defendIcon} />
+				<p class="mb-6 text-center text-slate-700">
+					Control your spaceship with your instrument. Match scale notes to move up and down and
+					auto-shoot!
+				</p>
+
+				{#if !tuner.state.isListening}
+					<MicrophoneSelector
+						tunerState={tuner.state}
+						onStartListening={startListening}
+						onDeviceChange={handleDeviceChange}
+					/>
+				{:else}
+					{#if gameActive}
+						<div class="mb-4 text-center">
+							<p class="text-2xl font-bold text-dark-blue">Score: {score}</p>
+							<p class="text-sm text-slate-600">
+								Current note: {tuner.state.note ?? '—'} ({tuner.state.frequency?.toFixed(1) ?? '—'}
+								Hz)
+							</p>
+						</div>
+					{:else if highScore > 0}
+						<div class="mb-4 text-center">
+							<p class="text-lg text-slate-600">
+								High Score: <span class="font-bold text-dark-blue">{highScore}</span>
+							</p>
+						</div>
+					{/if}
+
+					<!-- Game area with staff background -->
+					<div bind:this={containerElement} class="box-border flex w-full justify-center p-4">
+						<HZForceStaff
+							{clef}
+							{keySignature}
+							width={containerWidth}
+							height={STAFF_HEIGHT}
+							{spaceshipY}
+							{monsters}
+							{bullets}
+							{gameActive}
+						/>
+					</div>
+
+					{#if tuner.state.error}
+						<p class="mb-4 text-center text-sm text-red-600">{tuner.state.error}</p>
+					{/if}
+
+					<!-- Game Over Screen -->
+					{#if gameOver}
+						<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+							<div class="mx-4 max-w-lg rounded-2xl bg-off-white p-6 shadow-2xl">
+								<div class="flex items-center justify-between gap-6">
+									<div class="flex-1">
+										<h2 class="mb-2 text-xl font-bold text-slate-900">Game Over!</h2>
+
+										{#if isNewHighScore}
+											<p class="mb-3 text-sm font-semibold text-amber-600">🏆 New High Score!</p>
+										{/if}
+
+										<div class="flex items-center gap-4">
+											<div class="rounded-lg bg-white p-3 shadow-sm">
+												<p class="text-xs text-slate-600">Your Score</p>
+												<p class="text-2xl font-bold text-dark-blue">{score}</p>
+											</div>
+
+											{#if highScore > 0}
+												<div class="rounded-lg bg-white p-3 shadow-sm">
+													<p class="text-xs text-slate-600">High Score</p>
+													<p class="text-2xl font-bold text-amber-700">{highScore}</p>
+												</div>
+											{/if}
+										</div>
+									</div>
+
+									<button
+										onclick={() => (gameOver = false)}
+										class="rounded-lg bg-dark-blue px-6 py-3 font-semibold text-white transition hover:-translate-y-px hover:shadow-lg"
+									>
+										OK
+									</button>
+								</div>
+							</div>
+						</div>
+					{/if}
+
+					<div class="mt-6 flex justify-center gap-4">
+						{#if !gameActive}
+							<button
+								onclick={startGame}
+								class="rounded-lg bg-dark-blue px-8 py-4 text-lg font-semibold text-white transition hover:-translate-y-px hover:shadow"
+							>
+								Start Game
+							</button>
+						{:else}
+							<button
+								onclick={stopGame}
+								class="rounded-lg bg-red-600 px-8 py-4 text-lg font-semibold text-white transition hover:-translate-y-px hover:shadow"
+							>
+								Stop Game
+							</button>
+						{/if}
+					</div>
+
+					<div class="mt-6 text-center text-sm text-slate-600">
+						<p>🎵 Play scale notes to control your spaceship and auto-shoot</p>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}

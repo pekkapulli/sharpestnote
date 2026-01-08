@@ -53,7 +53,7 @@
 
 <section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-6">
 	<h3 class="text-sm font-semibold text-slate-800">Already have access?</h3>
-	<p class="mt-4 text-sm text-slate-600">Enter your 4-letter key code:</p>
+	<p class="mt-4 text-sm text-slate-600">Enter your 4-letter key code (below the QR code):</p>
 	<form onsubmit={handleKeySubmit} class="mt-3 mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
 		<div class="flex-1">
 			<label for="key-code-input" class="sr-only">4-letter key code</label>

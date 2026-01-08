@@ -1,10 +1,11 @@
 <script lang="ts">
-	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SightGame from '$lib/components/sight/SightGame.svelte';
+	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
+	import scalesIcon from '$lib/assets/scales_icon.png';
 
 	const { data } = $props();
-	const { unit, piece, code, pieceCode } = $derived(data);
+	const { unit, piece } = $derived(data);
 
 	function newMelody(): MelodyItem[] {
 		const scale = piece.scale.filter((s) => s.note != null) ?? [];
@@ -21,6 +22,7 @@
 
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
+		<TitleWithIcon title="Scales" iconUrl={scalesIcon} />
 		<SightGame
 			instrument={unit.instrument}
 			keyNote={piece.key}

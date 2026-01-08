@@ -53,11 +53,9 @@
 
 			{#if !hasKeyAccess}
 				<section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-					<p class="text-sm text-slate-700">
-						Want the sheet music and printable QR? Get the full pack to unlock everything.
-					</p>
+					<p class="text-sm text-slate-700">Get the full pack to unlock more games and features.</p>
 					<div class="mt-3">
-						<LinkButton href={sheetMusicCta} size="small">Get the sheet music</LinkButton>
+						<LinkButton href={sheetMusicCta} size="small">Buy the sheet music</LinkButton>
 					</div>
 				</section>
 			{/if}
