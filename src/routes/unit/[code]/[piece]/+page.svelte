@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
+	import melodyIcon from '$lib/assets/melody_icon.png';
 	import blocksIcon from '$lib/assets/blocks_icon.png';
 	import scalesIcon from '$lib/assets/scales_icon.png';
 	import stepsIcon from '$lib/assets/steps_icon.png';
@@ -74,7 +75,7 @@
 									class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20"
 									aria-hidden="true"
 								>
-									🎵
+									<img src={melodyIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
 								</div>
 								<span class="mt-3 font-semibold text-slate-900">Melody</span>
 								<span class="mt-1 text-sm text-slate-600">Play through the piece</span>
