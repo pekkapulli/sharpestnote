@@ -6,11 +6,7 @@
 	import { onMount } from 'svelte';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
-	sharePreviewStore.set({
-		title: 'Sight Reading Game - The Sharpest Note',
-		description: 'Interactive sight reading practice game for beginner musicians',
-		type: 'website'
-	});
+	let { data } = $props();
 
 	let selectedInstrument = $state<InstrumentId>(defaultInstrumentId);
 	let selectedKey = $state('C');
@@ -19,6 +15,14 @@
 	const tuner = createTuner();
 
 	onMount(() => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.set({
+			title: 'Sight Reading Game - The Sharpest Note',
+			description: 'Interactive sight reading practice game for beginner musicians',
+			type: 'website',
+			image: `${origin}/og-logo.png`,
+			url: `${origin}${data.pathname}`
+		});
 		tuner.checkSupport();
 	});
 

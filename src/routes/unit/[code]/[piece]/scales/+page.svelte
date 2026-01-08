@@ -3,9 +3,20 @@
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import scalesIcon from '$lib/assets/scales_icon.png';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
-	const { unit, piece } = $derived(data);
+	const { unit, piece, imageUrl, pageUrl } = $derived(data);
+
+	onMount(() => {
+		sharePreviewStore.set({
+			title: `Scales - ${piece.label} - ${unit.title}`,
+			description: `Practice scales for ${piece.label}`,
+			image: imageUrl,
+			url: pageUrl
+		});
+	});
 
 	function newMelody(): MelodyItem[] {
 		const scale = piece.scale.filter((s) => s.note != null) ?? [];

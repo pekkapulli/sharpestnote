@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import { getUnitByCode, normalizeUnitCode } from '$lib/config/units';
 import { getImageUrl } from '$lib/util/getImageUrl';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
 	const normalizedCode = normalizeUnitCode(params.code);
 	const unit = getUnitByCode(params.code);
 	const imageUrl = getImageUrl(params.code);
@@ -28,6 +28,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		nextPiece,
 		code: normalizedCode,
 		pieceCode: params.piece,
-		imageUrl
+		imageUrl,
+		pageUrl: url.href
 	};
 };

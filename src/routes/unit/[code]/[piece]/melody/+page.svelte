@@ -5,11 +5,22 @@
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import type { MelodyItem } from '$lib/config/melody';
 	import melodyIcon from '$lib/assets/melody_icon.png';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
-	const { unit, piece, code } = $derived(data);
+	const { unit, piece, code, imageUrl, pageUrl } = $derived(data);
 	let hasKeyAccess = $state(false);
 	let melodyIndex = $state(0);
+
+	onMount(() => {
+		sharePreviewStore.set({
+			title: `Melody - ${piece.label} - ${unit.title}`,
+			description: `Practice melody for ${piece.label}`,
+			image: imageUrl,
+			url: pageUrl
+		});
+	});
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage

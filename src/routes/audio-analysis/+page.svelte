@@ -7,11 +7,7 @@
 	import { onsetDetectionConfig } from '$lib/config/onset';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
-	sharePreviewStore.set({
-		title: 'Audio Analysis - The Sharpest Note',
-		description: 'Advanced audio analysis tool for analyzing musical performance and tuning',
-		type: 'website'
-	});
+	let { data } = $props();
 
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
@@ -469,6 +465,15 @@
 	}
 
 	onMount(async () => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.set({
+			title: 'Audio Analysis - The Sharpest Note',
+			description: 'Advanced audio analysis tool for analyzing musical performance and tuning',
+			type: 'website',
+			image: `${origin}/og-logo.png`,
+			url: `${origin}${data.pathname}`
+		});
+
 		if (spectrumCanvasEl) {
 			spectrumCtx = spectrumCanvasEl.getContext('2d');
 		}

@@ -4,14 +4,23 @@
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
-	sharePreviewStore.set({
-		title: 'Tuner - The Sharpest Note',
-		description: 'Free online tuner for musicians learning orchestral instruments',
-		type: 'website'
-	});
+	let { data } = $props();
 
 	const a4Options = [440, 442];
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
+
+	onMount(() => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.set({
+			title: 'Tuner - The Sharpest Note',
+			description: 'Free online tuner for musicians learning orchestral instruments',
+			type: 'website',
+			image: `${origin}/og-logo.png`,
+			url: `${origin}${data.pathname}`
+		});
+		tuner.checkSupport();
+		tuner.refreshDevices();
+	});
 
 	const formatHz = (value: number | null) => (value ? value.toFixed(1) : '--');
 	const formatCents = (value: number | null) => {

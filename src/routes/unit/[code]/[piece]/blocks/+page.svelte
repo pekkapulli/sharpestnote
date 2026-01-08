@@ -3,9 +3,20 @@
 	import type { MelodyItem } from '$lib/config/melody';
 	import blocksIcon from '$lib/assets/blocks_icon.png';
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
-	const { unit, piece, code, pieceCode } = $derived(data);
+	const { unit, piece, imageUrl, pageUrl } = $derived(data);
+
+	onMount(() => {
+		sharePreviewStore.set({
+			title: `Blocks - ${piece.label} - ${unit.title}`,
+			description: `Practice blocks game for ${piece.label}`,
+			image: imageUrl,
+			url: pageUrl
+		});
+	});
 
 	function newMelody(): MelodyItem[] {
 		const pool = piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? [];

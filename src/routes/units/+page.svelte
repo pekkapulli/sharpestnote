@@ -3,12 +3,20 @@
 	import type { InstrumentId } from '$lib/config/types';
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
-	sharePreviewStore.set({
-		title: 'Units - The Sharpest Note',
-		description:
-			'Practice materials with accompaniment tracks and interactive games for beginner musicians',
-		type: 'website'
+	let { data } = $props();
+
+	onMount(() => {
+		const origin = data.origin || window.location.origin;
+		sharePreviewStore.set({
+			title: 'Units - The Sharpest Note',
+			description:
+				'Practice materials with accompaniment tracks and interactive games for beginner musicians',
+			type: 'website',
+			image: `${origin}/og-logo.png`,
+			url: `${origin}${data.pathname}`
+		});
 	});
 
 	let selectedInstrument = $state<InstrumentId | 'all'>('all');

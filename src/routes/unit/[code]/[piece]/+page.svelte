@@ -8,18 +8,21 @@
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import { sharePreviewStore } from '$lib/stores/sharePreview.js';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
-	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl } = $derived(data);
+	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl } =
+		$derived(data);
 	let hasKeyAccess = $state(false);
 	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
 
 	// Update share preview when unit data changes
-	$effect(() => {
+	onMount(() => {
 		sharePreviewStore.set({
-			title: unit.title,
+			title: `${piece.label} - ${unit.title}`,
 			description: unit.description,
-			image: imageUrl
+			image: imageUrl,
+			url: pageUrl
 		});
 	});
 

@@ -12,6 +12,7 @@
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess.js';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
 
 	interface Monster {
 		id: number;
@@ -29,7 +30,7 @@
 	}
 
 	const { data } = $props();
-	const { unit, piece, code, pieceCode } = $derived(data);
+	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
 
 	let hasKeyAccess = $state(false);
 
@@ -103,6 +104,14 @@
 	const noteToY = $derived(generateNoteToYMapping(scaleNotes));
 
 	onMount(() => {
+		sharePreviewStore.set({
+			title: `Defend - ${piece.label} - ${unit.title}`,
+			description: `Practice defend game for ${piece.label}`,
+			image: imageUrl,
+			url: pageUrl
+		});
+
+		// Ensure tuner is ready
 		tuner.checkSupport();
 
 		// Load high score from localStorage

@@ -2,6 +2,7 @@
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
 	const { unit, code, imageUrl, instrumentLabel, pageUrl } = $derived(data);
@@ -12,7 +13,7 @@
 	let showSuccessMessage = $state(false);
 
 	// Update share preview when unit data changes
-	$effect(() => {
+	onMount(() => {
 		sharePreviewStore.set({
 			title: unit.title,
 			description: unit.description,

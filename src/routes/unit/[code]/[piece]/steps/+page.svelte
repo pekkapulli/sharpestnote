@@ -3,9 +3,20 @@
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import stepsIcon from '$lib/assets/steps_icon.png';
+	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
-	const { unit, piece } = $derived(data);
+	const { unit, piece, imageUrl, pageUrl } = $derived(data);
+
+	onMount(() => {
+		sharePreviewStore.set({
+			title: `Steps - ${piece.label} - ${unit.title}`,
+			description: `Practice steps for ${piece.label}`,
+			image: imageUrl,
+			url: pageUrl
+		});
+	});
 
 	// Extract unique intervals once when the page loads
 	const intervals = $derived.by(() => {
