@@ -5,7 +5,7 @@
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import { onsetDetectionConfig } from '$lib/config/onset';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	let { data } = $props();
 
@@ -465,15 +465,6 @@
 	}
 
 	onMount(async () => {
-		const origin = data.origin || window.location.origin;
-		sharePreviewStore.set({
-			title: 'Audio Analysis - The Sharpest Note',
-			description: 'Advanced audio analysis tool for analyzing musical performance and tuning',
-			type: 'website',
-			image: `${origin}/og-logo.png`,
-			url: `${origin}${data.pathname}`
-		});
-
 		if (spectrumCanvasEl) {
 			spectrumCtx = spectrumCanvasEl.getContext('2d');
 		}
@@ -522,6 +513,8 @@
 		tuner.destroy();
 	});
 </script>
+
+<SharePreview data={data.sharePreviewData} />
 
 <div class="min-h-screen bg-off-white py-12">
 	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">

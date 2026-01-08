@@ -2,25 +2,12 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	let { data } = $props();
 
 	const a4Options = [440, 442];
 	const tuner = createTuner({ a4: DEFAULT_A4, accidental: 'sharp' });
-
-	onMount(() => {
-		const origin = data.origin || window.location.origin;
-		sharePreviewStore.set({
-			title: 'Tuner - The Sharpest Note',
-			description: 'Free online tuner for musicians learning orchestral instruments',
-			type: 'website',
-			image: `${origin}/og-logo.png`,
-			url: `${origin}${data.pathname}`
-		});
-		tuner.checkSupport();
-		tuner.refreshDevices();
-	});
 
 	const formatHz = (value: number | null) => (value ? value.toFixed(1) : '--');
 	const formatCents = (value: number | null) => {
@@ -43,6 +30,8 @@
 		tuner.a4 = Number(target.value);
 	}
 </script>
+
+<SharePreview data={data.sharePreviewData} />
 
 <div class="min-h-screen bg-off-white py-12">
 	<div class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4">

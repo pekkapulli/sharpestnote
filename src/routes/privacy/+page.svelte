@@ -1,21 +1,11 @@
 <script lang="ts">
 	import BackButton from '$lib/components/ui/BackButton.svelte';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	let { data } = $props();
-
-	onMount(() => {
-		const origin = data.origin || window.location.origin;
-		sharePreviewStore.set({
-			title: 'Privacy Policy - The Sharpest Note',
-			description: 'Privacy policy for The Sharpest Note - how we protect your data',
-			type: 'website',
-			image: `${origin}/og-logo.png`,
-			url: `${origin}${data.pathname}`
-		});
-	});
 </script>
+
+<SharePreview data={data.sharePreviewData} />
 
 <svelte:head>
 	<title>Privacy Policy - SharpestNote</title>

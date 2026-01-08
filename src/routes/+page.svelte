@@ -10,22 +10,9 @@
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
 	import { units } from '$lib/config/units';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
-	import { onMount } from 'svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	let { data } = $props();
-
-	onMount(() => {
-		const origin = data.origin || window.location.origin;
-		sharePreviewStore.set({
-			title: 'The Sharpest Note',
-			description:
-				'Beginner music units with interactive practice tools for orchestral instruments',
-			type: 'website',
-			image: `${origin}/og-logo.png`,
-			url: `${origin}${data.pathname}`
-		});
-	});
 
 	const whatThisIs = [
 		{ icon: printableSheetMusicImage, text: 'Printable sheet music' },
@@ -42,6 +29,8 @@
 		{ icon: listeningImage, text: 'Listening and intonation support' }
 	];
 </script>
+
+<SharePreview data={data.sharePreviewData} />
 
 <div class="py-2rem flex min-h-screen flex-col items-center justify-center bg-off-white px-1">
 	<header class="mt-6 mb-12 flex flex-col items-center px-4 text-center">

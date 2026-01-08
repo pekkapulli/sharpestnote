@@ -4,7 +4,7 @@
 	import type { InstrumentId } from '$lib/config/types';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { onMount } from 'svelte';
-	import { sharePreviewStore } from '$lib/stores/sharePreview';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	let { data } = $props();
 
@@ -15,14 +15,6 @@
 	const tuner = createTuner();
 
 	onMount(() => {
-		const origin = data.origin || window.location.origin;
-		sharePreviewStore.set({
-			title: 'Sight Reading Game - The Sharpest Note',
-			description: 'Interactive sight reading practice game for beginner musicians',
-			type: 'website',
-			image: `${origin}/og-logo.png`,
-			url: `${origin}${data.pathname}`
-		});
 		tuner.checkSupport();
 	});
 
@@ -30,6 +22,8 @@
 		window.location.href = `/sight-game/${selectedInstrument}/${selectedKey}/${selectedMode}`;
 	}
 </script>
+
+<SharePreview data={data.sharePreviewData} />
 
 <div class="flex min-h-screen items-center justify-center bg-off-white">
 	<div class="max-w-2xl text-center">
