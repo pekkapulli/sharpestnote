@@ -10,6 +10,8 @@ export type Speed = 'slow' | 'medium' | 'fast';
 export interface Piece {
 	code: string;
 	label: string;
+	composer: string;
+	arranger: string;
 	tracks: Record<Speed, TrackVariant>;
 	mode: Mode;
 	key: NoteName;
@@ -52,6 +54,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				composer: 'Trad.',
+				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.794,
 				tracks: {
@@ -157,6 +161,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				composer: 'Trad.',
+				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.794,
 				tracks: {
@@ -264,6 +270,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				composer: 'Trad.',
+				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.794,
 				tracks: {
@@ -369,6 +377,8 @@ export const units: Units = {
 			{
 				code: 'twinkle-twinkle-little-star',
 				label: 'Twinkle Twinkle Little Star',
+				composer: 'Trad.',
+				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.794,
 				tracks: {
@@ -474,6 +484,8 @@ export const units: Units = {
 			{
 				code: 'in-the-wind',
 				label: 'In the Wind',
+				composer: 'Pekka Pulli',
+				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.18,
 				notationEndPercent: 0.88,
 				tracks: {
@@ -574,6 +586,8 @@ export const units: Units = {
 			{
 				code: 'raindrops',
 				label: 'Raindrops',
+				composer: 'Pekka Pulli',
+				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.182,
 				notationEndPercent: 0.864,
 				tracks: {

@@ -19,7 +19,7 @@
 
 <div class="min-h-screen bg-off-white px-4 py-12">
 	<div class="mx-auto w-full max-w-5xl">
-		<h1 class="text-4xl font-semibold text-slate-900">Sheet Music Store</h1>
+		<h1 class="text-4xl font-semibold text-slate-900">Units on The Sharpest Note</h1>
 		<p class="mt-3 text-lg text-slate-700">
 			Practice materials with accompaniment tracks and interactive games.
 		</p>

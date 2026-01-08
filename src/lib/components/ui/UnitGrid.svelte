@@ -3,6 +3,7 @@
 	import type { UnitMaterial } from '$lib/config/units';
 	import { getImageUrl } from '$lib/util/getImageUrl';
 	import LinkButton from './LinkButton.svelte';
+	import UnitTrackList from './UnitTrackList.svelte';
 
 	interface Props {
 		units: UnitMaterial[];
@@ -16,20 +17,14 @@
 	{#each units as unit (unit.code)}
 		<article class="unit-card">
 			<div class="unit-card__header">
-				<img
-					src={getImageUrl(unit.code)}
-					alt={`${unit.title} cover art`}
-					class="mb-2 w-full rounded-lg"
-				/>
-				<h2 class="text-xl font-semibold text-slate-900">{unit.title}</h2>
-				<p class="mt-1 text-sm font-semibold text-emerald-700">
-					For {instrumentMap[unit.instrument]?.label ?? unit.instrument}
-				</p>
+				<img src={getImageUrl(unit.code)} alt={`${unit.title} cover art`} class="mb-2 w-full" />
+				<h2 class="unit-title font-semibold text-dark-blue">{unit.title}</h2>
 			</div>
-			<p class="mt-3 text-slate-700">{unit.description}</p>
+			<p class="mt-0 text-dark-blue">{unit.description}</p>
+			<UnitTrackList {unit} />
 			<div class="mt-4 flex gap-2">
 				<LinkButton href={unit.gumroadUrl} color="green">Buy on Gumroad</LinkButton>
-				<LinkButton href={`/unit/${unit.code}`}>Preview</LinkButton>
+				<LinkButton href={`/unit/${unit.code}`}>Preview unit</LinkButton>
 			</div>
 		</article>
 	{/each}
@@ -84,5 +79,10 @@
 	.unit-card__header {
 		border-bottom: 1px solid rgb(241 245 249);
 		padding-bottom: 0.75rem;
+	}
+
+	.unit-title {
+		font-size: 1.5rem;
+		margin-bottom: 0;
 	}
 </style>
