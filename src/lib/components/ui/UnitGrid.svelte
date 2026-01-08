@@ -11,6 +11,18 @@
 	}
 
 	const { units, emptyMessage = 'No materials available.' }: Props = $props();
+
+	function hasUnitAccess(unitCode: string): boolean {
+		if (typeof window === 'undefined') return false;
+		try {
+			const stored = localStorage.getItem(`unit_${unitCode}`);
+			if (!stored) return false;
+			const parsed = JSON.parse(stored);
+			return !!parsed?.keyCode;
+		} catch {
+			return false;
+		}
+	}
 </script>
 
 <div class="unit-grid">
@@ -23,8 +35,12 @@
 			<p class="mt-0 text-dark-blue">{unit.description}</p>
 			<UnitTrackList {unit} />
 			<div class="mt-4 flex gap-2">
-				<LinkButton href={unit.gumroadUrl} color="green">Buy on Gumroad</LinkButton>
-				<LinkButton href={`/unit/${unit.code}`}>Preview unit</LinkButton>
+				{#if hasUnitAccess(unit.code)}
+					<LinkButton href={`/unit/${unit.code}`} color="green">Play unit</LinkButton>
+				{:else}
+					<LinkButton href={unit.gumroadUrl} color="green">Buy on Gumroad</LinkButton>
+					<LinkButton href={`/unit/${unit.code}`}>Preview unit</LinkButton>
+				{/if}
 			</div>
 		</article>
 	{/each}
