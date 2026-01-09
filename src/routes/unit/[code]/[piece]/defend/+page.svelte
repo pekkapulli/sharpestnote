@@ -57,7 +57,7 @@
 	// Use measured container width so spawns stay on-screen, even on small devices
 	function getPlayableWidth() {
 		const measured = containerElement?.getBoundingClientRect().width ?? containerWidth;
-		return Math.max(200, measured - 16); // small inset so monsters appear inside the viewport
+		return Math.max(200, measured - 40); // small inset so monsters appear inside the viewport
 	}
 
 	// Instrument info
@@ -162,6 +162,8 @@
 		monsterSpawnCount = 0;
 		monsters = [];
 		bullets = [];
+		nextMonsterId = 0;
+		nextBulletId = 0;
 		spaceshipY = centerY;
 		gameStartTime = Date.now();
 		if (!tuner.state.isListening) {
@@ -346,9 +348,9 @@
 		<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
 			<div class="flex flex-col items-center">
 				<TitleWithIcon title="Defend" iconUrl={defendIcon} />
-				<p class="mb-6 text-center text-slate-700">
-					Control your spaceship with your instrument. Match scale notes to move up and down and
-					auto-shoot!
+				<p class="mb-6 max-w-xl text-center text-slate-700">
+					Control your spaceship with your instrument. Match the notes in {piece.label} to move up and
+					down and auto-shoot!
 				</p>
 
 				{#if !tuner.state.isListening}
