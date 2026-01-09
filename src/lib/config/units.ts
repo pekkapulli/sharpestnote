@@ -383,19 +383,19 @@ export const units: Units = {
 				notationEndPercent: 0.794,
 				tracks: {
 					slow: {
-						tempo: 60,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+						tempo: 50,
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+50BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+50BPM+Backing+track.mp3'
 					},
 					medium: {
 						tempo: 80,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+80BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+80BPM+Backing+track.mp3'
 					},
 					fast: {
 						tempo: 100,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+100BPM+Backing+track.mp3'
 					}
 				},
 				key: 'D',
