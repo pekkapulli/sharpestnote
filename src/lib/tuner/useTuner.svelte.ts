@@ -596,12 +596,7 @@ export function createTuner(options: TunerOptions = {}) {
 		let onsetDetected = false;
 
 		// Check cooldown FIRST (Step 5 enforcement)
-		// Cooldown is one sixteenth note duration based on tempo
-		const tempo = Math.max(
-			1,
-			untrack(() => tempoBPM.value)
-		);
-		const cooldownMs = lengthToMs(1, tempo);
+		const cooldownMs = Math.max(0, onsetDetectionConfig.cooldownMs);
 		const cooldownActive = timeSinceLastOnset < cooldownMs;
 
 		// Minimum amplitude check for all rules
@@ -614,8 +609,8 @@ export function createTuner(options: TunerOptions = {}) {
 				? computeAdaptiveThreshold(
 						onsetFunctionHistory,
 						onsetFunctionHistory.length - 1,
-						50, // Window size (~0.5 seconds)
-						1.15 // Delta multiplier (slightly above mean)
+						onsetDetectionConfig.adaptiveWindowFrames,
+						onsetDetectionConfig.adaptiveDeltaMultiplier
 					)
 				: 0;
 

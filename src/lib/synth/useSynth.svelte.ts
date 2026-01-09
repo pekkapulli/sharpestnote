@@ -123,7 +123,7 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 		gainCenter.connect(reverbNode);
 		voices.push({ osc: oscCenter, gain: gainCenter });
 
-		const DETUNE = 5; // cents
+		const DETUNE = 2; // cents
 
 		// Left voice (slightly detuned down, lower volume)
 		const oscLeft = audioContext.createOscillator();
