@@ -222,7 +222,12 @@
 		<h3 class="mb-3 text-sm font-semibold text-dark-blue">Listen and practice</h3>
 		<div class="player-box">
 			{#if hasKeyAccess}
-				<RollingStaff {piece} progress={currentTime / duration} {selectedSpeed} />
+				<RollingStaff
+					{piece}
+					progress={currentTime / duration}
+					{selectedSpeed}
+					instrumentId={unit.instrument}
+				/>
 			{:else}
 				<p class="mb-4 text-center text-sm text-slate-600">
 					Unlock rolling sheet music by purchasing the unit.

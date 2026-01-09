@@ -1,15 +1,22 @@
 <script lang="ts">
 	import type { Piece, Speed } from '$lib/config/units';
+	import type { InstrumentId } from '$lib/config/types';
 	import Staff from '$lib/components/music/Staff.svelte';
 	import { getKeySignature } from '$lib/config/keys';
+	import { instrumentConfigs } from '$lib/config/instruments';
 
 	interface Props {
 		piece: Piece;
 		progress: number; // 0-1, where 1 is 100% complete
 		selectedSpeed: Speed;
+		instrumentId: InstrumentId;
 	}
 
-	let { piece, progress, selectedSpeed }: Props = $props();
+	let { piece, progress, selectedSpeed, instrumentId }: Props = $props();
+
+	// Get instrument config for clef
+	const instrumentConfig = $derived(instrumentConfigs.find((config) => config.id === instrumentId));
+	const clef = $derived(instrumentConfig?.clef ?? 'treble');
 
 	// Get the current track's tempo
 	const currentTempo = $derived(piece.tracks[selectedSpeed].tempo);
@@ -83,7 +90,7 @@
 					sequence={flattenedMelody}
 					{keySignature}
 					mode={piece.mode}
-					clef="treble"
+					{clef}
 					barLength={piece.barLength}
 					minWidth={minStaffWidth}
 					bind:firstNoteX
