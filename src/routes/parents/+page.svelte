@@ -35,7 +35,13 @@
 			<li>scans a QR code on the page</li>
 			<li>practices with short musical activities on a phone, tablet, or computer</li>
 		</ul>
-		<p>No accounts, logins, or setup needed.</p>
+		<p>
+			Units are chosen by the teacher and purchased by the family for personal use. No accounts,
+			logins, or setup needed.
+		</p>
+		<p class="text-sm text-slate-700">
+			Self-guided adult learners can follow the same flow: choose a unit, print, scan, and practice.
+		</p>
 	</QASection>
 
 	<QASection title="Is this meant to be used alone?">
@@ -91,8 +97,8 @@
 	<QASection title="Do I need to buy something?">
 		<p>Some units are free, and others are paid.</p>
 		<p>
-			Teachers or parents can choose what to use. There are no subscriptions, hidden fees, or
-			automatic renewals.
+			Teachers recommend the unit; families buy a single-household license for their student. There
+			are no subscriptions, hidden fees, or automatic renewals.
 		</p>
 	</QASection>
 

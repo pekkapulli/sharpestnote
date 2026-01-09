@@ -23,9 +23,9 @@
 
 	<QASection title="Who is this for?">
 		<p>
-			The materials are designed primarily for teachers and private studios, and are used by
-			students in lessons and at home. They work well for individual teaching and mixed-ability
-			studios.
+			Like method books, teachers choose the material and families purchase individual units for
+			their student. The units also work well for self-guided adult beginners who want structured,
+			musical practice. They fit one-to-one lessons and are easy to use at home.
 		</p>
 	</QASection>
 
@@ -79,21 +79,23 @@
 
 	<QASection title="Can I use this with all my students?">
 		<p>
-			Yes. Each purchase includes a single-studio license, allowing you to use the materials with
-			all of your own students.
+			Each unit is licensed for a single household (one student and their family). Teachers should
+			recommend that families purchase their own copy, or purchase on behalf of a single student.
+			For studio-wide or institutional use, please contact us.
 		</p>
 	</QASection>
 
 	<QASection title="Can I share the files with my students?">
 		<p>
-			Yes. You may share PDFs and audio files directly with your students for study and practice.
+			Yes, within the licensed household and their teacher. The PDFs and audio may be shared between
+			the student, their family, and their teacher for study and practice.
 		</p>
 	</QASection>
 
 	<QASection title="Can I share the materials publicly or resell them?">
 		<p>
 			No. The materials may not be resold, redistributed publicly, or uploaded to shared drives or
-			websites.
+			websites. For broader licensing needs, reach out to us.
 		</p>
 	</QASection>
 
@@ -111,7 +113,7 @@
 	<QASection title="Can I use this in a school or institution?">
 		<p>
 			If you teach in a school, institution, or multi-teacher program and need broader usage, please
-			get in touch.
+			get in touch for a wider license.
 		</p>
 	</QASection>
 

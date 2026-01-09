@@ -36,10 +36,10 @@
 	<header class="mt-6 mb-12 flex flex-col items-center px-4 text-center">
 		<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
 
-		<h2 class="mb-4 text-center text-2xl font-light">
+		<h2 class="mb-4 max-w-lg text-center text-xl font-light">
 			Beginner units for orchestral instruments, with interactive practice tools.
 		</h2>
-		<p class="text-center">Built for music educators and curious ears.</p>
+		<p class="text-center">Built for music educators, families, and adult learners.</p>
 		<nav
 			class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
 		>
@@ -83,22 +83,20 @@
 	<section class="mt-16 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">How teachers use it</h2>
 		<p>
-			Most teachers use The Sharpest Note alongside their existing method books. No accounts. No
-			subscriptions. No setup for students. Buy once, use forever.
+			The Sharpest Note works like any method book. Teachers pick the units; families purchase them
+			for personal use. No accounts. No subscriptions. No setup for students.
+		</p>
+		<p class="mt-2 text-sm text-slate-700">
+			Self-guided adult learners can simply choose a unit, download it, and practice the same way.
 		</p>
 		<CardGrid items={howTeachersUse} />
 	</section>
 
 	<section class="mt-16 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">How it works</h2>
-		<ul>
-			<li>Choose a unit for your instrument</li>
-			<li>Download the PDFs and give to your student</li>
-			<li>Students scan the QR code to practice interactively between lessons</li>
-		</ul>
 		<p>
-			The interactive material runs directly in the browser and works on phones, tablets, and
-			computers.
+			Students scan the QR code on the sheet music to practice interactively between lessons. The
+			interactive material runs directly in the browser and works on phones, tablets, and computers.
 		</p>
 	</section>
 
@@ -114,10 +112,10 @@
 	</section>
 
 	<section class="mt-16 w-full max-w-md">
-		<h2 class="mb-4 text-2xl font-semibold">Licencing</h2>
+		<h2 class="mb-4 text-2xl font-semibold">Licensing</h2>
 		<p>
-			Units are sold as one-time purchases and include a single-studio license. You may use the
-			materials with all of your own students.
+			Units are one-time purchases with a single-household license for personal use with your
+			teacher. For school, studio-wide, or institutional use, please get in touch.
 		</p>
 	</section>
 
