@@ -87,13 +87,23 @@ export const onsetDetectionConfig = {
 	// NORMALIZATION
 	// ========================================================================
 	historyLength: 30, // ~300ms of history for local normalization (at ~100fps)
-	minHistoryForNormalization: 10, // Need at least 10 samples before normalizing
+	minHistoryForNormalization: 10, // Need at least 10 samples before normalizing for robust median/MAD statistics (~100ms)
 	madMultiplier: 1.4826, // MAD * 1.4826 ≈ std dev for normal distributions
 
 	// ========================================================================
 	// FEATURE EXTRACTION
 	// ========================================================================
 	minMagnitudeForPhaseAnalysis: 0.01, // Ignore phase in quiet bins
+
+	// ========================================================================
+	// NOTE OUTPUT DEBOUNCING
+	// ========================================================================
+	/**
+	 * How long to debounce note changes after onset fires.
+	 * Reduces flickering between adjacent notes (C4 ↔ C#4) during attack transients.
+	 * Trade-off: Lower = faster note reporting, Higher = cleaner output.
+	 */
+	noteDebounceMs: 20, // Reduced from 200ms for faster note reporting
 
 	// ========================================================================
 	// SPECTRAL WHITENING

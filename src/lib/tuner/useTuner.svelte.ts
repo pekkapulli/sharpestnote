@@ -117,6 +117,34 @@ export function createTuner(options: TunerOptions = {}) {
 		phaseDeviation: 0
 	});
 
+	// Performance monitoring
+	const performanceMetrics = $state({
+		timeDomainMs: 0,
+		fftMs: 0,
+		whitteningMs: 0,
+		pitchDetectionMs: 0,
+		normalizationMs: 0,
+		onsetDecisionMs: 0,
+		noteEndMs: 0,
+		pitchTrackingMs: 0,
+		autoGainMs: 0,
+		totalMs: 0,
+		frameCount: 0,
+		// Latency tracking (end-to-end from synth start to onset)
+		timeSinceFirstAmplitude: 0, // ms since amplitude first exceeded threshold
+		timeSincePitchLocked: 0, // ms since hasPitch became true
+		timeSinceOnset: 0, // ms since last onset fired
+		timeSinceNoteOutput: 0, // ms from onset to note appearing (includes debounce)
+		lastOnsetTimestamp: 0
+	});
+
+	// Track when analysis session started (for latency measurement)
+	let sessionStartTime: number | null = null;
+	let firstAmplitudeTime: number | null = null;
+	let firstPitchLockTime: number | null = null;
+	let lastOnsetTime_latency: number | null = null; // Track for latency measurement
+	let firstNoteOutputTime: number | null = null; // Track when note first appears
+
 	const a4 = $state({ value: options.a4 ?? 442 });
 	const accidental = $state({ value: options.accidental ?? 'sharp' });
 	const debounceTime = $state({ value: options.debounceTime ?? 200 });
@@ -317,6 +345,15 @@ export function createTuner(options: TunerOptions = {}) {
 		previousWhitenedMagnitudes = null;
 		onsetFunctionHistory.length = 0;
 
+		// Reset latency tracking
+		sessionStartTime = null;
+		firstAmplitudeTime = null;
+		firstPitchLockTime = null;
+		lastOnsetTime_latency = null;
+		firstNoteOutputTime = null;
+		lastOnsetTime_latency = null;
+		firstNoteOutputTime = null;
+
 		spectrumBuffer = null;
 		state.spectrum = null;
 		state.phases = null;
@@ -337,19 +374,33 @@ export function createTuner(options: TunerOptions = {}) {
 		const analyser = chain.analyser;
 		const gainNode = chain.gainNode;
 
+		// Performance timing
+		const tickStart = performance.now();
+		let stepStart: number;
+
 		const now = performance.now();
 		if (lastTickAt === null) lastTickAt = now;
 		const dt = now - lastTickAt;
 
+		// Get instrument tuning parameters early (needed for latency tracking)
+		const instrumentType = untrack(() => instrument.value as InstrumentKind);
+		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
+
+		// ========================================================================
+		// TIME DOMAIN DATA
+		// ========================================================================
+		stepStart = performance.now();
 		const tempData = new Float32Array(analyser.fftSize) as Float32Array<ArrayBuffer>;
 		analyser.getFloatTimeDomainData(tempData);
 		const amplitude = calculateAmplitude(tempData);
+		performanceMetrics.timeDomainMs = performance.now() - stepStart;
 
 		// ========================================================================
 		// STEP 1 — PER-FRAME FEATURE EXTRACTION
 		// ========================================================================
 
 		// 1.1: Compute spectrum (magnitudes + phases)
+		stepStart = performance.now();
 		const fftResult = performFFT(tempData, audioContext.sampleRate, true);
 
 		// 1.1a: Apply SuperFlux preprocessing (maximum filter + log-frequency grouping)
@@ -361,12 +412,14 @@ export function createTuner(options: TunerOptions = {}) {
 			analyser.fftSize,
 			3 // bands per octave
 		);
+		performanceMetrics.fftMs = performance.now() - stepStart;
 
 		// Store previous log-grouped magnitudes for flux calculation
 		let previousLogMagnitudes: Float32Array | null = null;
 
 		// 1.1b: Apply spectral whitening (if enabled)
 		// Normalize each frequency bin by its running average to enhance transients
+		stepStart = performance.now();
 		let whitenedMagnitudes: Float32Array | null = null;
 		if (onsetDetectionConfig.spectralWhiteningEnabled) {
 			// Initialize magnitude averages on first frame
@@ -386,9 +439,11 @@ export function createTuner(options: TunerOptions = {}) {
 				onsetDetectionConfig.whiteningMaxClamp
 			);
 		}
+		performanceMetrics.whitteningMs = performance.now() - stepStart;
 
 		// 1.2: Estimate pitch (with confidence)
 		// Update history BEFORE stability check
+		stepStart = performance.now();
 		const freq = autoCorrelate(tempData, audioContext.sampleRate);
 		frequencyHistory.push(freq);
 		amplitudeHistory.push(amplitude);
@@ -439,6 +494,25 @@ export function createTuner(options: TunerOptions = {}) {
 
 		const hasPitch = isStable && inRange;
 
+		// Track latency milestones
+		if (sessionStartTime === null && amplitude > tuning.onsetMinAmplitude * 0.3) {
+			sessionStartTime = now; // First meaningful signal
+		}
+		if (firstAmplitudeTime === null && amplitude > tuning.onsetMinAmplitude) {
+			firstAmplitudeTime = now; // Reached minimum amplitude
+		}
+		if (firstPitchLockTime === null && hasPitch) {
+			firstPitchLockTime = now; // First stable pitch lock
+		}
+
+		// Calculate milestone gaps (one-time measurements)
+		if (sessionStartTime !== null && firstAmplitudeTime !== null) {
+			performanceMetrics.timeSinceFirstAmplitude = firstAmplitudeTime - sessionStartTime;
+		}
+		if (firstAmplitudeTime !== null && firstPitchLockTime !== null) {
+			performanceMetrics.timeSincePitchLocked = firstPitchLockTime - firstAmplitudeTime;
+		}
+
 		// 1.3: Compute excitation cue (HF spectral flux)
 		// High-frequency weighted, positive-only spectral flux
 		// Use whitened magnitudes if enabled, otherwise use log-grouped magnitudes from SuperFlux
@@ -463,6 +537,7 @@ export function createTuner(options: TunerOptions = {}) {
 			audioContext.sampleRate,
 			analyser.fftSize
 		);
+		performanceMetrics.pitchDetectionMs = performance.now() - stepStart;
 
 		// Expose analysis metrics for visualization
 		state.spectralFlux = excitationCue;
@@ -499,6 +574,8 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// ========================================================================
 		// STEP 2 — LOCAL NORMALIZATION
+		// ========================================================================
+		stepStart = performance.now();
 		// ========================================================================
 
 		// Maintain sliding history for excitation and phase cues
@@ -538,6 +615,7 @@ export function createTuner(options: TunerOptions = {}) {
 		const normalizedAmplitudeSlope = computeNormalized(amplitudeDelta, amplitudeDeltaHistory);
 		const normalizedPhase = computeNormalized(phaseCue, phaseHistory);
 		const normalizedAmplitude = computeNormalized(amplitude, amplitudeHistory);
+		performanceMetrics.normalizationMs = performance.now() - stepStart;
 
 		// Track combined onset function for SuperFlux adaptive thresholding
 		// Combine excitation and phase as a unified onset detection function
@@ -588,10 +666,9 @@ export function createTuner(options: TunerOptions = {}) {
 		// ========================================================================
 		// STEP 4 — ONSET DECISION RULES
 		// ========================================================================
+		stepStart = performance.now();
 
 		const timeSinceLastOnset = now - lastOnsetTime;
-		const instrumentType = untrack(() => instrument.value as InstrumentKind);
-		const tuning = getDetectionConfig(instrumentType, instrumentMap, genericDetectionConfig);
 
 		let onsetDetected = false;
 
@@ -623,7 +700,7 @@ export function createTuner(options: TunerOptions = {}) {
 					`✓ Onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, confidence=${pitchConfidence.toFixed(2)}`
 				);
 			}
-			// Rule B1 — Re-articulation: excitation only (sufficient for detecting attacks)
+			// Rule B1 — Re-articulation: excitation cue (sufficient for detecting attacks)
 			// Enhanced with SuperFlux adaptive threshold
 			else if (
 				hasPitch &&
@@ -695,30 +772,6 @@ export function createTuner(options: TunerOptions = {}) {
 					);
 				}
 			}
-			// Rule B6 — Burst-on-rise without pitch lock (fallback)
-			// else if (
-			// 	!hasPitch &&
-			// 	normalizedHarmonicFlux > onsetDetectionConfig.b6_minNormalizedHarmonicFlux &&
-			// 	relativeHarmonicIncrease >= onsetDetectionConfig.b6_minRelativeIncrease &&
-			// 	normalizedAmplitudeSlope > onsetDetectionConfig.b6_minAmplitudeSlope &&
-			// 	amplitude > tuning.onsetMinAmplitude * onsetDetectionConfig.b6_minAmplitudeGateMultiplier
-			// ) {
-			// 	onsetDetected = true;
-			// 	state.lastOnsetRule = 'B6';
-			// 	console.log(
-			// 		`✓ Onset: Rule B6 (burst-on-rise) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% ampSlope=${normalizedAmplitudeSlope.toFixed(2)}`
-			// 	);
-			// }
-			// Rule C — Raw phase threshold: very reliable for phase-based attacks
-			// else if (hasPitch && phaseCue > onsetDetectionConfig.c_minRawPhase) {
-			// 	// Raw phase alone (no excitation requirement)
-			// 	// Catches all plucks/attacks where phase disruption is clear
-			// 	onsetDetected = true;
-			// 	state.lastOnsetRule = 'C';
-			// 	console.log(
-			// 		`✓ Onset: Rule C (raw phase) - rawPhase=${phaseCue.toFixed(2)} freq=${freq.toFixed(1)}Hz`
-			// 	);
-			// }
 			// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
 			else if (hasPitch && normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase) {
 				// Very strong phase with pitch lock
@@ -736,6 +789,12 @@ export function createTuner(options: TunerOptions = {}) {
 		// Apply onset if detected
 		if (onsetDetected) {
 			lastOnsetTime = now;
+			lastOnsetTime_latency = now; // Track for latency measurement
+			performanceMetrics.lastOnsetTimestamp = now;
+			// Track time from first amplitude to onset
+			if (firstAmplitudeTime !== null) {
+				performanceMetrics.timeSinceOnset = now - firstAmplitudeTime;
+			}
 			state.isNoteActive = true;
 			peakAmplitudeSinceOnset = amplitude;
 			// Only update stable pitch if confidence is high (after pitch change onset)
@@ -754,10 +813,12 @@ export function createTuner(options: TunerOptions = {}) {
 				});
 			}
 		}
+		performanceMetrics.onsetDecisionMs = performance.now() - stepStart;
 
 		// ========================================================================
 		// STEP 6 — NOTE END TRACKING (separate path, no feed into onset detection)
 		// ========================================================================
+		stepStart = performance.now();
 
 		// Track rolling peak amplitude for auto-gain (whether note is active or not)
 		peakAmplitudeWindow.push(amplitude);
@@ -796,10 +857,12 @@ export function createTuner(options: TunerOptions = {}) {
 				endCandidateStart = null;
 			}
 		}
+		performanceMetrics.noteEndMs = performance.now() - stepStart;
 
 		// ========================================================================
 		// STEP 7 — STATE UPDATE
 		// ========================================================================
+		stepStart = performance.now();
 
 		// Store current frame data for next iteration
 		previousFFT = fftResult;
@@ -840,7 +903,12 @@ export function createTuner(options: TunerOptions = {}) {
 					debouncedNote = pendingNote;
 					state.note = pendingNote;
 					noteDebounceId = null;
-				}, debounceTime.value);
+					// Track when note actually appears in state
+					if (firstNoteOutputTime === null && lastOnsetTime_latency !== null) {
+						firstNoteOutputTime = performance.now();
+						performanceMetrics.timeSinceNoteOutput = firstNoteOutputTime - lastOnsetTime_latency;
+					}
+				}, onsetDetectionConfig.noteDebounceMs);
 			} else if (noteDebounceId === null && state.note !== debouncedNote) {
 				// Timer already fired; sync state if needed
 				state.note = debouncedNote;
@@ -877,8 +945,10 @@ export function createTuner(options: TunerOptions = {}) {
 			holdMs = 0;
 			state.heldSixteenths = 0;
 		}
+		performanceMetrics.pitchTrackingMs = performance.now() - stepStart;
 
 		lastTickAt = now;
+		stepStart = performance.now();
 
 		autoGainElapsed += dt;
 		// Auto gain: continuously adapt input level based on recent peak amplitude
@@ -920,6 +990,11 @@ export function createTuner(options: TunerOptions = {}) {
 				}
 			}
 		}
+		performanceMetrics.autoGainMs = performance.now() - stepStart;
+
+		// Final timing update
+		performanceMetrics.totalMs = performance.now() - tickStart;
+		performanceMetrics.frameCount++;
 
 		rafId = requestAnimationFrame(tick);
 	}
@@ -962,6 +1037,17 @@ export function createTuner(options: TunerOptions = {}) {
 	return {
 		get state() {
 			return state;
+		},
+		get performanceMetrics() {
+			return performanceMetrics;
+		},
+		resetLatencyTracking() {
+			sessionStartTime = null;
+			firstAmplitudeTime = null;
+			firstPitchLockTime = null;
+			performanceMetrics.timeSinceFirstAmplitude = 0;
+			performanceMetrics.timeSincePitchLocked = 0;
+			performanceMetrics.timeSinceOnset = 0;
 		},
 		get a4() {
 			return a4.value;

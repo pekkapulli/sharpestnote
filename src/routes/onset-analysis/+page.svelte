@@ -663,6 +663,7 @@
 		lastNoteStartTime = performance.now();
 		lastOnsetLatency = null;
 		onsetLatencyStatus = 'waiting';
+		tuner.resetLatencyTracking();
 
 		isPlayingNote = true;
 		const note: MelodyItem = {
@@ -690,6 +691,7 @@
 		lastNoteStartTime = performance.now();
 		lastOnsetLatency = null;
 		onsetLatencyStatus = 'waiting';
+		tuner.resetLatencyTracking();
 
 		// Select random note
 		const randomIndex = Math.floor(Math.random() * availableNotes.length);
@@ -854,6 +856,242 @@
 						</div>
 						<canvas bind:this={latencyChartCanvasEl} class="h-48 w-full rounded-xl bg-slate-900"
 						></canvas>
+					</div>
+
+					<!-- Performance Metrics Panel -->
+					<!-- <div class="rounded-2xl bg-white p-4 shadow-sm">
+						<div class="mb-4 flex items-center justify-between">
+							<p class="text-sm font-semibold text-slate-700">Analysis Performance (last frame)</p>
+							<span class="rounded-full bg-blue-100 px-3 py-1 font-mono text-xs text-blue-700">
+								{tuner.performanceMetrics.totalMs.toFixed(2)}ms
+							</span>
+						</div>
+
+						<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Time Domain</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.timeDomainMs.toFixed(2)}ms
+								</p>
+								<div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+									<div
+										class="h-full bg-blue-500"
+										style="width: {Math.min(
+											100,
+											(tuner.performanceMetrics.timeDomainMs / tuner.performanceMetrics.totalMs) *
+												100
+										)}%"
+									></div>
+								</div>
+							</div>
+
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">FFT</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.fftMs.toFixed(2)}ms
+								</p>
+								<div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+									<div
+										class="h-full bg-green-500"
+										style="width: {Math.min(
+											100,
+											(tuner.performanceMetrics.fftMs / tuner.performanceMetrics.totalMs) * 100
+										)}%"
+									></div>
+								</div>
+							</div>
+
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Pitch Detection</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.pitchDetectionMs.toFixed(2)}ms
+								</p>
+								<div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+									<div
+										class="h-full bg-purple-500"
+										style="width: {Math.min(
+											100,
+											(tuner.performanceMetrics.pitchDetectionMs /
+												tuner.performanceMetrics.totalMs) *
+												100
+										)}%"
+									></div>
+								</div>
+							</div>
+
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Normalization</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.normalizationMs.toFixed(2)}ms
+								</p>
+								<div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+									<div
+										class="h-full bg-yellow-500"
+										style="width: {Math.min(
+											100,
+											(tuner.performanceMetrics.normalizationMs /
+												tuner.performanceMetrics.totalMs) *
+												100
+										)}%"
+									></div>
+								</div>
+							</div>
+
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Onset Decision</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.onsetDecisionMs.toFixed(2)}ms
+								</p>
+								<div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+									<div
+										class="h-full bg-orange-500"
+										style="width: {Math.min(
+											100,
+											(tuner.performanceMetrics.onsetDecisionMs /
+												tuner.performanceMetrics.totalMs) *
+												100
+										)}%"
+									></div>
+								</div>
+							</div>
+
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Other</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{(
+										tuner.performanceMetrics.totalMs -
+										tuner.performanceMetrics.timeDomainMs -
+										tuner.performanceMetrics.fftMs -
+										tuner.performanceMetrics.pitchDetectionMs -
+										tuner.performanceMetrics.normalizationMs -
+										tuner.performanceMetrics.onsetDecisionMs
+									).toFixed(2)}ms
+								</p>
+								<div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+									<div
+										class="h-full bg-slate-500"
+										style="width: {Math.min(
+											100,
+											((tuner.performanceMetrics.totalMs -
+												tuner.performanceMetrics.timeDomainMs -
+												tuner.performanceMetrics.fftMs -
+												tuner.performanceMetrics.pitchDetectionMs -
+												tuner.performanceMetrics.normalizationMs -
+												tuner.performanceMetrics.onsetDecisionMs) /
+												tuner.performanceMetrics.totalMs) *
+												100
+										)}%"
+									></div>
+								</div>
+							</div>
+						</div>
+
+						<div class="mt-4 pt-3 text-xs text-slate-500">
+							Frame #{tuner.performanceMetrics.frameCount}
+							• Target: ~16.67ms @ 60fps
+						</div>
+					</div> -->
+
+					<!-- Latency Milestones Panel -->
+					<div class="rounded-2xl bg-white p-4 shadow-sm">
+						<div class="mb-4 flex items-center justify-between">
+							<p class="text-sm font-semibold text-slate-700">Latency Breakdown (ms)</p>
+							{#if tuner.performanceMetrics.timeSinceOnset > 0}
+								<span
+									class="rounded-full bg-red-100 px-3 py-1 font-mono text-xs font-bold text-red-700"
+								>
+									{tuner.performanceMetrics.timeSinceOnset.toFixed(0)}ms total
+								</span>
+							{/if}
+						</div>
+
+						<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+							<!-- Time to min amplitude -->
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Signal detected</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.timeSinceFirstAmplitude.toFixed(0)}ms
+								</p>
+								<p class="mt-1 text-xs text-slate-500">From weak signal → min amplitude</p>
+							</div>
+
+							<!-- Time to pitch lock -->
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Pitch locked</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.timeSincePitchLocked.toFixed(0)}ms
+								</p>
+								<p class="mt-1 text-xs text-slate-500">From min amplitude → stable pitch</p>
+							</div>
+
+							<!-- Total onset latency -->
+							<div class="rounded-lg bg-red-50 p-3">
+								<p class="text-xs font-semibold text-red-700">Onset latency</p>
+								<p class="mt-1 font-mono text-lg font-bold text-red-600">
+									{tuner.performanceMetrics.timeSinceOnset.toFixed(0)}ms
+								</p>
+								<p class="mt-1 text-xs text-red-600">Min amplitude → onset fired</p>
+							</div>
+
+							<!-- Note debounce (actual measured) -->
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Note debounce</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.timeSinceNoteOutput.toFixed(0)}ms
+								</p>
+								<p class="mt-1 text-xs text-slate-500">Onset fired → note in output</p>
+							</div>
+
+							<!-- Per-frame processing -->
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Per-frame avg</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.totalMs.toFixed(2)}ms
+								</p>
+								<p class="mt-1 text-xs text-slate-500">Analysis only (not bottleneck)</p>
+							</div>
+
+							<!-- Component breakdown -->
+							<div class="rounded-lg bg-slate-50 p-3">
+								<p class="text-xs text-slate-600">Stability wait</p>
+								<p class="mt-1 font-mono text-sm font-semibold text-slate-800">
+									{tuner.performanceMetrics.timeSincePitchLocked > 0
+										? (
+												tuner.performanceMetrics.timeSincePitchLocked -
+												(tuner.performanceMetrics.timeSinceFirstAmplitude -
+													tuner.performanceMetrics.timeSincePitchLocked)
+											).toFixed(0)
+										: '—'}ms
+								</p>
+								<p class="mt-1 text-xs text-slate-500">
+									Pitch stability check (hardest bottleneck)
+								</p>
+							</div>
+						</div>
+
+						<div class="mt-4 border-t border-slate-200 pt-3">
+							<p class="text-xs font-semibold text-slate-600">Where's the 500ms going?</p>
+							<ul class="mt-2 space-y-1 text-xs text-slate-600">
+								<li>
+									• <strong>Pitch stability (100–200ms):</strong> Frequency must be stable across ~10
+									frames
+								</li>
+								<li>
+									• <strong>Onset rules fire (10–50ms):</strong> After pitch locks, detects excitation/phase
+									changes
+								</li>
+								<li>
+									• <strong>Note debounce (200ms):</strong> Debouncing prevents note chatter but adds
+									latency
+								</li>
+								<li>
+									• <strong>Frame processing (&lt;20ms):</strong> FFT, spectral analysis, normalization
+								</li>
+								<li class="text-slate-500 italic">
+									→ Removing debounce would save 200ms but risks false notes
+								</li>
+							</ul>
+						</div>
 					</div>
 
 					<div class="flex flex-col gap-4">
@@ -1085,6 +1323,21 @@
 											max="200"
 											step="5"
 											bind:value={config.cooldownMs}
+											class="w-full"
+										/>
+									</div>
+
+									<div class="mt-3">
+										<label class="mb-1 block text-xs text-slate-600" for="note-debounce-ms">
+											Note Debounce: {config.noteDebounceMs} ms
+										</label>
+										<input
+											id="note-debounce-ms"
+											type="range"
+											min="10"
+											max="200"
+											step="5"
+											bind:value={config.noteDebounceMs}
 											class="w-full"
 										/>
 									</div>
