@@ -15,13 +15,13 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE B1: Both excitation + phase cues moderate
 	// ========================================================================
-	b1_minNormalizedExcitation: 0.8, // Excitation must be > 0.8 sigma (more sensitive)
+	b1_minNormalizedExcitation: 3.0, // Excitation must be > 3.0 sigma (genuine attack only)
 	b1_minNormalizedPhase: 1.0, // Phase must be > 1.0 sigma
 
 	// ========================================================================
 	// RULE B2: Asymmetric - phase dominant with weak excitation
 	// ========================================================================
-	b2_minNormalizedPhase: 1.2, // Strong phase (> 1.2 sigma)
+	b2_minNormalizedPhase: 2.5, // Strong phase (> 2.5 sigma)
 	b2_minNormalizedExcitation: -0.8, // Allow weaker/negative excitation (> -0.8 sigma)
 
 	// ========================================================================
@@ -32,7 +32,7 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE B4: Harmonic-focused excitation (bow direction changes)
 	// ========================================================================
-	b4_minNormalizedHarmonicFlux: 1.1, // Harmonic flux > 1.1 sigma (more sensitive)
+	b4_minNormalizedHarmonicFlux: 3.0, // Harmonic flux > 3.0 sigma (genuine re-articulation only)
 	b4_minRelativeIncrease: 0.2, // Require ≥20% increase vs previous frame
 
 	// ========================================================================
@@ -70,7 +70,7 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// COOLDOWN & AMPLITUDE
 	// ========================================================================
-	cooldownMs: 30, // Refractory period after onset (30ms) to catch quick notes
+	cooldownMs: 150, // Refractory period after onset (~150ms minimum for string re-articulation)
 	minAmplitudeRequired: true, // Require minimum amplitude for all rules
 	adaptiveWindowFrames: 50, // Window size (frames) for adaptive threshold (~0.5s at 100fps)
 	adaptiveDeltaMultiplier: 1.15, // Multiplier above local mean for adaptive threshold

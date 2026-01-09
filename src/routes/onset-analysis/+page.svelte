@@ -20,7 +20,7 @@
 
 	// Create synth instance
 	const synth = createSynth({
-		waveform: 'sine',
+		waveform: 'sawtooth',
 		volume: 0.25,
 		attack: 0.02,
 		decay: 0.1,
@@ -38,7 +38,7 @@
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
 		accidental: 'sharp',
-		debug: false,
+		debug: true,
 		gain: 15,
 		maxGain: 500,
 		autoGain: true,

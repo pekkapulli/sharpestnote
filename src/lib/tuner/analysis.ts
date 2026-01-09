@@ -43,13 +43,13 @@ export function getInstrumentSoundingRange(
 export function isFrequencyStable(
 	freq: number,
 	frequencyHistory: number[],
-	windowSize: number = 10
+	windowSize: number = 3
 ): boolean {
 	if (frequencyHistory.length < windowSize) return false;
 	const recent = frequencyHistory.slice(-windowSize);
 	const avg = recent.reduce((a, b) => a + b) / recent.length;
 	const variance = recent.reduce((sum, f) => sum + Math.abs(f - avg), 0) / recent.length;
-	const tolerancePercent = freq < 100 ? 0.04 : 0.03;
+	const tolerancePercent = freq < 100 ? 0.06 : 0.05; // 6% for low freq, 5% otherwise
 	return variance < avg * tolerancePercent;
 }
 

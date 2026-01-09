@@ -454,9 +454,9 @@ export function createTuner(options: TunerOptions = {}) {
 		const amplitudeDelta = amplitude - previousAmplitude;
 		amplitudeDeltaHistory.push(amplitudeDelta);
 
-		if (frequencyHistory.length > 20) frequencyHistory.shift();
-		if (amplitudeHistory.length > 20) amplitudeHistory.shift();
-		if (amplitudeDeltaHistory.length > 20) amplitudeDeltaHistory.shift();
+		if (frequencyHistory.length > 10) frequencyHistory.shift();
+		if (amplitudeHistory.length > 10) amplitudeHistory.shift();
+		if (amplitudeDeltaHistory.length > 10) amplitudeDeltaHistory.shift();
 
 		// Check frequency stability first
 		const isStable = freq > 0 && isFrequencyStable(freq, frequencyHistory);
@@ -500,6 +500,10 @@ export function createTuner(options: TunerOptions = {}) {
 		}
 		if (firstAmplitudeTime === null && amplitude > tuning.onsetMinAmplitude) {
 			firstAmplitudeTime = now; // Reached minimum amplitude
+			// Clear stale history from silence/noise so stability check works on fresh note data
+			frequencyHistory.length = 0;
+			amplitudeHistory.length = 0;
+			amplitudeDeltaHistory.length = 0;
 		}
 		if (firstPitchLockTime === null && hasPitch) {
 			firstPitchLockTime = now; // First stable pitch lock
@@ -691,6 +695,11 @@ export function createTuner(options: TunerOptions = {}) {
 					)
 				: 0;
 
+		// B-rules only fire for re-articulation of the same note (pitch coherence check)
+		// Allow ±50 cents deviation from stable pitch (half a semitone) for repeat note detection
+		const frequencyCoherent =
+			stablePitch && freq > 0 && Math.abs(1200 * Math.log2(freq / stablePitch)) < 50; // Within ±50 cents
+
 		if (!cooldownActive && hasMinAmplitude) {
 			// Rule A — Guaranteed onset: pitch change with high confidence
 			if (pitchChangeDetected) {
@@ -702,8 +711,10 @@ export function createTuner(options: TunerOptions = {}) {
 			}
 			// Rule B1 — Re-articulation: excitation cue (sufficient for detecting attacks)
 			// Enhanced with SuperFlux adaptive threshold
+			// Only fires if frequency matches established pitch (same note re-articulation)
 			else if (
 				hasPitch &&
+				frequencyCoherent &&
 				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation && // Moderate excitation
 				(onsetFunctionHistory.length < 10 || combinedOnsetFunction > adaptiveThreshold) // Adaptive check
 			) {
@@ -714,8 +725,10 @@ export function createTuner(options: TunerOptions = {}) {
 				);
 			}
 			// Rule B2 — Asymmetric: strong phase + weak/negative excitation (require pitch lock)
+			// Only fires if frequency matches established pitch (same note re-articulation)
 			else if (
 				hasPitch &&
+				frequencyCoherent &&
 				normalizedPhase > onsetDetectionConfig.b2_minNormalizedPhase && // Strong phase
 				normalizedExcitation > onsetDetectionConfig.b2_minNormalizedExcitation // Allow negative excitation
 			) {
@@ -726,7 +739,12 @@ export function createTuner(options: TunerOptions = {}) {
 				);
 			}
 			// Rule B3 — Very strong excitation alone (for attacks with clear energy spike)
-			else if (hasPitch && normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation) {
+			// Only fires if frequency matches established pitch (same note re-articulation)
+			else if (
+				hasPitch &&
+				frequencyCoherent &&
+				normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation
+			) {
 				onsetDetected = true;
 				state.lastOnsetRule = 'B3';
 				debugLog(
@@ -734,8 +752,10 @@ export function createTuner(options: TunerOptions = {}) {
 				);
 			}
 			// Rule B4 — Harmonic flux burst (bow direction change / re-bow)
+			// Only fires if frequency matches established pitch (same note re-articulation)
 			else if (
 				hasPitch &&
+				frequencyCoherent &&
 				normalizedHarmonicFlux > onsetDetectionConfig.b4_minNormalizedHarmonicFlux &&
 				relativeHarmonicIncrease >= onsetDetectionConfig.b4_minRelativeIncrease
 			) {
@@ -746,8 +766,10 @@ export function createTuner(options: TunerOptions = {}) {
 				);
 			}
 			// Rule B5 — Legato rebound: dip then rise with harmonic brightening
+			// Only fires if frequency matches established pitch (same note re-articulation)
 			else if (
 				hasPitch &&
+				frequencyCoherent &&
 				legatoDipActive &&
 				legatoRiseFrames >= onsetDetectionConfig.b5_minRiseFrames &&
 				normalizedHarmonicFlux > onsetDetectionConfig.b5_minNormalizedHarmonicFlux
@@ -773,7 +795,12 @@ export function createTuner(options: TunerOptions = {}) {
 				}
 			}
 			// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
-			else if (hasPitch && normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase) {
+			// Only fires if frequency matches established pitch (same note re-articulation)
+			else if (
+				hasPitch &&
+				frequencyCoherent &&
+				normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase
+			) {
 				// Very strong phase with pitch lock
 				onsetDetected = true;
 				state.lastOnsetRule = 'D';

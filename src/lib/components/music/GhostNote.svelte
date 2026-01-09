@@ -29,25 +29,15 @@
 	const arrowSize = $derived(lineSpacing * 0.8);
 	const arrowOffset = $derived(lineSpacing * 1.2);
 	const arrowWidth = $derived(lineSpacing * 0.8);
+
+	const centsOffset = $derived(cents !== null ? (cents / 50) * (lineSpacing / 4) : 0);
 </script>
 
 <g>
-	<!-- Cents deviation line -->
-	<!-- {#if cents !== null}
-		<line
-			x1={x}
-			y1={y}
-			x2={x + lineSpacing * 2}
-			y2={y + (cents / 10) * lineSpacing}
-			stroke={Math.abs(cents) < 10 ? '#22c55e' : Math.abs(cents) < 25 ? '#fb923c' : '#ef4444'}
-			stroke-width={lineSpacing / 8}
-		/>
-	{/if} -->
-
 	<!-- Ghost note head circle -->
 	<circle
 		cx={x}
-		cy={y - (cents !== null ? (cents / 50) * (lineSpacing / 2) : 0)}
+		cy={y - centsOffset}
 		r={lineSpacing * 0.5}
 		{fill}
 		{stroke}
@@ -77,8 +67,7 @@
 				0.5},{arrowSize * 0.5}"
 			{fill}
 			opacity={opacity * (cents !== null ? 1 - Math.abs(cents) / 100 : 1)}
-			transform="translate({x + arrowOffset}, {y -
-				(cents !== null ? (cents / 50) * (lineSpacing / 2) : 0)}) rotate({direction === 'up'
+			transform="translate({x + arrowOffset}, {y - centsOffset}) rotate({direction === 'up'
 				? 180
 				: 0})"
 		/>
