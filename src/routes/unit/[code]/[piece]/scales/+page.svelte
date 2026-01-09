@@ -31,7 +31,7 @@
 <SharePreview data={sharePreviewData} />
 
 <div class="min-h-screen bg-off-white py-8">
-	<div class="mx-auto w-full max-w-5xl px-0 sm:px-4">
+	<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
 		<TitleWithIcon title="Scales" iconUrl={scalesIcon} />
 		<SightGame
 			instrument={unit.instrument}

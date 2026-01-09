@@ -54,6 +54,12 @@
 	let containerWidth = $state(800);
 	let containerElement = $state<HTMLDivElement | undefined>(undefined);
 
+	// Use measured container width so spawns stay on-screen, even on small devices
+	function getPlayableWidth() {
+		const measured = containerElement?.getBoundingClientRect().width ?? containerWidth;
+		return Math.max(200, measured - 16); // small inset so monsters appear inside the viewport
+	}
+
 	// Instrument info
 	const instrument = $derived(instrumentMap[unit.instrument]);
 	const clef = $derived(instrument.clef);
@@ -228,19 +234,20 @@
 		monsterSpawnCount++;
 
 		const randomY = noteToY[note];
+		const playableWidth = getPlayableWidth();
 		// Speed increases over time
 		const elapsedSeconds = (Date.now() - gameStartTime) / 1000;
 		const speedMultiplier = 1 + elapsedSeconds * 0.025; // Speeds up by 2.5% per second
 		// Speed as percentage of container width per frame (capped at 60fps)
 		// 0.05% to 0.11% per frame base speed, multiplied by elapsed time
 		const speedPercentage = (0.0005 + Math.random() * 0.0001) * speedMultiplier;
-		const speed = containerWidth * speedPercentage;
+		const speed = playableWidth * speedPercentage;
 
 		monsters = [
 			...monsters,
 			{
 				id: nextMonsterId++,
-				x: containerWidth,
+				x: playableWidth,
 				y: randomY,
 				speed,
 				note

@@ -69,7 +69,7 @@
 	@media (max-width: 640px) {
 		.unit-grid {
 			grid-template-columns: 1fr;
-			margin: 1rem -1rem 2rem -1rem;
+			margin: 1rem 0rem 2rem 0rem;
 			padding: 0 1rem;
 		}
 	}
