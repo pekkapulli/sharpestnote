@@ -37,7 +37,14 @@
 	);
 
 	function setupAudioElement() {
+		console.log(
+			'[setupAudioElement] Called. audioElement exists:',
+			!!audioElement,
+			'currentUrl:',
+			currentUrl
+		);
 		if (!audioElement) {
+			console.log('[setupAudioElement] Creating new audio element');
 			audioElement = new Audio();
 			audioElement.crossOrigin = 'anonymous';
 			audioElement.preload = 'metadata';
@@ -45,6 +52,7 @@
 			audioElement.loop = isRepeat;
 
 			audioElement.addEventListener('loadedmetadata', () => {
+				console.log('[loadedmetadata] Duration:', audioElement!.duration);
 				duration = audioElement!.duration;
 			});
 
@@ -66,20 +74,51 @@
 			audioElement.addEventListener('pause', () => {
 				isPlaying = false;
 			});
-		}
 
-		audioElement.src = currentUrl;
-		audioElement.load();
+			audioElement.src = currentUrl;
+			console.log('[setupAudioElement] Loading audio with src:', currentUrl);
+			audioElement.load();
+		} else if (audioElement.src !== currentUrl) {
+			// Only reload if the URL has actually changed
+			console.log(
+				'[setupAudioElement] URL changed from',
+				audioElement.src,
+				'to',
+				currentUrl,
+				'- reloading'
+			);
+			audioElement.src = currentUrl;
+			audioElement.load();
+		} else {
+			console.log('[setupAudioElement] Audio element already set up with correct URL');
+		}
 	}
 
 	async function togglePlay() {
+		console.log(
+			'[togglePlay] Called. isPlaying:',
+			isPlaying,
+			'currentTime:',
+			currentTime,
+			'audioElement exists:',
+			!!audioElement
+		);
 		if (!audioElement) {
+			console.log('[togglePlay] No audio element, calling setupAudioElement');
 			setupAudioElement();
+			// Wait for metadata to load before playing
+			if (audioElement!.readyState < 2) {
+				await new Promise((resolve) => {
+					audioElement!.addEventListener('loadedmetadata', resolve, { once: true });
+				});
+			}
 		}
 
 		if (isPlaying) {
+			console.log('[togglePlay] Pausing at currentTime:', audioElement?.currentTime);
 			audioElement?.pause();
 		} else {
+			console.log('[togglePlay] Playing from currentTime:', audioElement?.currentTime);
 			isLoading = true;
 			await audioElement?.play();
 			isLoading = false;
@@ -87,8 +126,35 @@
 	}
 
 	function seek(time: number) {
+		console.log(
+			'[seek] Seeking to time:',
+			time,
+			'audioElement exists:',
+			!!audioElement,
+			'readyState:',
+			audioElement?.readyState
+		);
+		if (!audioElement) {
+			console.log('[seek] No audio element, calling setupAudioElement');
+			setupAudioElement();
+		}
+
 		if (audioElement) {
-			audioElement.currentTime = time;
+			// Ensure audio is loaded before seeking
+			if (audioElement.readyState >= 2) {
+				// HAVE_CURRENT_DATA or better
+				console.log('[seek] Setting currentTime to', time);
+				audioElement.currentTime = time;
+			} else {
+				console.log('[seek] Audio not ready, adding listener for loadedmetadata');
+				// If not ready yet, wait for metadata then seek
+				const handleSeek = () => {
+					console.log('[seek/handleSeek] Setting currentTime to', time);
+					audioElement!.currentTime = time;
+					audioElement!.removeEventListener('loadedmetadata', handleSeek);
+				};
+				audioElement.addEventListener('loadedmetadata', handleSeek, { once: true });
+			}
 			currentTime = time;
 			displayTime = time;
 		}
@@ -193,18 +259,39 @@
 	});
 
 	// Update audio when piece changes
+	// Store the previous URL to detect actual changes
+	let previousUrl = $state('');
 	$effect(() => {
 		// Track the currentUrl to trigger when piece or speed/track changes
 		const url = currentUrl;
-		if (audioElement) {
+		console.log(
+			'[$effect] URL is:',
+			url,
+			'previousUrl:',
+			previousUrl,
+			'audioElement exists:',
+			!!audioElement
+		);
+
+		// Only reload if URL actually changed
+		if (audioElement && url !== previousUrl) {
+			console.log('[$effect] URL actually changed, reloading');
 			const wasPlaying = isPlaying;
+			console.log(
+				'[$effect] Pausing and reloading. wasPlaying:',
+				wasPlaying,
+				'currentTime before:',
+				audioElement.currentTime
+			);
 			audioElement.pause();
 			audioElement.src = url;
 			audioElement.load();
 
 			if (wasPlaying) {
+				console.log('[$effect] Resuming playback');
 				audioElement.play();
 			}
+			previousUrl = url;
 		}
 	});
 
@@ -227,6 +314,8 @@
 					progress={currentTime / duration}
 					{selectedSpeed}
 					instrumentId={unit.instrument}
+					on:seek={(e) =>
+						seek((e as CustomEvent<{ progress: number }>).detail.progress * (duration || 0))}
 				/>
 			{:else}
 				<p class="mb-4 text-center text-sm text-slate-600">

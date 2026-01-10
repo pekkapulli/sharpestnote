@@ -9,7 +9,7 @@
 
 	let { options, selected, onSelect, ariaLabel }: Props = $props();
 
-	let buttonRefs: (HTMLButtonElement | null)[] = [];
+	let buttonRefs = $state<(HTMLButtonElement | null)[]>([]);
 	let indicatorStyle = $state('');
 
 	const selectedIndex = $derived(options.findIndex((opt) => opt.value === selected));
