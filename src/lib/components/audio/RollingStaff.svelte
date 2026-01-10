@@ -97,10 +97,19 @@
 	let velocityX = $state(0); // px/ms
 	let inertiaId: number | null = $state(null);
 
-	// Clamp userOffset so total offset stays within [firstNoteX, lastNoteX]
+	// Calculate the X positions for the full track (0% to 100%)
+	// even if notation only covers a portion of it
+	const trackStartX = $derived(
+		firstNoteX - (notationStart / (notationEnd - notationStart)) * (lastNoteX - firstNoteX)
+	);
+	const trackEndX = $derived(
+		lastNoteX + ((1 - notationEnd) / (notationEnd - notationStart)) * (lastNoteX - firstNoteX)
+	);
+
+	// Clamp userOffset so total offset stays within full track range [trackStartX, trackEndX]
 	function clampUserOffset(): boolean {
-		const minTotal = targetPosition - lastNoteX; // far right note under playhead
-		const maxTotal = targetPosition - firstNoteX; // far left note under playhead
+		const minTotal = targetPosition - trackEndX; // far right (100%) under playhead
+		const maxTotal = targetPosition - trackStartX; // far left (0%) under playhead
 		const currentTotal = scrollOffset + userOffset;
 		let clamped = false;
 		if (currentTotal < minTotal) {
@@ -192,15 +201,14 @@
 	}
 
 	function finalizeSeek() {
-		// Compute new progress from current visual position
+		// Compute new progress from current visual position using full track range
 		const totalOffset = scrollOffset + userOffset;
 		const currentNotePos = targetPosition - totalOffset;
-		const fractionInNotation = (currentNotePos - firstNoteX) / (lastNoteX - firstNoteX);
-		const clampedFractionInNotation = Math.min(1, Math.max(0, fractionInNotation));
-		// Convert notation progress back to track progress
-		const newProgress = progressInNotationToProgressInTrack(clampedFractionInNotation);
-		// notify parent
-		dispatch('seek', { progress: newProgress });
+		// Calculate fraction across the entire track (0% to 100%)
+		const fractionInTrack = (currentNotePos - trackStartX) / (trackEndX - trackStartX);
+		const clampedFractionInTrack = Math.min(1, Math.max(0, fractionInTrack));
+		// notify parent with the track progress
+		dispatch('seek', { progress: clampedFractionInTrack });
 		// Reset userOffset and velocity after dispatching
 		userOffset = 0;
 		velocityX = 0;
