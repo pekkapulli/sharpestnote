@@ -2,6 +2,37 @@ import type { IRequest } from 'itty-router';
 import type { AccessStatus } from '../types';
 import { unitDatabase } from './units';
 
+// Simple in-memory rate limit tracking (IP -> { count, resetTime })
+// For production, use Cloudflare KV or add a WAF rate limit rule
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 60 seconds
+const RATE_LIMIT_MAX_ATTEMPTS = 10;
+
+function getClientIP(request: IRequest): string {
+	// Cloudflare provides CF-Connecting-IP header with the real client IP
+	const cfConnectingIP = (request.headers?.get?.('CF-Connecting-IP') || '').toString();
+	return cfConnectingIP || 'unknown';
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+	const now = Date.now();
+	const record = rateLimitMap.get(ip);
+
+	if (!record || now > record.resetTime) {
+		// First request or window expired, reset
+		rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+		return { allowed: true };
+	}
+
+	if (record.count >= RATE_LIMIT_MAX_ATTEMPTS) {
+		const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+		return { allowed: false, retryAfter };
+	}
+
+	record.count += 1;
+	return { allowed: true };
+}
+
 export const handleAccessRoutes = async (request: IRequest): Promise<Response> => {
 	const { unitCode, keyCode } = (await request.json()) as { unitCode?: string; keyCode?: string };
 
@@ -44,6 +75,24 @@ export const handleAccessRoutes = async (request: IRequest): Promise<Response> =
 };
 
 export const handleAccessLookup = async (request: IRequest): Promise<Response> => {
+	const clientIP = getClientIP(request);
+	const rateLimitCheck = checkRateLimit(clientIP);
+
+	if (!rateLimitCheck.allowed) {
+		return new Response(
+			JSON.stringify({
+				error: 'Too many requests. Please try again later.'
+			}),
+			{
+				status: 429,
+				headers: {
+					'Content-Type': 'application/json',
+					'Retry-After': (rateLimitCheck.retryAfter || 60).toString()
+				}
+			}
+		);
+	}
+
 	const { keyCode } = (await request.json()) as { keyCode?: string };
 
 	if (!keyCode) {
