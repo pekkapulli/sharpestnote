@@ -8,6 +8,7 @@
 	import practiceImage from '$lib/assets/practice.png';
 	import listeningImage from '$lib/assets/intonation.png';
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
+	import KeyCodeNavigator from '$lib/components/ui/KeyCodeNavigator.svelte';
 	import { units } from '$lib/config/units';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
@@ -69,6 +70,18 @@
 			</a>
 		</nav>
 	</header>
+
+	<details class="mt-8 w-full max-w-md">
+		<summary
+			class="cursor-pointer rounded-lg bg-emerald-600 px-6 py-3 text-center font-semibold text-white transition hover:bg-emerald-700"
+		>
+			Take me to my unit!
+		</summary>
+		<div class="mt-4">
+			<KeyCodeNavigator />
+		</div>
+	</details>
+
 	<section class="mt-24 w-full max-w-md">
 		<p class="text-md">
 			The Sharpest Note creates short, musical units for early orchestral players. Each unit

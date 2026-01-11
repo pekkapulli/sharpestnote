@@ -42,3 +42,37 @@ export const handleAccessRoutes = async (request: IRequest): Promise<Response> =
 		headers: { 'Content-Type': 'application/json' }
 	});
 };
+
+export const handleAccessLookup = async (request: IRequest): Promise<Response> => {
+	const { keyCode } = (await request.json()) as { keyCode?: string };
+
+	if (!keyCode) {
+		return new Response(
+			JSON.stringify({
+				error: 'Missing keyCode'
+			}),
+			{
+				status: 400,
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
+	}
+
+	const trimmedKey = keyCode.trim().toUpperCase();
+
+	// Find unit by key code
+	const unit = Object.values(unitDatabase).find(
+		(u) => u.keyCode.trim().toUpperCase() === trimmedKey
+	);
+
+	if (!unit) {
+		return new Response(JSON.stringify({ error: 'Key code not found' }), {
+			status: 404,
+			headers: { 'Content-Type': 'application/json' }
+		});
+	}
+
+	return new Response(JSON.stringify({ unitCode: unit.code }), {
+		headers: { 'Content-Type': 'application/json' }
+	});
+};
