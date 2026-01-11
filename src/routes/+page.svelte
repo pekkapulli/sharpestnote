@@ -83,12 +83,17 @@
 	<section class="mt-16 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">How teachers use it</h2>
 		<p>
-			The Sharpest Note works like any method book. Teachers pick the units; families purchase them
-			for personal use. No accounts. No subscriptions. No setup for students.
+			The Sharpest Note works like a method book. Teachers choose the units they want to use.
+			Families purchase them for personal use at home.
 		</p>
-		<p class="mt-2 text-sm text-slate-700">
+		<p>No accounts. No subscriptions. No setup for students.</p>
+		<p>
 			Self-guided adult learners can simply choose a unit, download it, and practice the same way.
 		</p>
+	</section>
+
+	<section class="mt-16 w-full max-w-md">
+		<h2 class="mb-4 text-2xl font-semibold">Why teachers recommend it</h2>
 		<CardGrid items={howTeachersUse} />
 	</section>
 
@@ -114,8 +119,8 @@
 	<section class="mt-16 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">Licensing</h2>
 		<p>
-			Units are one-time purchases with a single-household license for personal use with your
-			teacher. For school, studio-wide, or institutional use, please get in touch.
+			Units are one-time purchases with a single-household license, for personal use alongside
+			lessons with a teacher. For school, studio-wide, or institutional use, please get in touch.
 		</p>
 	</section>
 
