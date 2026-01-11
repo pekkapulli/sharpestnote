@@ -4,15 +4,24 @@
 	import type { MelodyItem } from '$lib/config/melody';
 	import stepsIcon from '$lib/assets/steps_icon.png';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
 
 	const { data } = $props();
-	const { unit, piece, imageUrl, pageUrl } = $derived(data);
+	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
+	let completionCount = $state(0);
 
 	const sharePreviewData = $derived({
 		title: `Steps - ${piece.label} - ${unit.title}`,
 		description: `Practice steps for ${piece.label}`,
 		image: imageUrl,
 		url: pageUrl
+	});
+
+	$effect(() => {
+		// Load completion count from localStorage
+		const storage = getUnitStorage(code);
+		const gameKey = `${pieceCode}_steps_completions`;
+		completionCount = (storage as any)[gameKey] || 0;
 	});
 
 	// Extract unique intervals once when the page loads
@@ -53,6 +62,13 @@
 
 		return result;
 	}
+
+	function handleMelodyComplete() {
+		// Increment completion count and save to localStorage
+		completionCount += 1;
+		const gameKey = `${pieceCode}_steps_completions`;
+		setUnitStorage(code, { [gameKey]: completionCount } as any);
+	}
 </script>
 
 <SharePreview data={sharePreviewData} />
@@ -60,6 +76,11 @@
 <div class="min-h-screen bg-off-white py-8">
 	<div class="mx-auto w-full max-w-5xl px-2 sm:px-4">
 		<TitleWithIcon title="Steps" iconUrl={stepsIcon} />
+		<div class="mb-4 text-center">
+			<p class="text-lg text-slate-700">
+				<span class="font-bold text-dark-blue">{completionCount} steps played!</span>
+			</p>
+		</div>
 		<SightGame
 			instrument={unit.instrument}
 			keyNote={piece.key}
@@ -67,6 +88,7 @@
 			tempoBPM={piece.tracks?.fast?.tempo ?? 100}
 			{newMelody}
 			barLength={piece.barLength}
+			onMelodyComplete={handleMelodyComplete}
 		/>
 	</div>
 </div>

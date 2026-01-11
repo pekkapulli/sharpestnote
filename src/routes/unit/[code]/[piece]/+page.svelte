@@ -6,6 +6,9 @@
 	import scalesIcon from '$lib/assets/scales_icon.png';
 	import stepsIcon from '$lib/assets/steps_icon.png';
 	import defendIcon from '$lib/assets/defend_icon.png';
+	import GameCard from '$lib/components/games/GameCard.svelte';
+	import GameCardGrid from '$lib/components/games/GameCardGrid.svelte';
+	import { getUnitStorage } from '$lib/util/unitStorage.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 
@@ -14,6 +17,49 @@
 		$derived(data);
 	let hasKeyAccess = $state(false);
 	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
+	let badgeTexts = $state<Record<string, string | undefined>>({});
+
+	const gameCards = [
+		{
+			slug: 'melody',
+			title: 'Melody',
+			description: 'Play through the piece',
+			icon: melodyIcon,
+			requiresAccess: true
+		},
+		{
+			slug: 'blocks',
+			title: 'Blocks',
+			description: 'Practice random phrases',
+			icon: blocksIcon,
+			requiresAccess: false
+		},
+		{
+			slug: 'scales',
+			title: 'Scales',
+			description: 'Climb up and down the scale',
+			icon: scalesIcon,
+			requiresAccess: false
+		},
+		{
+			slug: 'steps',
+			title: 'Steps',
+			description: 'Play note pairs',
+			icon: stepsIcon,
+			requiresAccess: false
+		},
+		{
+			slug: 'defend',
+			title: 'Defend',
+			description: "Use the piece's notes to defend against space monsters",
+			icon: defendIcon,
+			requiresAccess: true
+		}
+	];
+
+	const visibleGameCards = $derived(
+		gameCards.filter((game) => (game.requiresAccess ? hasKeyAccess : true))
+	);
 
 	const sharePreviewData = $derived({
 		title: `${piece.label} - ${unit.title}`,
@@ -27,6 +73,23 @@
 		void initUnitKeyAccess(code).then((access) => {
 			hasKeyAccess = access;
 		});
+	});
+
+	$effect(() => {
+		const storage = getUnitStorage(code) as Record<string, number>;
+		const melodyCompletions = storage[`${pieceCode}_melody_completions`] || 0;
+		const blocksCompletions = storage[`${pieceCode}_blocks_completions`] || 0;
+		const scalesCompletions = storage[`${pieceCode}_scales_completions`] || 0;
+		const stepsCompletions = storage[`${pieceCode}_steps_completions`] || 0;
+		const highScore = storage[`${pieceCode}_defend_highScore`] || 0;
+
+		badgeTexts = {
+			melody: melodyCompletions > 0 ? `${melodyCompletions}×` : undefined,
+			blocks: blocksCompletions > 0 ? `${blocksCompletions}×` : undefined,
+			scales: scalesCompletions > 0 ? `${scalesCompletions}×` : undefined,
+			steps: stepsCompletions > 0 ? `${stepsCompletions}×` : undefined,
+			defend: highScore > 0 ? `${highScore} pts` : undefined
+		};
 	});
 </script>
 
@@ -73,125 +136,18 @@
 
 			<section class="mt-8">
 				<h3 class="text-sm font-semibold text-slate-800">Learn through games</h3>
-				<div class="game-grid">
-					{#if hasKeyAccess}
-						<a
-							href={`/unit/${code}/${pieceCode}/melody`}
-							class="game-card"
-							aria-label="Play Melody game - Play through the piece"
-						>
-							<div class="game-card__content">
-								<div
-									class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20"
-									aria-hidden="true"
-								>
-									<img src={melodyIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-								</div>
-								<span class="mt-3 font-semibold text-slate-900">Melody</span>
-								<span class="mt-1 text-sm text-slate-600">Play through the piece</span>
-							</div>
-						</a>
-					{/if}
-					<a
-						href={`/unit/${code}/${pieceCode}/blocks`}
-						class="game-card"
-						aria-label="Play Blocks game - Practice random phrases"
-					>
-						<div class="game-card__content">
-							<img src={blocksIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-							<span class="mt-3 font-semibold text-slate-900">Blocks</span>
-							<span class="mt-1 text-sm text-slate-600">Practice random phrases</span>
-						</div>
-					</a>
-					<a
-						href={`/unit/${code}/${pieceCode}/scales`}
-						class="game-card"
-						aria-label="Play Scales game - Climb up and down the scale"
-					>
-						<div class="game-card__content">
-							<img src={scalesIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-							<span class="mt-3 font-semibold text-slate-900">Scales</span>
-							<span class="mt-1 text-sm text-slate-600">Climb up and down the scale</span>
-						</div>
-					</a>
-					<a
-						href={`/unit/${code}/${pieceCode}/steps`}
-						class="game-card"
-						aria-label="Play Steps game - Play note pairs"
-					>
-						<div class="game-card__content">
-							<img src={stepsIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-							<span class="mt-3 font-semibold text-slate-900">Steps</span>
-							<span class="mt-1 text-sm text-slate-600">Play note pairs</span>
-						</div>
-					</a>
-					{#if hasKeyAccess}
-						<a
-							href={`/unit/${code}/${pieceCode}/defend`}
-							class="game-card"
-							aria-label="Play Defend game - Use the piece's notes to defend against space monsters"
-						>
-							<div class="game-card__content">
-								<div class="flex h-16 w-16 items-center justify-center text-4xl sm:h-20 sm:w-20">
-									<img src={defendIcon} alt="" class="h-16 w-16 sm:h-20 sm:w-20" />
-								</div>
-								<span class="mt-3 font-semibold text-slate-900">Defend</span>
-								<span class="mt-1 text-sm text-slate-600"
-									>Use the piece's notes to defend against space monsters</span
-								>
-							</div>
-						</a>
-					{/if}
-				</div>
+				<GameCardGrid>
+					{#each visibleGameCards as game}
+						<GameCard
+							href={`/unit/${code}/${pieceCode}/${game.slug}`}
+							icon={game.icon}
+							title={game.title}
+							description={game.description}
+							badgeText={badgeTexts[game.slug]}
+						/>
+					{/each}
+				</GameCardGrid>
 			</section>
 		</article>
 	</div>
 </div>
-
-<style>
-	.game-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.75rem;
-		margin-top: 0.75rem;
-	}
-	@media (min-width: 640px) {
-		.game-grid {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-			gap: 1rem;
-		}
-	}
-	.game-card {
-		position: relative;
-		display: block;
-		border-radius: 0.75rem;
-		background: white;
-		border: 1px solid rgb(226 232 240);
-		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-		overflow: hidden;
-		transition:
-			transform 150ms ease,
-			box-shadow 150ms ease,
-			background-color 150ms ease;
-	}
-	.game-card::before {
-		content: '';
-		display: block;
-		padding-bottom: 100%; /* square */
-	}
-	.game-card:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-		background: rgb(248 250 252);
-	}
-	.game-card__content {
-		position: absolute;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 0.75rem;
-		text-align: center;
-	}
-</style>

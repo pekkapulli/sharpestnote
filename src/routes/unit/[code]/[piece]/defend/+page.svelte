@@ -13,6 +13,7 @@
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess.js';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	interface Monster {
 		id: number;
@@ -394,43 +395,44 @@
 						<p class="mb-4 text-center text-sm text-red-600">{tuner.state.error}</p>
 					{/if}
 
-					<!-- Game Over Screen -->
-					{#if gameOver}
-						<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-							<div class="mx-4 max-w-lg rounded-2xl bg-off-white p-6 shadow-2xl">
-								<div class="flex items-center justify-between gap-6">
-									<div class="flex-1">
-										<h2 class="mb-2 text-xl font-bold text-slate-900">Game Over!</h2>
+					<!-- Game Over Modal -->
+					<Modal
+						isOpen={gameOver}
+						onClose={() => (gameOver = false)}
+						title="Game Over!"
+						maxWidth="md"
+					>
+						{#snippet children()}
+							{#if isNewHighScore}
+								<p class="mb-4 text-center text-sm font-semibold text-amber-600">
+									🏆 New High Score!
+								</p>
+							{/if}
 
-										{#if isNewHighScore}
-											<p class="mb-3 text-sm font-semibold text-amber-600">🏆 New High Score!</p>
-										{/if}
-
-										<div class="flex items-center gap-4">
-											<div class="rounded-lg bg-white p-3 shadow-sm">
-												<p class="text-xs text-slate-600">Your Score</p>
-												<p class="text-2xl font-bold text-dark-blue">{score}</p>
-											</div>
-
-											{#if highScore > 0}
-												<div class="rounded-lg bg-white p-3 shadow-sm">
-													<p class="text-xs text-slate-600">High Score</p>
-													<p class="text-2xl font-bold text-amber-700">{highScore}</p>
-												</div>
-											{/if}
-										</div>
-									</div>
-
-									<button
-										onclick={() => (gameOver = false)}
-										class="rounded-lg bg-dark-blue px-6 py-3 font-semibold text-white transition hover:-translate-y-px hover:shadow-lg"
-									>
-										OK
-									</button>
+							<div class="flex items-center justify-center gap-4">
+								<div class="rounded-lg bg-white p-4 shadow-sm">
+									<p class="text-xs text-slate-600">Your Score</p>
+									<p class="text-2xl font-bold text-dark-blue">{score}</p>
 								</div>
+
+								{#if highScore > 0}
+									<div class="rounded-lg bg-white p-4 shadow-sm">
+										<p class="text-xs text-slate-600">High Score</p>
+										<p class="text-2xl font-bold text-amber-700">{highScore}</p>
+									</div>
+								{/if}
 							</div>
-						</div>
-					{/if}
+						{/snippet}
+
+						{#snippet actions()}
+							<button
+								onclick={() => (gameOver = false)}
+								class="rounded-lg bg-dark-blue px-6 py-3 font-semibold text-white transition hover:-translate-y-px hover:shadow-lg"
+							>
+								OK
+							</button>
+						{/snippet}
+					</Modal>
 
 					<div class="mt-6 flex justify-center gap-4">
 						{#if !gameActive}
@@ -448,10 +450,6 @@
 								Stop Game
 							</button>
 						{/if}
-					</div>
-
-					<div class="mt-6 text-center text-sm text-slate-600">
-						<p>🎵 Play scale notes to control your spaceship and auto-shoot</p>
 					</div>
 				{/if}
 			</div>

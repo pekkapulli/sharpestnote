@@ -24,9 +24,18 @@
 		tempoBPM?: number;
 		barLength?: number;
 		newMelody?: () => MelodyItem[];
+		onMelodyComplete?: () => void;
 	}
 
-	let { instrument, keyNote, mode, tempoBPM = 100, barLength = 16, newMelody }: Props = $props();
+	let {
+		instrument,
+		keyNote,
+		mode,
+		tempoBPM = 100,
+		barLength = 16,
+		newMelody,
+		onMelodyComplete
+	}: Props = $props();
 	const selectedInstrument = $derived(instrumentMap[instrument]);
 	const keySignature = $derived(getKeySignature(keyNote, mode));
 
@@ -394,6 +403,12 @@
 		// Melody completed
 		showSuccess = true;
 		streak += 1;
+
+		// Call completion callback if provided
+		if (onMelodyComplete) {
+			onMelodyComplete();
+		}
+
 		setTimeout(() => {
 			refreshMelody();
 		}, 400);
