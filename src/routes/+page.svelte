@@ -75,7 +75,7 @@
 		<summary
 			class="cursor-pointer rounded-lg bg-emerald-600 px-6 py-3 text-center font-semibold text-white transition hover:bg-emerald-700"
 		>
-			Take me to my unit!
+			I have a code, take me to my unit!
 		</summary>
 		<div class="mt-4">
 			<KeyCodeNavigator />
