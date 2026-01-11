@@ -24,14 +24,14 @@
 
 <g>
 	{#if length !== null}
-		<text class="rest" {x} {y} {fill} {opacity} font-size={lineSpacing * 4} text-anchor="middle">
+		<text class="note" {x} {y} {fill} {opacity} font-size={lineSpacing * 4} text-anchor="middle">
 			{lengthRestMap[length]}
 		</text>
 	{/if}
 	{#if progress !== null && length !== null}
 		<!-- Rest hold duration indicator -->
 		<rect
-			class="rest"
+			class="note"
 			x={x - lineSpacing}
 			y={y + lineSpacing}
 			width={Math.min((progress / length) * lineSpacing * 2, lineSpacing * 2)}
@@ -45,7 +45,7 @@
 
 <style>
 	/* Smoothly animate color-related changes within this symbol */
-	.rest,
+	.note,
 	rect {
 		transition:
 			fill 200ms ease,

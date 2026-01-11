@@ -77,9 +77,9 @@ export const lengthNoteMap: Record<number, string> = {
 };
 
 export const lengthRestMap: Record<number, string> = {
-	16: '\u{1D13B}', // double whole rest symbol
-	8: '\u{1D13C}', // half rest symbol
-	4: '\u{1D13D}', // quarter rest symbol
-	2: '\u{1D13E}', // eighth rest symbol
-	1: '\u{1D13F}' // beamed eighth rest symbol
+	16: '\uD834\uDD3B', // 𝄻 double whole rest symbol
+	8: '\uD834\uDD3C', // 𝄼 half rest symbol
+	4: '\uD834\uDD3D', // 𝄽 quarter rest symbol
+	2: '\uD834\uDD3E', // 𝄾 eighth rest symbol
+	1: '\uD834\uDD3F' // 𝄿 sixteenth rest symbol
 };
