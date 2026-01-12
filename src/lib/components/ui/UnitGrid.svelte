@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { instrumentMap } from '$lib/config/instruments';
-	import type { UnitMaterial } from '$lib/config/units';
+	import { fileStore, type UnitMaterial } from '$lib/config/units';
 	import { getImageUrl } from '$lib/util/getImageUrl';
 	import LinkButton from './LinkButton.svelte';
 	import UnitTrackList from './UnitTrackList.svelte';
@@ -12,10 +11,11 @@
 
 	const { units, emptyMessage = 'No materials available.' }: Props = $props();
 
-	function hasUnitAccess(unitCode: string): boolean {
+	function hasUnitAccess(unit: UnitMaterial): boolean {
 		if (typeof window === 'undefined') return false;
+		if (unit.demo) return true;
 		try {
-			const stored = localStorage.getItem(`unit_${unitCode}`);
+			const stored = localStorage.getItem(`unit_${unit.code}`);
 			if (!stored) return false;
 			const parsed = JSON.parse(stored);
 			return !!parsed?.keyCode;
@@ -34,14 +34,22 @@
 			</div>
 			<p class="mt-0 text-dark-blue">{unit.description}</p>
 			<UnitTrackList {unit} />
-			<div class="mt-4 flex gap-2">
-				{#if hasUnitAccess(unit.code)}
+			<div class="mt-4 flex flex-wrap gap-2">
+				{#if unit.demo}
+					<LinkButton href={`${fileStore}/${unit.code}/${unit.demo}`} color="green" target="_blank">
+						Download demo PDF
+					</LinkButton>
+					<LinkButton href={`/unit/${unit.code}`}>Open interactive preview</LinkButton>
+				{:else if hasUnitAccess(unit)}
 					<LinkButton href={`/unit/${unit.code}`} color="green">Play unit</LinkButton>
 				{:else}
 					<LinkButton href={unit.gumroadUrl} color="green">Buy on Gumroad</LinkButton>
 					<LinkButton href={`/unit/${unit.code}`}>Preview unit</LinkButton>
 				{/if}
 			</div>
+			{#if unit.demo}
+				<p class="mt-2 text-sm text-slate-600">No checkout needed.</p>
+			{/if}
 		</article>
 	{/each}
 </div>

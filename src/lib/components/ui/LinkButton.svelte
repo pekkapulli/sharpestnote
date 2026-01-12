@@ -6,13 +6,15 @@
 		children: Snippet;
 		size?: 'small' | 'medium' | 'large';
 		color?: 'blue' | 'green';
+		target?: string;
 	}
 
-	const { href, children, size = 'small', color = 'blue' }: Props = $props();
+	const { href, children, size = 'small', color = 'blue', target }: Props = $props();
 </script>
 
 <a
 	{href}
+	{target}
 	class="{size} {color} inline-block rounded-lg px-3 text-sm font-semibold text-off-white transition hover:-translate-y-px hover:shadow"
 >
 	{@render children()}

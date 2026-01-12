@@ -1,5 +1,7 @@
 <script lang="ts">
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
+	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+	import { fileStore } from '$lib/config/units';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 
@@ -20,7 +22,7 @@
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage
-		void initUnitKeyAccess(code).then((access) => {
+		void initUnitKeyAccess(unit).then((access) => {
 			hasKeyAccess = access;
 		});
 	});
@@ -60,6 +62,20 @@
 		<p class="mt-3 text-slate-700">
 			{unit.description}
 		</p>
+
+		{#if unit.demo}
+			<div class="mt-6">
+				<p class="flex items-center text-slate-600">This is a demo unit!</p>
+				<LinkButton
+					href={`${fileStore}/${unit.code}/${unit.demo}`}
+					color="green"
+					size="large"
+					target="_blank"
+				>
+					Download the sheet music here
+				</LinkButton>
+			</div>
+		{/if}
 
 		{#if showSuccessMessage}
 			<div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">

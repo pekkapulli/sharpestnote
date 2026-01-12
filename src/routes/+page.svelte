@@ -33,7 +33,7 @@
 
 <SharePreview data={data.sharePreviewData} />
 
-<div class="py-2rem flex min-h-screen flex-col items-center justify-center bg-off-white px-1">
+<div class="py-2rem flex min-h-screen flex-col items-center justify-center bg-off-white px-2">
 	<header class="mt-6 mb-12 flex flex-col items-center px-4 text-center">
 		<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
 
@@ -52,15 +52,9 @@
 			</a>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href="/unit/tw-v"
+				href="/teachers"
 			>
-				FREE DEMO
-			</a>
-			<a
-				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href="/faq"
-			>
-				FAQ
+				For Teachers
 			</a>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"

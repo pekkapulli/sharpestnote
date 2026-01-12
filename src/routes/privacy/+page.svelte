@@ -115,16 +115,6 @@
 		color: #555;
 	}
 
-	ul {
-		margin-left: 1.5rem;
-		margin-bottom: 1rem;
-	}
-
-	li {
-		margin-bottom: 0.5rem;
-		color: #555;
-	}
-
 	a {
 		color: #0066cc;
 		text-decoration: none;

@@ -30,6 +30,7 @@ export interface TrackVariant {
 
 export interface UnitMaterial {
 	published?: boolean;
+	demo?: string;
 	code: string;
 	instrument: InstrumentId;
 	title: string;
@@ -44,11 +45,12 @@ export const fileStore = 'https://f002.backblazeb2.com/file/sharpestnote/unit';
 export const units: Units = {
 	'tw-v': {
 		published: true,
+		demo: 'Twinkle-Violin.pdf',
 		code: 'tw-v',
 		instrument: 'violin',
 		title: 'Twinkle Twinkle Little Star for Violin',
 		description:
-			'A musical, playable way to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
+			'A musical, playable way for violin students to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-violin',
 		pieces: [
 			{
@@ -259,12 +261,13 @@ export const units: Units = {
 		]
 	},
 	'tw-r': {
-		published: false,
+		published: true,
+		demo: 'Twinkle-Recorder.pdf',
 		code: 'tw-r',
 		instrument: 'recorder',
 		title: 'Twinkle Twinkle Little Star for Recorder',
 		description:
-			'A musical, playable way to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
+			'A musical, playable way for recorder students to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-recorder',
 		pieces: [
 			{
@@ -369,9 +372,12 @@ export const units: Units = {
 	},
 	'tw-c': {
 		code: 'tw-c',
+		published: true,
+		demo: 'Twinkle-Cello.pdf',
 		instrument: 'cello',
 		title: 'Twinkle Twinkle Little Star for Cello',
-		description: 'See how the Sharpest Note materials work with a classic tune.',
+		description:
+			'A musical, playable way for cello students to practice Twinkle — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-cello',
 		pieces: [
 			{

@@ -70,7 +70,7 @@
 
 	$effect(() => {
 		// Initialize key access from URL or localStorage
-		void initUnitKeyAccess(code).then((access) => {
+		void initUnitKeyAccess(unit).then((access) => {
 			hasKeyAccess = access;
 		});
 	});
