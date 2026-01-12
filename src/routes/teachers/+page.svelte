@@ -39,7 +39,7 @@
 	<section class="mx-auto w-full max-w-xl px-4 pt-16 pb-8">
 		<p class="text-sm font-semibold tracking-wide text-brand-green uppercase">Teacher demo</p>
 		<h1 class="mt-3 mb-8 max-w-xl text-4xl font-semibold text-slate-900">
-			This is how I would like to see home practice work.
+			Our vision for home practice
 		</h1>
 		<p class="mt-4 max-w-3xl text-lg text-slate-700">
 			See how home practice can support your teaching, not compete with it. The Sharpest Note puts
