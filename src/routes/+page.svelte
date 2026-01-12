@@ -115,8 +115,9 @@
 	<section class="mt-16 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">Try a free demo</h2>
 		<UnitGrid
-			units={[units['tw-v']]}
-			emptyMessage="No materials available for this instrument yet."
+			units={Object.values(units)
+				.filter((u) => u.demo)
+				.slice(0, 3)}
 		/>
 		<div class="mt-6 flex w-full flex-col items-center">
 			<LinkButton href="/units" size="large" color="green">Browse the units</LinkButton>
