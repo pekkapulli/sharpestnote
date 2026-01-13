@@ -314,8 +314,7 @@
 					progress={currentTime / duration}
 					{selectedSpeed}
 					instrumentId={unit.instrument}
-					on:seek={(e) =>
-						seek((e as CustomEvent<{ progress: number }>).detail.progress * (duration || 0))}
+					onSeek={(progress) => seek(progress * (duration || 0))}
 				/>
 			{:else}
 				<p class="mb-4 text-center text-sm text-slate-600">

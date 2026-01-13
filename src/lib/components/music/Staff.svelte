@@ -9,9 +9,9 @@
 	import { renderVexFlowStaff, getNoteYPosition } from './vexflowHelper';
 
 	interface Props {
-		// Provide sequence as an array of { note, length }
-		sequence?: MelodyItem[];
-		// Index into `notes` indicating the currently active target note.
+		// Provide bars as an array of melody bars, where each bar is an array of { note, length }
+		bars?: MelodyItem[][];
+		// Index into the flattened notes indicating the currently active target note.
 		currentIndex?: number;
 		// Index of the note currently being animated (for held sixteenths display)
 		animatingIndex?: number | null;
@@ -28,6 +28,7 @@
 		minWidth?: number; // Minimum width in pixels. If not set, will use content width
 		firstNoteX?: number; // Bindable prop to expose the first note's X position
 		lastNoteX?: number; // Bindable prop to expose the last note's X position
+		noteXPositions?: number[]; // Bindable prop to expose all note X positions
 		showAllBlack?: boolean; // If true, render all notes in black instead of colored by state
 		showTimeSignature?: boolean; // If false, hide the time signature (default: true)
 	}
@@ -35,7 +36,7 @@
 	const HEIGHT = 150;
 
 	let {
-		sequence = [],
+		bars = [],
 		currentIndex = 0,
 		animatingIndex = null,
 		playheadPosition = null,
@@ -49,10 +50,13 @@
 		minWidth = 400,
 		firstNoteX = $bindable(0),
 		lastNoteX = $bindable(0),
+		noteXPositions = $bindable([] as number[]),
 		showTimeSignature = true,
 		showAllBlack = false
 	}: Props = $props();
 
+	// Flatten bars into a single sequence for indexing
+	const sequence = $derived(bars.flat());
 	let lineSpacing = $state(10); // VexFlow's line spacing
 	let centerY = $state(HEIGHT / 2); // Will be updated from VexFlow stave position
 	const notes = $derived(sequence.map((s) => s.note));
@@ -94,11 +98,11 @@
 	// Track last render parameters to avoid infinite loops
 	let lastRenderKey = $state('');
 
-	// Render VexFlow staff when sequence or dimensions change
+	// Render VexFlow staff when bars or dimensions change
 	$effect(() => {
-		if (vexflowContainer && sequence.length > 0 && containerWidth > 0) {
+		if (vexflowContainer && bars.length > 0 && containerWidth > 0) {
 			// Create a key from the render parameters
-			const renderKey = `${sequence.map((s) => `${s.note}-${s.length}`).join(',')}-${clef}-${JSON.stringify(keySignature)}-${containerWidth}`;
+			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${containerWidth}`;
 
 			// Only render if parameters have actually changed
 			if (renderKey === lastRenderKey) {
@@ -109,7 +113,7 @@
 			try {
 				const result = renderVexFlowStaff(
 					vexflowContainer,
-					sequence,
+					bars,
 					clef,
 					keySignature,
 					containerWidth,
@@ -128,6 +132,7 @@
 				if (noteXs.length > 0) {
 					firstNoteX = noteXs[0];
 					lastNoteX = noteXs[noteXs.length - 1];
+					noteXPositions = noteXs;
 				}
 			} catch (error) {
 				console.error('Error rendering VexFlow staff:', error);

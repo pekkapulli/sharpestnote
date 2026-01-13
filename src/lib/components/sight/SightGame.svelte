@@ -502,7 +502,7 @@
 				} sm:p-6 lg:p-8`}
 			>
 				<Staff
-					sequence={melody}
+					bars={[melody]}
 					minWidth={staffMinWidth}
 					showTimeSignature={false}
 					{currentIndex}

@@ -59,7 +59,7 @@ export const units: Units = {
 				composer: 'Trad.',
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
-				notationEndPercent: 0.794,
+				notationEndPercent: 0.814,
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -166,7 +166,7 @@ export const units: Units = {
 				composer: 'Trad.',
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
-				notationEndPercent: 0.794,
+				notationEndPercent: 0.814,
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -276,7 +276,7 @@ export const units: Units = {
 				composer: 'Trad.',
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
-				notationEndPercent: 0.794,
+				notationEndPercent: 0.814,
 				tracks: {
 					slow: {
 						tempo: 80,
@@ -386,7 +386,7 @@ export const units: Units = {
 				composer: 'Trad.',
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
-				notationEndPercent: 0.794,
+				notationEndPercent: 0.814,
 				tracks: {
 					slow: {
 						tempo: 50,
@@ -493,7 +493,7 @@ export const units: Units = {
 				composer: 'Pekka Pulli',
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.18,
-				notationEndPercent: 0.88,
+				notationEndPercent: 0.9,
 				tracks: {
 					slow: {
 						tempo: 90,

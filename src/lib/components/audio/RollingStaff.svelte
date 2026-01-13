@@ -4,19 +4,16 @@
 	import Staff from '$lib/components/music/Staff.svelte';
 	import { getKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
-	import { createEventDispatcher } from 'svelte';
 
 	interface Props {
 		piece: Piece;
 		progress: number; // 0-1, where 1 is 100% complete
 		selectedSpeed: Speed;
 		instrumentId: InstrumentId;
+		onSeek?: (progress: number) => void; // Callback for seek events
 	}
 
-	let { piece, progress, selectedSpeed, instrumentId }: Props = $props();
-
-	// Dispatch seeks to parent when user scrubs/flings
-	const dispatch = createEventDispatcher();
+	let { piece, progress, selectedSpeed, instrumentId, onSeek }: Props = $props();
 
 	// Get instrument config for clef
 	const instrumentConfig = $derived(instrumentConfigs.find((config) => config.id === instrumentId));
@@ -33,10 +30,11 @@
 	const notationStart = $derived(piece.notationStartPercent ?? 0);
 	const notationEnd = $derived(piece.notationEndPercent ?? 1);
 
-	// Flatten all melodies into a single continuous sequence
-	const flattenedMelody = $derived(piece.melody.flat());
+	// Use bars directly without flattening
+	const bars = $derived(piece.melody);
 
 	// Calculate progress within notation range
+	// Can be <0 if before notation starts, or >1 if after notation ends
 	const progressInNotation = $derived((progress - notationStart) / (notationEnd - notationStart));
 
 	// Inverse function: convert notation progress (0-1) back to track progress
@@ -46,7 +44,7 @@
 
 	// Calculate minimum width based on total notes - more notes = wider staff
 	// Use ~15px per sixteenth note as baseline (15 pixels per sixteenth from Staff component)
-	const totalSixteenths = $derived(flattenedMelody.reduce((sum, item) => sum + item.length, 0));
+	const totalSixteenths = $derived(bars.flat().reduce((sum, item) => sum + item.length, 0));
 	const minStaffWidth = $derived(Math.max(400, totalSixteenths * 15 + 200));
 
 	// Get container width
@@ -55,6 +53,7 @@
 	// Bind to the actual first and last note X positions from Staff
 	let firstNoteX = $state(0);
 	let lastNoteX = $state(10000);
+	let noteXPositions = $state<number[]>([]);
 
 	// Track when staff is ready to be shown (after positions are calculated)
 	let isReady = $state(false);
@@ -80,11 +79,36 @@
 	});
 
 	// Calculate scroll offset to position current note at 40% of container width
-	// Total playable width is from first note to last note start position
-	const currentSixteenths = $derived(progressInNotation * totalSixteenths);
-	const notePositionInStaff = $derived(
-		firstNoteX + (currentSixteenths / totalSixteenths) * (lastNoteX - firstNoteX)
-	);
+	// Interpolate using actual note positions from the rendered staff, based on sixteenths progress
+	const notePositionInStaff = $derived.by(() => {
+		if (!noteXPositions.length) return firstNoteX;
+
+		const flatSequence = bars.flat();
+		if (!flatSequence.length) return firstNoteX;
+
+		// Calculate current position in sixteenths
+		const currentSixteenths = progressInNotation * totalSixteenths;
+		let cumulativeSixteenths = 0;
+
+		// Find which note we're in based on sixteenths
+		for (let i = 0; i < flatSequence.length; i++) {
+			const noteLength = flatSequence[i].length;
+			const nextCumulative = cumulativeSixteenths + noteLength;
+
+			if (currentSixteenths < nextCumulative) {
+				// We're within this note - interpolate between this note and the next
+				const progressWithinNote = (currentSixteenths - cumulativeSixteenths) / noteLength;
+				const currentX = noteXPositions[i] ?? firstNoteX;
+				const nextX = noteXPositions[i + 1] ?? currentX;
+				return currentX + (nextX - currentX) * progressWithinNote;
+			}
+
+			cumulativeSixteenths = nextCumulative;
+		}
+
+		// Past the last note - return last note position
+		return noteXPositions[noteXPositions.length - 1] ?? lastNoteX;
+	});
 
 	const targetPosition = $derived(containerWidth * 0.4);
 	const scrollOffset = $derived(targetPosition - notePositionInStaff);
@@ -207,8 +231,10 @@
 		// Calculate fraction across the entire track (0% to 100%)
 		const fractionInTrack = (currentNotePos - trackStartX) / (trackEndX - trackStartX);
 		const clampedFractionInTrack = Math.min(1, Math.max(0, fractionInTrack));
-		// notify parent with the track progress
-		dispatch('seek', { progress: clampedFractionInTrack });
+		// Notify parent with the track progress via callback
+		if (onSeek) {
+			onSeek(clampedFractionInTrack);
+		}
 		// Reset userOffset and velocity after dispatching
 		userOffset = 0;
 		velocityX = 0;
@@ -242,7 +268,7 @@
 					: 'grab'};"
 			>
 				<Staff
-					sequence={flattenedMelody}
+					{bars}
 					{keySignature}
 					mode={piece.mode}
 					{clef}
@@ -250,6 +276,7 @@
 					minWidth={minStaffWidth}
 					bind:firstNoteX
 					bind:lastNoteX
+					bind:noteXPositions
 					showAllBlack={true}
 				/>
 			</div>

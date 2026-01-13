@@ -99,11 +99,11 @@ function noteToVexFlow(
 }
 
 /**
- * Render a melody sequence using VexFlow
+ * Render melody bars using VexFlow with proportional note widths within each bar
  */
 export function renderVexFlowStaff(
 	container: HTMLDivElement,
-	sequence: MelodyItem[],
+	bars: MelodyItem[][],
 	clef: Clef,
 	keySignature: KeySignature,
 	width: number,
@@ -132,8 +132,9 @@ export function renderVexFlowStaff(
 
 	const context = vf.getContext();
 
-	// Calculate time signature based on provided bar length or phrase length
-	const totalSixteenths = sequence.reduce((sum, item) => sum + item.length, 0);
+	// Flatten bars for computing total sixteenths
+	const flatSequence = bars.flat();
+	const totalSixteenths = flatSequence.reduce((sum, item) => sum + item.length, 0);
 	const totalBeats = totalSixteenths / 4; // Convert to quarter notes
 
 	let timeSignature = '4/4';
@@ -167,44 +168,46 @@ export function renderVexFlowStaff(
 		stave.addTimeSignature(timeSignature);
 	}
 
-	// Build note strings for EasyScore or manual StaveNote creation
-	const notes = [];
+	// Build all notes from all bars
+	const allNotes = [];
 
-	for (const item of sequence) {
-		const { duration, dots } = lengthToDurationWithDots(item.length);
-		if (item.note === null) {
-			// Rest
-			const rest = vf.StaveNote({
-				keys: ['b/4'],
-				duration: `${duration}r`,
-				clef: clef
-			});
-			rest.setStave(stave);
-			// Pin rests to the middle line; let formatter know we don't want vertical tweaks
-			rest.setKeyLine(0, 3);
-			for (let d = 0; d < dots; d++) {
-				Dot.buildAndAttach([rest], { all: true });
-			}
-			notes.push(rest);
-		} else {
-			// Note
-			const { keys, accidentals } = noteToVexFlow(item.note, keySignature);
-			const staveNote = vf.StaveNote({
-				keys,
-				duration,
-				clef: clef
-			});
-			staveNote.setStave(stave);
+	for (const bar of bars) {
+		for (const item of bar) {
+			const { duration, dots } = lengthToDurationWithDots(item.length);
+			if (item.note === null) {
+				// Rest
+				const rest = vf.StaveNote({
+					keys: ['b/4'],
+					duration: `${duration}r`,
+					clef: clef
+				});
+				rest.setStave(stave);
+				// Pin rests to the middle line; let formatter know we don't want vertical tweaks
+				rest.setKeyLine(0, 3);
+				for (let d = 0; d < dots; d++) {
+					Dot.buildAndAttach([rest], { all: true });
+				}
+				allNotes.push(rest);
+			} else {
+				// Note
+				const { keys, accidentals } = noteToVexFlow(item.note, keySignature);
+				const staveNote = vf.StaveNote({
+					keys,
+					duration,
+					clef: clef
+				});
+				staveNote.setStave(stave);
 
-			// Add accidentals if needed
-			if (accidentals && accidentals.length > 0) {
-				staveNote.addModifier(vf.Accidental({ type: accidentals[0] }), 0);
-			}
-			for (let d = 0; d < dots; d++) {
-				Dot.buildAndAttach([staveNote], { all: true });
-			}
+				// Add accidentals if needed
+				if (accidentals && accidentals.length > 0) {
+					staveNote.addModifier(vf.Accidental({ type: accidentals[0] }), 0);
+				}
+				for (let d = 0; d < dots; d++) {
+					Dot.buildAndAttach([staveNote], { all: true });
+				}
 
-			notes.push(staveNote);
+				allNotes.push(staveNote);
+			}
 		}
 	}
 
@@ -212,17 +215,31 @@ export function renderVexFlowStaff(
 	const noteXPositions: number[] = [];
 	const noteYPositions: number[] = [];
 
-	if (notes.length > 0) {
-		// Calculate total beats based on actual note durations
-		// Each sixteenth = 0.25 beats (assuming quarter note = 1 beat)
-		const totalSixteenths = sequence.reduce((sum, item) => sum + item.length, 0);
-		const totalBeats = totalSixteenths / 4; // Convert sixteenths to quarter notes
+	if (allNotes.length > 0) {
+		// Set proportional widths based on note duration within each bar
+		const minWidth = 20; // Minimum width for any note
+		let noteIndex = 0;
+		let totalComputedWidth = 0;
+
+		for (const bar of bars) {
+			const barSixteenths = bar.reduce((sum, item) => sum + item.length, 0);
+			const reserveForClefAndKey = noteIndex === 0 ? 150 : 20; // Only first bar needs space for clef/key
+			const barAvailableWidth = (width / totalSixteenths) * barSixteenths - reserveForClefAndKey;
+			const barPixelsPerSixteenth = barAvailableWidth / barSixteenths;
+
+			for (const item of bar) {
+				const noteWidth = Math.max(minWidth, item.length * barPixelsPerSixteenth);
+				allNotes[noteIndex].setWidth(noteWidth);
+				totalComputedWidth += noteWidth;
+				noteIndex++;
+			}
+		}
 
 		const voice = vf.Voice({ time: { numBeats: totalBeats, beatValue: 4 } });
-		voice.addTickables(notes);
+		voice.addTickables(allNotes);
 
 		// Automatically beam eighth notes and shorter
-		const beams = Beam.generateBeams(notes, {
+		const beams = Beam.generateBeams(allNotes, {
 			flatBeams: false,
 			stemDirection: undefined // Auto-detect stem direction
 		});
@@ -230,7 +247,8 @@ export function renderVexFlowStaff(
 		// Format and draw with proportional spacing
 		const formatter = vf.Formatter();
 
-		formatter.joinVoices([voice]).format([voice], width - 100, {
+		// Pass the computed total width so formatter doesn't expand/compress our proportional widths
+		formatter.joinVoices([voice]).format([voice], Math.max(totalComputedWidth + 100, width - 100), {
 			context: context
 		});
 
@@ -242,7 +260,7 @@ export function renderVexFlowStaff(
 		beams.forEach((beam) => beam.setContext(context).draw());
 
 		// Extract note X and Y positions from rendered notes
-		for (const note of notes) {
+		for (const note of allNotes) {
 			const bounds = note.getBoundingBox();
 			noteXPositions.push(bounds.getX() + bounds.getW() / 2);
 
