@@ -1,4 +1,4 @@
-import { Factory, Dot, type Stave } from 'vexflow';
+import { Factory, Dot, Beam, type Stave } from 'vexflow';
 import type { KeySignature } from '$lib/config/keys';
 import type { Clef } from '$lib/config/types';
 import type { MelodyItem } from '$lib/config/melody';
@@ -221,6 +221,12 @@ export function renderVexFlowStaff(
 		const voice = vf.Voice({ time: { numBeats: totalBeats, beatValue: 4 } });
 		voice.addTickables(notes);
 
+		// Automatically beam eighth notes and shorter
+		const beams = Beam.generateBeams(notes, {
+			flatBeams: false,
+			stemDirection: undefined // Auto-detect stem direction
+		});
+
 		// Format and draw with proportional spacing
 		const formatter = vf.Formatter();
 
@@ -231,6 +237,9 @@ export function renderVexFlowStaff(
 		// Draw stave and voice
 		stave.setContext(context).draw();
 		voice.draw(context, stave);
+
+		// Draw beams
+		beams.forEach((beam) => beam.setContext(context).draw());
 
 		// Extract note X and Y positions from rendered notes
 		for (const note of notes) {

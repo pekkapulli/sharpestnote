@@ -679,6 +679,79 @@ export const units: Units = {
 				]
 			}
 		]
+	},
+	'test-c': {
+		code: 'test-c',
+		instrument: 'cello',
+		title: 'Testing testing',
+		description: 'Just a test unit.',
+		gumroadUrl: '',
+		pieces: [
+			{
+				code: 'test-1',
+				label: 'Test 1',
+				composer: 'Pekka Pulli',
+				arranger: 'Pekka Pulli',
+				notationStartPercent: 0.182,
+				notationEndPercent: 0.864,
+				tracks: {
+					slow: {
+						tempo: 90,
+						audioUrl: 'Raindrops+Viola+90BPM+Full+track.mp3',
+						backingTrackUrl: 'Raindrops+Viola+90BPM+Backing+track.mp3'
+					},
+					medium: {
+						tempo: 100,
+						audioUrl: 'Raindrops+Viola+100BPM+Full+track.mp3',
+						backingTrackUrl: 'Raindrops+Viola+100BPM+Backing+track.mp3'
+					},
+					fast: {
+						tempo: 110,
+						audioUrl: 'Raindrops+Viola+110BPM+Full+track.mp3',
+						backingTrackUrl: 'Raindrops+Viola+110BPM+Backing+track.mp3'
+					}
+				},
+				key: 'C',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'g/2', length: 4 },
+					{ note: 'a/2', length: 4 },
+					{ note: 'd/3', length: 4 },
+					{ note: 'e/3', length: 4 },
+					{ note: 'a/3', length: 4 },
+					{ note: 'b/3', length: 4 }
+				],
+				melody: [
+					[
+						{ note: 'g/2', length: 2 },
+						{ note: 'a/2', length: 2 },
+						{ note: 'g/2', length: 2 },
+						{ note: 'b/3', length: 2 },
+						{ note: 'g/2', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'g/2', length: 2 },
+						{ note: 'a/2', length: 1 },
+						{ note: 'g/2', length: 1 },
+						{ note: 'b/2', length: 4 },
+						{ note: 'g/2', length: 4 },
+						{ note: null, length: 4 }
+					],
+					[
+						{ note: 'g/2', length: 2 },
+						{ note: 'a/2', length: 1 },
+						{ note: 'g/2', length: 1 },
+						{ note: 'b/2', length: 4 },
+						{ note: 'g/2', length: 2 },
+						{ note: null, length: 2 },
+						{ note: 'g/2', length: 2 },
+						{ note: null, length: 2 }
+					]
+				]
+			}
+		]
 	}
 };
 
