@@ -2,17 +2,27 @@ import { noteNameFromMidi } from '$lib/tuner/tune';
 import type { Accidental } from '$lib/tuner/tune';
 
 export const LETTER_TO_SEMITONE: Record<string, number> = {
+	c: 0,
 	C: 0,
+	d: 2,
 	D: 2,
+	e: 4,
 	E: 4,
+	f: 5,
 	F: 5,
+	g: 7,
 	G: 7,
+	a: 9,
 	A: 9,
+	b: 11,
 	B: 11
 };
 
 export function noteNameToMidi(n: string): number | null {
-	const m = /^([A-G])([#b]?)(\d)$/.exec(n);
+	// Support both "C4" and "c/4" formats
+	const upperMatch = /^([A-G])([#b]?)(\d)$/.exec(n);
+	const vexMatch = /^([a-g])([#b]?)\/(\d)$/.exec(n);
+	const m = upperMatch || vexMatch;
 	if (!m) return null;
 	const [, letter, accidental, octaveStr] = m;
 	let semitone = LETTER_TO_SEMITONE[letter];

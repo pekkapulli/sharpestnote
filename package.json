@@ -39,6 +39,7 @@
 	},
 	"dependencies": {
 		"fft.js": "^4.0.4",
-		"soundbank-reverb": "^1.1.2"
+		"soundbank-reverb": "^1.1.2",
+		"vexflow": "^5.0.0"
 	}
 }

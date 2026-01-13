@@ -13,21 +13,25 @@ export function renderNote(
 	clef: Clef
 ): RenderedNote | null {
 	if (!noteName) return null;
-	const match = /^([A-G])([#b]?)(\d)$/.exec(noteName);
+	// Support both "C4" and "c/4" formats
+	const upperMatch = /^([A-G])([#b]?)(\d)$/.exec(noteName);
+	const vexMatch = /^([a-g])([#b]?)\/(\d)$/.exec(noteName);
+	const match = upperMatch || vexMatch;
 	if (!match) return null;
 
 	const [, letter, accidentalSign, octaveStr] = match;
+	const upperLetter = letter.toUpperCase();
 	const layout = staffLayouts[clef] ?? staffLayouts.treble;
 	const referenceOctave = clef === 'bass' ? 2 : clef === 'alto' ? 3 : 4;
 
 	// Position is based on letter only, no accidental offset
-	const base = layout.basePositions[letter];
+	const base = layout.basePositions[upperLetter];
 	const octave = Number(octaveStr);
 	const octaveOffset = (octave - referenceOctave) * 3.5;
 	const position = base + octaveOffset;
 
 	// Determine what accidental to display
-	const expectedAccidental = getExpectedAccidental(letter, keySignature);
+	const expectedAccidental = getExpectedAccidental(upperLetter, keySignature);
 
 	let accidental: { symbol: string; yOffset: number } | null = null;
 
