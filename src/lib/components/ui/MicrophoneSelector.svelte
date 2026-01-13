@@ -8,9 +8,26 @@
 	}
 
 	const { tunerState, onStartListening, onDeviceChange }: Props = $props();
+
+	function formatDeviceName(label: string | null | undefined): string {
+		if (!label) return 'Microphone';
+
+		// Remove duplicate parenthetical content (e.g., "Built-in Microphone (Built-in Audio Stereo)")
+		const cleaned = label.replace(/\s*\([^)]*\)(?=\s*\(|$)/, '');
+
+		// Remove trailing parenthetical content or duplication
+		const match = cleaned.match(/^([^(]+?)(?:\s*\(\1\))?$/);
+		if (match) {
+			return match[1].trim();
+		}
+
+		return cleaned.trim() || 'Microphone';
+	}
 </script>
 
-<div class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-center shadow-sm">
+<div
+	class="mx-auto max-w-100 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-center shadow-sm"
+>
 	<p class="text-sm font-semibold text-amber-800">
 		{tunerState.needsUserGesture ? 'Audio blocked by browser' : 'Microphone is not active.'}
 	</p>
@@ -24,16 +41,16 @@
 	{/if}
 	{#if tunerState.devices.length > 0}
 		<div class="mt-3 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-			<label for="mic-device-select" class="text-sm font-medium text-amber-800">
+			<label for="mic-device-select" class="max-w-xs text-sm font-medium text-amber-800">
 				Select input device:
 				<select
 					id="mic-device-select"
 					value={tunerState.selectedDeviceId}
 					onchange={(e) => onDeviceChange((e.target as HTMLSelectElement).value)}
-					class="ml-2 rounded border border-amber-300 bg-white px-2 py-1 text-sm text-slate-900"
+					class="mx-4 max-w-50 rounded border border-amber-300 bg-white px-4 py-1 text-sm text-slate-900"
 				>
 					{#each tunerState.devices as device}
-						<option value={device.deviceId}>{device.label || 'Microphone'}</option>
+						<option value={device.deviceId}>{formatDeviceName(device.label)}</option>
 					{/each}
 				</select>
 			</label>

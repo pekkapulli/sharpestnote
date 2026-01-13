@@ -16,6 +16,7 @@
 	} from '$lib/util/noteNames';
 	import type { MelodyItem } from '$lib/config/melody';
 	import { lengthToMs } from '$lib/config/melody';
+	import { vexFlowToDisplay } from '$lib/util/noteConverter';
 
 	interface Props {
 		instrument: InstrumentId;
@@ -69,7 +70,7 @@
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
 		accidental: 'sharp',
-		debug: true,
+		debug: false,
 		gain: 15,
 		maxGain: 500
 	});
@@ -96,6 +97,26 @@
 
 	let isPlayingMelody = $state(false);
 	let playheadPosition = $state<number | null>(null); // Position in sixteenths for playback animation
+	let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
+	let staffMinWidth = $state(400);
+	let staffMaxWidth = $state('none');
+
+	// Update min/maxWidth based on viewport width
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			const handleResize = () => {
+				windowWidth = window.innerWidth;
+				// On narrow devices (<640px), use responsive width that fits the screen with padding
+				// On wider devices, use a minimum of 400px for readable notation
+				staffMinWidth = windowWidth < 640 ? Math.max(320, windowWidth - 40) : 400;
+				// Constrain maxWidth on small screens to prevent overflow
+				staffMaxWidth = windowWidth < 640 ? `${windowWidth - 40}px` : 'none';
+			};
+			window.addEventListener('resize', handleResize);
+			handleResize(); // Call once to set initial value
+			return () => window.removeEventListener('resize', handleResize);
+		}
+	});
 
 	// Detect new onsets by watching for heldSixteenths resetting to near-zero
 	// This is more reliable than waiting for note to become inactive
@@ -450,7 +471,7 @@
 </script>
 
 <div class="min-h-screen bg-off-white py-12">
-	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-1 sm:px-4">
+	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-0 sm:px-4">
 		<header class="text-center">
 			<div class="flex flex-col items-center justify-center gap-2">
 				<p class="mx-auto mt-2 max-w-2xl text-center text-slate-700">
@@ -476,12 +497,14 @@
 		{#if melody}
 			<!-- Staff display -->
 			<div
-				class={`flex flex-col items-center justify-center rounded-2xl bg-white p-1 py-4 shadow-sm transition-all duration-300 ${
+				class={`flex flex-col items-center justify-center rounded-2xl bg-white p-0 py-4 shadow-sm transition-all duration-300 ${
 					showSuccess ? 'scale-105 ring-4 ring-green-400' : ''
 				} sm:p-6 lg:p-8`}
 			>
 				<Staff
 					sequence={melody}
+					minWidth={staffMinWidth}
+					showTimeSignature={false}
 					{currentIndex}
 					animatingIndex={animatingNoteIndex}
 					animationProgress={simulatedHeldSixteenths}
@@ -537,14 +560,16 @@
 											? 'text-emerald-300'
 											: 'text-slate-300'}
 								>
-									{item.note}{i < melody.length - 1 ? ' ' : ''}
+									{item.note ? vexFlowToDisplay(item.note) : '--'}{i < melody.length - 1 ? ' ' : ''}
 								</span>
 							{/each}
 						</p>
 						<div class="my-2 border-t border-slate-600"></div>
 						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Detected</p>
 						<div class="mt-2 flex flex-col items-center gap-2">
-							<p class="text-2xl font-bold text-slate-300">{tuner.state.note ?? '--'}</p>
+							<p class="text-2xl font-bold text-slate-300">
+								{tuner.state.note ? vexFlowToDisplay(tuner.state.note) : '--'}
+							</p>
 							<AmplitudeBar amplitude={tuner.state.amplitude} width={180} height={16} />
 						</div>
 					</div>

@@ -240,10 +240,6 @@
 		{#if gameActive}
 			<div class="mb-4 text-center">
 				<p class="text-2xl font-bold text-dark-blue">Score: {score}</p>
-				<p class="text-sm text-slate-600">
-					Current note: {tuner.state.note ?? '—'} ({tuner.state.frequency?.toFixed(1) ?? '—'}
-					Hz)
-				</p>
 			</div>
 		{/if}
 

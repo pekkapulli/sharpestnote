@@ -107,7 +107,8 @@ export function renderVexFlowStaff(
 	clef: Clef,
 	keySignature: KeySignature,
 	width: number,
-	barLengthSixteenths?: number
+	barLengthSixteenths?: number,
+	showTimeSignature: boolean = true
 ): VexFlowRenderResult {
 	// Clear container
 	container.innerHTML = '';
@@ -161,10 +162,10 @@ export function renderVexFlowStaff(
 
 	// Create and configure stave
 	const stave = vf.Stave({ x: 10, y: 20, width: width - 20 });
-	stave
-		.addClef(clef)
-		.addKeySignature(keySignatureToVexFlow(keySignature))
-		.addTimeSignature(timeSignature);
+	stave.addClef(clef).addKeySignature(keySignatureToVexFlow(keySignature));
+	if (showTimeSignature) {
+		stave.addTimeSignature(timeSignature);
+	}
 
 	// Build note strings for EasyScore or manual StaveNote creation
 	const notes = [];
@@ -267,7 +268,6 @@ export function renderVexFlowStaff(
  * matching the same process used for rendering notes in the sequence.
  */
 export function getNoteYPosition(note: string, clef: Clef, stave: Stave): number {
-	console.log('[getNoteYPosition] Called with:', { note, clef, staveY: stave.getYForLine(2) });
 	try {
 		// Create a temporary div for rendering (won't be added to DOM)
 		const tempDiv = document.createElement('div');
@@ -310,16 +310,11 @@ export function getNoteYPosition(note: string, clef: Clef, stave: Stave): number
 
 			// Extract Y position from note head (same as rendered notes)
 			const noteHeads = staveNote.noteHeads;
-			console.log('[getNoteYPosition] noteHeads:', noteHeads, 'length:', noteHeads?.length);
 			if (noteHeads && noteHeads.length > 0) {
-				const y = noteHeads[0].getY();
-				console.log('[getNoteYPosition] Returning Y from noteHead:', y);
-				return y;
+				return noteHeads[0].getY();
 			}
 
-			const fallbackY = stave.getYForLine(2);
-			console.log('[getNoteYPosition] No noteHeads, returning fallback:', fallbackY);
-			return fallbackY;
+			return stave.getYForLine(2);
 		} finally {
 			// Clean up temp div
 			document.body.removeChild(tempDiv);

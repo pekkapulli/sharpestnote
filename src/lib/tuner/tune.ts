@@ -1,5 +1,9 @@
-const NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const NOTES_SHARP_VEXFLOW = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+const NOTES_FLAT_VEXFLOW = ['c', 'db', 'd', 'eb', 'e', 'f', 'gb', 'g', 'ab', 'a', 'bb', 'b'];
+
+// Human-readable note names for display only
+const NOTES_SHARP_DISPLAY = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const NOTES_FLAT_DISPLAY = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 export const DEFAULT_A4 = 442;
 
@@ -14,9 +18,24 @@ export function frequencyFromNoteNumber(note: number, a4: number = DEFAULT_A4): 
 	return a4 * Math.pow(2, (note - 69) / 12);
 }
 
+/**
+ * Convert MIDI note number to VexFlow notation (e.g., "c#/4")
+ * VexFlow uses lowercase letters and slash notation for octave
+ */
 export function noteNameFromMidi(midi: number, accidental: Accidental = 'sharp'): string {
 	const octave = Math.floor(midi / 12) - 1;
-	const names = accidental === 'flat' ? NOTES_FLAT : NOTES_SHARP;
+	const names = accidental === 'flat' ? NOTES_FLAT_VEXFLOW : NOTES_SHARP_VEXFLOW;
+	const name = names[((midi % 12) + 12) % 12];
+	return `${name}/${octave}`;
+}
+
+/**
+ * Convert MIDI note number to human-readable notation (e.g., "C#4")
+ * Use this only for UI display, not for internal processing
+ */
+export function noteNameFromMidiDisplay(midi: number, accidental: Accidental = 'sharp'): string {
+	const octave = Math.floor(midi / 12) - 1;
+	const names = accidental === 'flat' ? NOTES_FLAT_DISPLAY : NOTES_SHARP_DISPLAY;
 	const name = names[((midi % 12) + 12) % 12];
 	return `${name}${octave}`;
 }

@@ -29,6 +29,7 @@
 		firstNoteX?: number; // Bindable prop to expose the first note's X position
 		lastNoteX?: number; // Bindable prop to expose the last note's X position
 		showAllBlack?: boolean; // If true, render all notes in black instead of colored by state
+		showTimeSignature?: boolean; // If false, hide the time signature (default: true)
 	}
 
 	const HEIGHT = 150;
@@ -48,6 +49,7 @@
 		minWidth = 400,
 		firstNoteX = $bindable(0),
 		lastNoteX = $bindable(0),
+		showTimeSignature = true,
 		showAllBlack = false
 	}: Props = $props();
 
@@ -56,7 +58,6 @@
 	const notes = $derived(sequence.map((s) => s.note));
 
 	const ghostNoteRendered = $derived(ghostNote ? renderNote(ghostNote, keySignature, clef) : null);
-	const ghostNotePosition = $derived(ghostNoteRendered?.position ?? null);
 	const ghostAccidental = $derived(ghostNoteRendered?.accidental ?? null);
 	const isHit = $derived(isCurrentNoteHit || isSequenceComplete);
 
@@ -112,7 +113,8 @@
 					clef,
 					keySignature,
 					containerWidth,
-					barLength
+					barLength,
+					showTimeSignature
 				);
 				noteXs = result.noteXPositions;
 				noteYs = result.noteYPositions;
@@ -239,24 +241,7 @@
 
 				<!-- Ghost note overlay -->
 				{#if ghostNote !== null && notes[currentIndex] !== undefined && currentGhostX !== null && vexStave}
-					{@const ghostNoteVexFormat = ghostNote.replace(
-						/^([A-G])([#b]?)(\d)$/,
-						(_, note, acc, oct) => `${note.toLowerCase()}${acc}/${oct}`
-					)}
-					{@const ghostY = getNoteYPosition(ghostNoteVexFormat, clef, vexStave)}
-					{#if ghostY}
-						{console.log('[Staff] Ghost note rendering:', {
-							ghostNote,
-							ghostNoteVexFormat,
-							ghostY,
-							centerY,
-							currentIndex,
-							currentNote: notes[currentIndex],
-							noteYs: noteYs.slice(0, 5),
-							topLineY,
-							bottomLineY
-						})}
-					{/if}
+					{@const ghostY = getNoteYPosition(ghostNote, clef, vexStave)}
 					<GhostNote
 						x={currentGhostX}
 						y={ghostY}
