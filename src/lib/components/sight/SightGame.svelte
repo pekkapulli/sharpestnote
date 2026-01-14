@@ -66,6 +66,7 @@
 	let simulatedHeldSixteenths = $state<number | null>(null);
 	let animatingNoteIndex = $state<number | null>(null);
 	let synthEnabled = $state(true);
+	let greatIntonationIndices = $state<number[]>([]);
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
@@ -283,6 +284,11 @@
 		currentNoteSuccess = true;
 		lastSuccessNote = tuner.state.note;
 
+		// Track great intonation (within 10 cents)
+		if (tuner.state.cents !== null && Math.abs(tuner.state.cents) < 10) {
+			greatIntonationIndices.push(currentIndex);
+		}
+
 		// Start animation simulation for the successfully detected note
 		if (melody) {
 			const noteLength = melody[currentIndex].length ?? 4;
@@ -354,6 +360,7 @@
 		}
 		simulatedHeldSixteenths = null;
 		animatingNoteIndex = null;
+		greatIntonationIndices = [];
 
 		const nextMelody = newMelody ? newMelody() : [];
 		// Deep copy to guarantee a new reference and avoid stale reactivity
@@ -438,6 +445,19 @@
 	onMount(() => {
 		tuner.checkSupport();
 		tuner.refreshDevices();
+
+		// Test helper: Arrow right to mark current note as success
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'ArrowRight' && melody && currentIndex < melody.length) {
+				const currentNote = melody[currentIndex].note;
+				if (currentNote !== null) {
+					markNoteAsSuccess();
+				}
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
 	});
 
 	async function startListening() {
@@ -474,8 +494,9 @@
 	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-0 sm:px-4">
 		<header class="text-center">
 			<div class="flex flex-col items-center justify-center gap-2">
-				<p class="mx-auto mt-2 max-w-2xl text-center text-slate-700">
-					Play the notes shown on the {selectedInstrument.clef} staff with your {instrument}.
+				<p class="mx-auto mt-2 max-w-xl text-center text-slate-700">
+					Play the notes shown on the {selectedInstrument.clef} staff with your {instrument}. A star
+					means you hit the note perfectly!
 					{#if keySignature}
 						<span class="mt-1 block text-center text-sm text-slate-600">
 							Key: {keyNote}
@@ -524,6 +545,7 @@
 					isCurrentNoteHit={isCurrentNoteHit()}
 					isSequenceComplete={showSuccess}
 					{barLength}
+					{greatIntonationIndices}
 				/>
 			</div>
 

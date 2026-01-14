@@ -108,7 +108,8 @@ export function renderVexFlowStaff(
 	keySignature: KeySignature,
 	width: number,
 	barLengthSixteenths?: number,
-	showTimeSignature: boolean = true
+	showTimeSignature: boolean = true,
+	noteColors?: string[]
 ): VexFlowRenderResult {
 	// Clear container
 	container.innerHTML = '';
@@ -170,6 +171,7 @@ export function renderVexFlowStaff(
 
 	// Build all notes from all bars
 	const allNotes = [];
+	let flatNoteIndex = 0;
 
 	for (const bar of bars) {
 		for (const item of bar) {
@@ -206,8 +208,15 @@ export function renderVexFlowStaff(
 					Dot.buildAndAttach([staveNote], { all: true });
 				}
 
+				// Apply color to note if provided
+				if (noteColors && noteColors[flatNoteIndex]) {
+					const color = noteColors[flatNoteIndex];
+					staveNote.setStyle({ strokeStyle: color, fillStyle: color });
+				}
+
 				allNotes.push(staveNote);
 			}
+			flatNoteIndex++;
 		}
 	}
 
