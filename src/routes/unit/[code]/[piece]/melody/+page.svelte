@@ -15,6 +15,7 @@
 	let melodyIndex = $state(0);
 	let completionCount = $state(0);
 	let showCompletionModal = $state(false);
+	let sightGameComponent: any = $state(null);
 
 	// Get the total number of melodies in the piece
 	const melodyPool = $derived(piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? []);
@@ -66,6 +67,16 @@
 			showCompletionModal = true;
 		}
 	}
+
+	function handleModalClose() {
+		showCompletionModal = false;
+		// After a short delay, trigger the next melody to play
+		setTimeout(() => {
+			if (sightGameComponent?.refreshAndPlayMelody) {
+				sightGameComponent.refreshAndPlayMelody();
+			}
+		}, 100);
+	}
 </script>
 
 <SharePreview data={sharePreviewData} />
@@ -95,6 +106,7 @@
 				</p>
 			</div>
 			<SightGame
+				bind:this={sightGameComponent}
 				instrument={unit.instrument}
 				keyNote={piece.key}
 				mode={piece.mode}
@@ -102,13 +114,14 @@
 				barLength={piece.barLength}
 				{newMelody}
 				onMelodyComplete={handleMelodyComplete}
+				suppressAutoPlay={showCompletionModal}
 			/>
 		</div>
 
 		<!-- Completion Modal -->
 		<Modal
 			isOpen={showCompletionModal}
-			onClose={() => (showCompletionModal = false)}
+			onClose={handleModalClose}
 			title="Well Done!"
 			icon={melodyIcon}
 			maxWidth="md"
@@ -126,7 +139,7 @@
 
 			{#snippet actions()}
 				<button
-					onclick={() => (showCompletionModal = false)}
+					onclick={handleModalClose}
 					class="rounded-lg bg-dark-blue px-6 py-3 font-semibold text-white transition hover:-translate-y-px hover:shadow-lg"
 				>
 					Continue

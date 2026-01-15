@@ -26,6 +26,7 @@
 		barLength?: number;
 		newMelody?: () => MelodyItem[];
 		onMelodyComplete?: () => void;
+		suppressAutoPlay?: boolean;
 	}
 
 	let {
@@ -35,7 +36,8 @@
 		tempoBPM = 100,
 		barLength = 16,
 		newMelody,
-		onMelodyComplete
+		onMelodyComplete,
+		suppressAutoPlay = false
 	}: Props = $props();
 	const selectedInstrument = $derived(instrumentMap[instrument]);
 	const keySignature = $derived(getKeySignature(keyNote, mode));
@@ -371,10 +373,15 @@
 		currentNoteSuccess = false;
 		lastOnsetHeldSixteenths = -1;
 
-		// Automatically play the new melody if synth is enabled
-		if (synthEnabled) {
+		// Automatically play the new melody if synth is enabled and auto-play is not suppressed
+		if (synthEnabled && !suppressAutoPlay) {
 			playMelodyWithSynth();
 		}
+	}
+
+	// Public method for parent to trigger refresh and play
+	export function refreshAndPlayMelody() {
+		refreshMelody();
 	}
 
 	async function playMelodyWithSynth() {
@@ -437,9 +444,12 @@
 			onMelodyComplete();
 		}
 
-		setTimeout(() => {
-			refreshMelody();
-		}, 400);
+		// Only auto-refresh if auto-play is not suppressed (i.e., don't refresh when modal is showing)
+		if (!suppressAutoPlay) {
+			setTimeout(() => {
+				refreshMelody();
+			}, 400);
+		}
 	}
 
 	onMount(() => {
