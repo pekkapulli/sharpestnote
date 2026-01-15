@@ -286,8 +286,8 @@
 		currentNoteSuccess = true;
 		lastSuccessNote = tuner.state.note;
 
-		// Track great intonation (within 10 cents)
-		if (tuner.state.cents !== null && Math.abs(tuner.state.cents) < 10) {
+		// Track great intonation (within 15 cents)
+		if (tuner.state.cents !== null && Math.abs(tuner.state.cents) < 15) {
 			greatIntonationIndices.push(currentIndex);
 		}
 
