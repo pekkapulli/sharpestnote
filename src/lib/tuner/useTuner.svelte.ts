@@ -1,4 +1,5 @@
 import { untrack } from 'svelte';
+import { SvelteDate } from 'svelte/reactivity';
 import {
 	autoCorrelate,
 	centsOff,
@@ -94,6 +95,12 @@ export function createTuner(options: TunerOptions = {}) {
 	let stablePitch: number | null = null; // Recent stable pitch for change detection
 	let pitchConfidence = 0;
 
+	// Phase-cue conditioning to avoid repeated "phase" onsets during steady sustains
+	let phaseCueEma = 0;
+	let phaseCueEmaInitialized = false;
+	let previousPhaseCueEma = 0;
+	const PHASE_CUE_EMA_ALPHA = 0.2;
+
 	// Cooldown enforcement (refractory period)
 	let lastOnsetTime = 0;
 
@@ -180,7 +187,8 @@ export function createTuner(options: TunerOptions = {}) {
 
 	function debugLog(...args: unknown[]): void {
 		if (debug) {
-			console.log('[Tuner]', ...args);
+			const timestamp = new SvelteDate().toISOString().split('T')[1].slice(0, -1); // HH:MM:SS.mmm
+			console.log(`[Tuner ${timestamp}]`, ...args);
 		}
 	}
 
@@ -540,7 +548,7 @@ export function createTuner(options: TunerOptions = {}) {
 		// 1.4: Compute phase disruption cue
 		// Measure phase deviation (predicts phase advance, measures deviation)
 		const phaseCueFundamental = hasPitch ? freq : null;
-		const phaseCue = calculatePhaseDeviationFocused(
+		const rawPhaseCueAbs = calculatePhaseDeviationFocused(
 			fftResult,
 			previousFFT,
 			analyser.fftSize / 4, // hop size
@@ -548,11 +556,28 @@ export function createTuner(options: TunerOptions = {}) {
 			audioContext.sampleRate,
 			analyser.fftSize
 		);
+
+		// Smooth absolute phase deviation (good for visualization; reduces single-frame spikes)
+		let phaseCueAbsSmoothed = rawPhaseCueAbs;
+		if (!phaseCueEmaInitialized) {
+			phaseCueEmaInitialized = true;
+			phaseCueEma = rawPhaseCueAbs;
+			previousPhaseCueEma = rawPhaseCueAbs;
+		} else {
+			phaseCueEma = phaseCueEma * (1 - PHASE_CUE_EMA_ALPHA) + rawPhaseCueAbs * PHASE_CUE_EMA_ALPHA;
+			phaseCueAbsSmoothed = phaseCueEma;
+		}
+
+		// Use a transient-like phase cue for detection: positive delta of smoothed deviation.
+		// This prevents slow drift from repeatedly triggering "phase-dominant" rules on sustained notes.
+		const phaseCueForDetection = Math.max(0, phaseCueAbsSmoothed - previousPhaseCueEma);
+		previousPhaseCueEma = phaseCueAbsSmoothed;
+
 		performanceMetrics.pitchDetectionMs = performance.now() - stepStart;
 
 		// Expose analysis metrics for visualization
 		state.spectralFlux = excitationCue;
-		state.phaseDeviation = phaseCue;
+		state.phaseDeviation = phaseCueAbsSmoothed;
 
 		// Track pitch confidence: stable pitch over multiple frames
 		if (hasPitch) {
@@ -592,7 +617,7 @@ export function createTuner(options: TunerOptions = {}) {
 		// Maintain sliding history for excitation and phase cues
 		excitationHistory.push(excitationCue);
 		harmonicFluxHistory.push(harmonicFluxCue);
-		phaseHistory.push(phaseCue);
+		phaseHistory.push(phaseCueForDetection);
 		if (excitationHistory.length > HISTORY_LENGTH) excitationHistory.shift();
 		if (harmonicFluxHistory.length > HISTORY_LENGTH) harmonicFluxHistory.shift();
 		if (phaseHistory.length > HISTORY_LENGTH) phaseHistory.shift();
@@ -621,10 +646,11 @@ export function createTuner(options: TunerOptions = {}) {
 		const normalizedHarmonicFlux = computeNormalized(harmonicFluxCue, harmonicFluxHistory);
 		const prevHarmonicFlux =
 			harmonicFluxHistory.length > 1 ? harmonicFluxHistory[harmonicFluxHistory.length - 2] : 0;
-		const relativeHarmonicIncrease =
-			prevHarmonicFlux > 0 ? (harmonicFluxCue - prevHarmonicFlux) / prevHarmonicFlux : Infinity;
+		// Avoid Infinity% when previous harmonic flux is ~0
+		const relDen = Math.max(prevHarmonicFlux, 1e-6);
+		const relativeHarmonicIncrease = (harmonicFluxCue - prevHarmonicFlux) / relDen;
 		const normalizedAmplitudeSlope = computeNormalized(amplitudeDelta, amplitudeDeltaHistory);
-		const normalizedPhase = computeNormalized(phaseCue, phaseHistory);
+		const normalizedPhase = computeNormalized(phaseCueForDetection, phaseHistory);
 		const normalizedAmplitude = computeNormalized(amplitude, amplitudeHistory);
 		performanceMetrics.normalizationMs = performance.now() - stepStart;
 
@@ -703,9 +729,9 @@ export function createTuner(options: TunerOptions = {}) {
 				: 0;
 
 		// B-rules only fire for re-articulation of the same note (pitch coherence check)
-		// Allow ±50 cents deviation from stable pitch (half a semitone) for repeat note detection
+		// Allow ±30 cents deviation from stable pitch for repeat note detection
 		const frequencyCoherent =
-			stablePitch && freq > 0 && Math.abs(1200 * Math.log2(freq / stablePitch)) < 50; // Within ±50 cents
+			stablePitch && freq > 0 && Math.abs(1200 * Math.log2(freq / stablePitch)) < 30; // Within ±30 cents
 
 		if (!cooldownActive && hasMinAmplitude) {
 			// Rule A — Guaranteed onset: pitch change with high confidence

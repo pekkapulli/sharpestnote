@@ -12,12 +12,23 @@
 	const HISTORY_MS = 10_000;
 	const SAMPLE_INTERVAL_MS = 16; // ~60fps sampling for the history buffer
 
+	// Track all onset events (not just note state changes)
+	let onsetEvents: { timestamp: number; rule: string | null; frequency: number }[] = [];
+
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
 		accidental: 'sharp',
-		debug: false,
+		debug: true,
 		gain: 15,
-		maxGain: 50
+		maxGain: 50,
+		onOnset: (event) => {
+			// Capture every onset detection
+			onsetEvents.push({
+				timestamp: event.timestamp,
+				rule: event.rule,
+				frequency: event.frequency
+			});
+		}
 	});
 
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
@@ -48,35 +59,55 @@
 
 	function startSampling() {
 		stopSampling();
+		onsetEvents = []; // Clear onset events when starting
 		sampleTimer = window.setInterval(() => {
 			const now = performance.now();
 			const isActive = tuner.state.isNoteActive;
-			const onset = isActive && !prevNoteActive;
-			prevNoteActive = isActive;
 
 			// Use spectral flux and phase deviation directly from tuner state
 			const spectralFlux = tuner.state.spectralFlux;
 			const phaseDeviation = tuner.state.phaseDeviation;
 
-			// Extract rule from the tuner state
-			let rule: string | null = null;
-			if (onset && tuner.state.lastOnsetRule) {
-				rule = tuner.state.lastOnsetRule;
+			// Check if there are any onset events in this sample window
+			// (find onsets that happened since the last sample)
+			const lastSampleTime =
+				history.length > 0 ? history[history.length - 1].t : now - SAMPLE_INTERVAL_MS;
+			const newOnsets = onsetEvents.filter(
+				(evt) => evt.timestamp > lastSampleTime && evt.timestamp <= now
+			);
+
+			// For each new onset, create a history entry at its exact timestamp
+			for (const evt of newOnsets) {
+				history.push({
+					t: evt.timestamp,
+					amp: tuner.state.amplitude,
+					spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
+					phases: tuner.state.phases ? new Float32Array(tuner.state.phases) : null,
+					onset: true,
+					rule: evt.rule,
+					active: isActive,
+					frequency: evt.frequency,
+					phaseDeviation,
+					spectralFlux
+				});
 			}
 
+			// Add regular sample point (no onset flag unless it just happened)
 			history.push({
 				t: now,
 				amp: tuner.state.amplitude,
 				spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
 				phases: tuner.state.phases ? new Float32Array(tuner.state.phases) : null,
-				onset,
-				rule,
+				onset: false,
+				rule: null,
 				active: isActive,
 				frequency: tuner.state.frequency ?? null,
 				phaseDeviation,
 				spectralFlux
 			});
+
 			history = history.filter((h) => h.t >= now - HISTORY_MS);
+			onsetEvents = onsetEvents.filter((evt) => evt.timestamp >= now - HISTORY_MS);
 		}, SAMPLE_INTERVAL_MS);
 	}
 
@@ -85,7 +116,7 @@
 			clearInterval(sampleTimer);
 			sampleTimer = null;
 		}
-		prevNoteActive = false;
+		onsetEvents = [];
 	}
 
 	function draw() {
