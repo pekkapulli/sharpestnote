@@ -63,6 +63,7 @@
 	let lastSuccessNote = $state<string | null>(null);
 	let currentNoteSuccess = $state(false);
 	let lastOnsetHeldSixteenths = $state<number>(0);
+	let lastOnsetNoteIndex = $state<number>(-1); // Track which note index had the last onset
 	let animationTimeoutId: number | null = null;
 	let animationIntervalId: number | null = null;
 	let simulatedHeldSixteenths = $state<number | null>(null);
@@ -100,6 +101,7 @@
 
 	let isPlayingMelody = $state(false);
 	let playheadPosition = $state<number | null>(null); // Position in sixteenths for playback animation
+	let ignoreInputUntil = $state(0); // Timestamp; ignore tuner until this time after unpausing
 	let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	let staffMinWidth = $state(400);
 	let staffMaxWidth = $state('none');
@@ -125,13 +127,37 @@
 	// This is more reliable than waiting for note to become inactive
 	$effect(() => {
 		const held = tuner.state.heldSixteenths;
+		const now = performance.now();
 
-		// Detect onset: heldSixteenths drops below 0.5 (indicating a new attack)
-		// and we previously saw it above 1 (indicating the last note was held)
-		if (held < 0.5 && lastOnsetHeldSixteenths >= 1) {
-			// New onset detected! Reset success state for this new attack
-			currentNoteSuccess = false;
-			lastSuccessNote = null;
+		// Ignore input right after unpausing to let synth tail dissipate
+		if (now < ignoreInputUntil) {
+			// Prime onset detector but do not disturb current held value
+			lastOnsetHeldSixteenths = Math.max(lastOnsetHeldSixteenths, 2);
+			return;
+		}
+
+		const descendingAttack = held < 0.5 && lastOnsetHeldSixteenths >= 1; // new strike after a held note
+		const risingFirstAttack =
+			held >= 0.5 && lastOnsetHeldSixteenths < 0.2 && lastOnsetNoteIndex !== currentIndex; // first note or new note after reset
+
+		if (descendingAttack || risingFirstAttack) {
+			// If we're already in a success state (animating), ignore spurious onsets
+			if (currentNoteSuccess) {
+				console.log(
+					`[ONSET] Ignored during success animation. held=${held.toFixed(2)}, lastHeld=${lastOnsetHeldSixteenths.toFixed(2)}, currentIndex=${currentIndex}`
+				);
+			} else {
+				// Only reset note success if this onset belongs to a different note index
+				const isNewNoteIndex = lastOnsetNoteIndex !== currentIndex;
+				console.log(
+					`[ONSET] New onset detected! held=${held.toFixed(2)}, lastHeld=${lastOnsetHeldSixteenths.toFixed(2)}, currentIndex=${currentIndex}, isNewNoteIndex=${isNewNoteIndex}`
+				);
+				if (isNewNoteIndex) {
+					currentNoteSuccess = false;
+					lastSuccessNote = null;
+				}
+				lastOnsetNoteIndex = currentIndex; // Mark that this note index had an onset
+			}
 		}
 
 		lastOnsetHeldSixteenths = held;
@@ -146,6 +172,8 @@
 		if (target === null) return true;
 
 		if (!tuner.state.note) return false;
+		// Require an onset for the current note before we treat it as a hit
+		if (lastOnsetNoteIndex !== currentIndex) return false;
 		const expectedNote = selectedInstrument
 			? transposeForTransposition(
 					target,
@@ -157,55 +185,144 @@
 		return true;
 	});
 
-	// Watch for correct note detection
-	$effect(() => {
-		if (tuner.state.note && melody && melody.length && !showSuccess && !isPlayingMelody) {
-			const target = melody[currentIndex].note;
-
-			// Skip if current note is a rest
-			if (target === null) return;
-
-			const expectedNote = selectedInstrument
-				? transposeForTransposition(
-						target,
+	const ghostNoteDisplay = $derived(
+		!isPlayingMelody && lastOnsetNoteIndex === currentIndex && tuner.state.note
+			? selectedInstrument
+				? transposeDetectedForDisplay(
+						tuner.state.note,
 						selectedInstrument.transpositionSemitones,
 						keySignature.preferredAccidental
 					)
-				: target;
-			if (expectedNote && tuner.state.note === expectedNote) {
-				// Check if this is a fresh attack (not already succeeded)
-				if (currentNoteSuccess) {
-					return; // Already succeeded on this note
-				}
+				: tuner.state.note
+			: null
+	);
 
-				// Only require 1 sixteenth to be held
-				if (tuner.state.heldSixteenths >= 1) {
-					// Mark as success but continue animating
-					markNoteAsSuccess();
-				}
+	// Watch for correct note detection
+	$effect(() => {
+		const now = performance.now();
+
+		// Ignore input right after unpausing to let synth tail dissipate
+		if (now < ignoreInputUntil) {
+			console.log(
+				`[GUARD] Cooling down. now=${now.toFixed(0)} ignoreUntil=${ignoreInputUntil.toFixed(0)} held=${tuner.state.heldSixteenths.toFixed(2)} note=${tuner.state.note}`
+			);
+			return;
+		}
+
+		if (!melody || !melody.length) return;
+
+		const target = melody[currentIndex].note;
+		const held = tuner.state.heldSixteenths;
+		const detectedNote = tuner.state.note;
+
+		// Skip if current note is a rest
+		if (target === null) return;
+
+		if (showSuccess || isPlayingMelody) {
+			console.log(
+				`[GUARD] Skipping match. showSuccess=${showSuccess} isPlayingMelody=${isPlayingMelody} held=${held.toFixed(2)} note=${detectedNote}`
+			);
+			return;
+		}
+
+		// If we have no detected pitch but there is some sustained hold, log why we're skipping
+		if (!detectedNote) {
+			console.log(
+				`[MATCH SKIP] No detected pitch. held=${held.toFixed(2)}, currentIndex=${currentIndex}, lastOnsetNoteIndex=${lastOnsetNoteIndex}`
+			);
+			return;
+		}
+
+		const expectedNote = selectedInstrument
+			? transposeForTransposition(
+					target,
+					selectedInstrument.transpositionSemitones,
+					keySignature.preferredAccidental
+				)
+			: target;
+
+		if (!expectedNote) {
+			console.log(`[MATCH SKIP] Expected note missing for index ${currentIndex}. target=${target}`);
+			return;
+		}
+
+		if (detectedNote !== expectedNote) {
+			// Only log mismatches when there's a measurable hold to avoid noise
+			if (held > 0.4) {
+				console.log(
+					`[MATCH MISS] Detected ${detectedNote} (held=${held.toFixed(2)}) but expected ${expectedNote} at index ${currentIndex}`
+				);
 			}
+			return;
+		}
 
-			// Check if player is playing the NEXT note while current one is still animating
-			if (currentNoteSuccess && currentIndex < melody.length - 1) {
-				const nextTarget = melody[currentIndex + 1].note;
-				if (nextTarget !== null) {
-					const expectedNextNote = selectedInstrument
-						? transposeForTransposition(
-								nextTarget,
-								selectedInstrument.transpositionSemitones,
-								keySignature.preferredAccidental
-							)
-						: nextTarget;
+		console.log(
+			`[MATCH] note=${detectedNote} held=${held.toFixed(2)} lastOnsetNoteIndex=${lastOnsetNoteIndex} currentIndex=${currentIndex} currentNoteSuccess=${currentNoteSuccess}`
+		);
 
-					if (
-						expectedNextNote &&
-						tuner.state.note === expectedNextNote &&
-						tuner.state.heldSixteenths < 0.5
-					) {
-						// Player hit the next note with a fresh attack (low heldSixteenths)
-						// Allow advancing even during animation
-						advanceToNextNote();
-					}
+		// Check if this is a fresh attack (not already succeeded)
+		if (currentNoteSuccess) {
+			return; // Already succeeded on this note
+		}
+
+		// Require: 1) An onset was detected for THIS note index, AND 2) Held for at least 1 sixteenth
+		if (lastOnsetNoteIndex === currentIndex && held >= 1) {
+			console.log(
+				`[NOTE SUCCESS] Marking note ${currentIndex} as success. held=${held.toFixed(2)}, note=${detectedNote}, onsetForThisNote=true`
+			);
+			// Mark as success but continue animating
+			markNoteAsSuccess();
+		} else if (held >= 1) {
+			console.log(
+				`[NOTE BLOCKED] Correct note ${detectedNote} held for ${held.toFixed(2)} sixteenths, but no onset detected for note index ${currentIndex} (lastOnsetNoteIndex=${lastOnsetNoteIndex})`
+			);
+		} else {
+			console.log(
+				`[NOTE WAIT] Correct note ${detectedNote} but held only ${held.toFixed(2)} (<1). onsetForNote=${lastOnsetNoteIndex === currentIndex}`
+			);
+		}
+
+		// Check if player is playing the NEXT note while current one is still animating
+		if (currentNoteSuccess && currentIndex < melody.length - 1) {
+			const nextTarget = melody[currentIndex + 1].note;
+			if (nextTarget !== null) {
+				const expectedNextNote = selectedInstrument
+					? transposeForTransposition(
+							nextTarget,
+							selectedInstrument.transpositionSemitones,
+							keySignature.preferredAccidental
+						)
+					: nextTarget;
+
+				const currentTarget = melody[currentIndex].note;
+				const expectedCurrentNote = selectedInstrument
+					? transposeForTransposition(
+							currentTarget,
+							selectedInstrument.transpositionSemitones,
+							keySignature.preferredAccidental
+						)
+					: currentTarget;
+
+				// Only allow look-ahead if:
+				// 1. Next note is different from current note (to avoid same-pitch confusion)
+				// 2. OR it's same pitch but with a fresh onset (heldSixteenths < 0.75)
+				const isDifferentNote = expectedNextNote !== expectedCurrentNote;
+				const isFreshOnset = held < 0.75;
+
+				if (
+					expectedNextNote &&
+					detectedNote === expectedNextNote &&
+					(isDifferentNote || isFreshOnset)
+				) {
+					console.log(
+						`[LOOK-AHEAD] Player started next note (${expectedNextNote}) held=${held.toFixed(2)}, isDifferentNote=${isDifferentNote}, isFreshOnset=${isFreshOnset}. Advancing from index ${currentIndex} to ${currentIndex + 1}`
+					);
+					// Player hit the next note - allow advancing even during animation
+					advanceToNextNote();
+				} else if (expectedNextNote && detectedNote === expectedNextNote) {
+					console.log(
+						`[LOOK-AHEAD] Next note (${expectedNextNote}) detected but blocked: held=${held.toFixed(2)}, isDifferentNote=${isDifferentNote}, isFreshOnset=${isFreshOnset}`
+					);
 				}
 			}
 		}
@@ -281,8 +398,14 @@
 	});
 
 	function markNoteAsSuccess() {
-		if (currentNoteSuccess) return; // Already marked as success
+		if (currentNoteSuccess) {
+			console.log(`[MARK SUCCESS] Already marked as success for index ${currentIndex}`);
+			return; // Already marked as success
+		}
 
+		console.log(
+			`[MARK SUCCESS] Starting animation for note ${currentIndex}, note=${tuner.state.note}`
+		);
 		currentNoteSuccess = true;
 		lastSuccessNote = tuner.state.note;
 
@@ -334,6 +457,7 @@
 	}
 
 	function advanceToNextNote() {
+		console.log(`[ADVANCE] Advancing from note ${currentIndex}`);
 		// Clear animation state
 		if (animationIntervalId !== null) {
 			clearInterval(animationIntervalId);
@@ -372,6 +496,15 @@
 		lastSuccessNote = null;
 		currentNoteSuccess = false;
 		lastOnsetHeldSixteenths = -1;
+		lastOnsetNoteIndex = -1;
+
+		// Reset tuner state to prevent prior note from lighting up the first note of the new phrase
+		tuner.resetHoldDuration();
+		tuner.state.note = null;
+		tuner.state.cents = null;
+		tuner.state.isNoteActive = false;
+		tuner.state.heldSixteenths = 0;
+		console.log('[REFRESH] Melody refreshed, tuner state cleared');
 
 		// Automatically play the new melody if synth is enabled and auto-play is not suppressed
 		if (synthEnabled && !suppressAutoPlay) {
@@ -389,6 +522,10 @@
 
 		isPlayingMelody = true;
 		playheadPosition = 0;
+
+		// Pause tuner during synth playback to prevent audio feedback
+		tuner.pause();
+		console.log('[SYNTH PLAYBACK] Starting. Tuner paused.');
 
 		try {
 			let currentSixteenth = 0;
@@ -418,6 +555,19 @@
 			console.error('Error playing melody:', err);
 		} finally {
 			isPlayingMelody = false;
+			// Reset tuner state before unpausing
+			tuner.resetHoldDuration();
+			tuner.state.note = null;
+			tuner.state.cents = null;
+			tuner.state.isNoteActive = false;
+			tuner.state.heldSixteenths = 0;
+			// Unpause after a short tail-off, then ignore input for a cooldown window
+			setTimeout(() => {
+				const cooldownMs = 700;
+				ignoreInputUntil = performance.now() + cooldownMs;
+				tuner.unpause();
+				console.log(`[SYNTH PLAYBACK] Ended. Tuner unpaused with ${cooldownMs}ms cooldown.`);
+			}, 400);
 			// Delay clearing playhead to allow CSS fade-out transition to complete
 			setTimeout(() => {
 				playheadPosition = null;
@@ -429,10 +579,14 @@
 		// Advance within melody first
 		if (melody) {
 			if (currentIndex < melody.length - 1) {
+				console.log(`[HANDLE CORRECT] Moving from index ${currentIndex} to ${currentIndex + 1}`);
 				currentIndex += 1;
 				currentNoteSuccess = false; // Reset for next note
+				// Force a fresh onset on the next note to avoid auto-advance while sustaining the old pitch
+				lastOnsetNoteIndex = -1;
 				return;
 			}
+			console.log(`[HANDLE CORRECT] Melody completed at index ${currentIndex}`);
 		}
 
 		// Melody completed
@@ -540,15 +694,7 @@
 					animatingIndex={animatingNoteIndex}
 					animationProgress={simulatedHeldSixteenths}
 					{playheadPosition}
-					ghostNote={isPlayingMelody
-						? null
-						: selectedInstrument
-							? transposeDetectedForDisplay(
-									tuner.state.note,
-									selectedInstrument.transpositionSemitones,
-									keySignature.preferredAccidental
-								)
-							: tuner.state.note}
+					ghostNote={ghostNoteDisplay}
 					cents={isPlayingMelody ? null : tuner.state.cents}
 					clef={selectedInstrument.clef}
 					{keySignature}

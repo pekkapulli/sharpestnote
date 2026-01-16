@@ -55,6 +55,7 @@ export function createTuner(options: TunerOptions = {}) {
 	let noteDebounceId: number | null = null;
 	let debouncedNote: string | null = null;
 	let pendingNote: string | null = null;
+	let isPaused = false; // Track if tuner is paused
 	const frequencyHistory: number[] = [];
 	const amplitudeHistory: number[] = [];
 	const debug = options.debug ?? false; // Capture debug flag
@@ -368,6 +369,12 @@ export function createTuner(options: TunerOptions = {}) {
 		const chain = audioChain;
 		const data = buffer;
 		if (!chain || !audioContext || !data) {
+			return;
+		}
+
+		// Skip processing if paused
+		if (isPaused) {
+			rafId = requestAnimationFrame(tick);
 			return;
 		}
 
@@ -1152,6 +1159,19 @@ export function createTuner(options: TunerOptions = {}) {
 		// Expose desired source for UI logic if needed
 		get desiredSource() {
 			return desiredSourceType;
+		},
+		pause() {
+			if (!state.isListening) return;
+			isPaused = true;
+			debugLog('Paused');
+		},
+		unpause() {
+			if (!state.isListening) return;
+			isPaused = false;
+			debugLog('Unpaused');
+		},
+		get isPaused() {
+			return isPaused;
 		}
 	};
 }
