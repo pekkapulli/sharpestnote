@@ -101,7 +101,9 @@
 			<h1 class="text-3xl font-semibold text-slate-900">{piece.label}</h1>
 			<p class="mb-8">From {unit.title}</p>
 
-			<AudioPlayer {unit} {piece} />
+			{#if piece.tracks && Object.values(piece.tracks).length > 0}
+				<AudioPlayer {unit} {piece} />
+			{/if}
 
 			<nav aria-label="Piece navigation" class="mt-8 flex justify-between">
 				{#if previousPiece}
