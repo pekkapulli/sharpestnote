@@ -9,8 +9,8 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE A: Pitch change with high confidence
 	// ========================================================================
-	pitchChangeThresholdCents: 25, // Pitch change > 25 cents = new note (ignore minor wobbles)
-	minPitchConfidenceForChange: 0.4, // Require moderate confidence to avoid false pitch changes
+	pitchChangeThresholdCents: 40, // Pitch change > 40 cents = new note (ignore minor wobbles)
+	minPitchConfidenceForChange: 0.5, // Require higher confidence to avoid false pitch changes
 
 	// ========================================================================
 	// RULE B1: Both excitation + phase cues moderate
@@ -32,8 +32,8 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE B4: Harmonic-focused excitation (bow direction changes)
 	// ========================================================================
-	b4_minNormalizedHarmonicFlux: 2.0, // Harmonic flux > 2.0 sigma (stricter - avoid cascading triggers)
-	b4_minRelativeIncrease: 0.3, // Require ≥30% increase vs previous frame
+	b4_minNormalizedHarmonicFlux: 3.5, // Harmonic flux > 3.5 sigma (much stricter - avoid cascading triggers)
+	b4_minRelativeIncrease: 0.8, // Require ≥80% increase vs previous frame
 
 	// ========================================================================
 	// RULE B6: Burst-on-rise without pitch lock (fallback)
@@ -48,14 +48,14 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE B5: Legato rebound (dip then rise on harmonic stack)
 	// ========================================================================
-	b5_minNormalizedHarmonicFlux: 1.5, // Harmonic flux must rise above 1.5 sigma (stricter)
-	b5_minAmplitudeSlope: 0.6, // Require clearer positive slope
-	b5_maxPrevNormalizedAmplitude: -0.4, // Require deeper dip
-	b5_minDipBelow: -0.4, // Dip threshold (normalized amplitude)
-	b5_minRiseFrames: 3, // Require more consecutive rising frames
-	b5_riseWindowMs: 300, // Tighter window to avoid spurious triggers
-	b5_minRisePercent: 0.2, // Require at least a 20% rise from dip minimum
-	b5_minAvgSlope: 0.4, // Require steeper average slope
+	b5_minNormalizedHarmonicFlux: 2.5, // Harmonic flux must rise above 2.5 sigma (much stricter)
+	b5_minAmplitudeSlope: 0.8, // Require much clearer positive slope
+	b5_maxPrevNormalizedAmplitude: -0.6, // Require much deeper dip
+	b5_minDipBelow: -0.6, // Dip threshold (normalized amplitude)
+	b5_minRiseFrames: 4, // Require more consecutive rising frames
+	b5_riseWindowMs: 250, // Tighter window to avoid spurious triggers
+	b5_minRisePercent: 0.4, // Require at least a 40% rise from dip minimum
+	b5_minAvgSlope: 0.6, // Require steeper average slope
 
 	// ========================================================================
 	// RULE C: Raw phase threshold (bypasses normalization)
@@ -70,7 +70,7 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// COOLDOWN & AMPLITUDE
 	// ========================================================================
-	cooldownMs: 120, // Refractory period to prevent spurious double-triggers (at 120 BPM, 8th note = 250ms)
+	cooldownMs: 200, // Refractory period to prevent spurious double-triggers (at 120 BPM, 8th note = 250ms)
 	minAmplitudeRequired: true, // Require minimum amplitude for all rules
 	adaptiveWindowFrames: 30, // Faster adaptation for quick dynamics (~0.3s at 100fps)
 	adaptiveDeltaMultiplier: 1.15, // Multiplier above local mean for adaptive threshold
@@ -103,7 +103,7 @@ export const onsetDetectionConfig = {
 	 * Reduces flickering between adjacent notes (C4 ↔ C#4) during attack transients.
 	 * Trade-off: Lower = faster note reporting, Higher = cleaner output.
 	 */
-	noteDebounceMs: 20, // Reduced from 200ms for faster note reporting
+	noteDebounceMs: 10, // Reduced from 10ms for faster note reporting
 
 	// ========================================================================
 	// SPECTRAL WHITENING

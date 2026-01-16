@@ -32,12 +32,12 @@ export interface InstrumentConfig {
 }
 
 export const genericDetectionConfig: DetectionConfig = {
-	onsetMinAmplitude: 0.15, // Minimum amplitude for onset to trigger
-	endHoldMs: 60, // end sooner to allow rapid re-articulations
+	onsetMinAmplitude: 0.1, // Minimum amplitude for onset to trigger
+	endHoldMs: 40, // end sooner to allow rapid re-articulations
 	endMinAmplitudeRatio: 0.3, // end threshold = onsetMinAmplitude * ratio
 	endRelativeDropRatio: 0.8, // end when amplitude drops below 80% of peak since onset
 	usePhaseDeviation: true, // enable phase-based detection for repeat notes
-	phaseWeight: 0.3, // 30% phase, 70% flux
+	phaseWeight: 0.2, // 20% phase, 80% flux
 	strongPhaseThreshold: 0.1, // 20% of π - phase alone triggers onset (was hardcoded 0.25)
 	moderatePhaseThreshold: 0.8 // 15% of π - phase + amplitude triggers (was hardcoded 0.18)
 };

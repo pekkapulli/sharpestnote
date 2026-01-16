@@ -1,11 +1,11 @@
 /**
  * Core game logic for the sight-reading game.
- * Handles melody state, note detection, progression, and synth playback.
+ * Handles melody state, note detection, and progression.
  */
 
 import { onDestroy } from 'svelte';
 import { createTuner } from '$lib/tuner/useTuner.svelte';
-import { createSynth } from '$lib/synth/useSynth.svelte';
+import { useSightGameSynth } from './useSightGameSynth.svelte';
 import { DEFAULT_A4 } from '$lib/tuner/tune';
 import { instrumentMap } from '$lib/config/instruments';
 import { getKeySignature, type Mode } from '$lib/config/keys';
@@ -15,7 +15,6 @@ import {
 	transposeDetectedNoteForDisplay as transposeDetectedForDisplay
 } from '$lib/util/noteNames';
 import type { MelodyItem } from '$lib/config/melody';
-import { lengthToMs } from '$lib/config/melody';
 
 interface SightGameConfig {
 	getInstrument: () => InstrumentId;
@@ -39,12 +38,9 @@ export function useSightGameLogic(config: SightGameConfig) {
 	let streak = $state(0);
 	let showSuccess = $state(false);
 	let currentNoteSuccess = $state(false);
-	let lastOnsetHeldSixteenths = $state<number>(0);
 	let lastOnsetNoteIndex = $state<number>(-1);
-	let synthEnabled = $state(true);
+	let lastOnsetHeldSixteenths = $state<number>(0);
 	let greatIntonationIndices = $state<number[]>([]);
-	let isPlayingMelody = $state(false);
-	let playheadPosition = $state<number | null>(null);
 	let ignoreInputUntil = $state(0);
 
 	// Create tuner with onset handler
@@ -56,30 +52,84 @@ export function useSightGameLogic(config: SightGameConfig) {
 		maxGain: 500,
 		onOnset: (onsetData) => {
 			const now = performance.now();
+			const held = tuner.state.heldSixteenths;
+
 			if (now < ignoreInputUntil) return;
 			if (!melody || !melody.length) return;
-			if (showSuccess || isPlayingMelody) return;
-			if (currentNoteSuccess) return;
+			if (showSuccess || sightSynth.isPlayingMelody()) return;
+
+			// Filter spurious onsets: ignore if note is sustained AND we already successfully
+			// detected this note (prevents multiple detections on single held note)
+			const isNoteSustained = held > 2 && lastOnsetHeldSixteenths > 2;
+			const alreadyDetectedThisNote = currentNoteSuccess && lastOnsetNoteIndex === currentIndex;
+
+			if (isNoteSustained && alreadyDetectedThisNote) {
+				lastOnsetHeldSixteenths = held;
+				return;
+			}
+
+			// Update tracking for sustained note detection
+			lastOnsetHeldSixteenths = held;
 
 			const target = melody[currentIndex].note;
 			if (target === null) return;
 
 			const detectedNote = onsetData.note;
 			if (!detectedNote) return;
+
+			const expectedNote = selectedInstrument
+				? transposeForTransposition(
+						target,
+						selectedInstrument.transpositionSemitones,
+						keySignature.preferredAccidental
+					)
+				: target;
+
+			// Immediate success on onset match (faster than waiting heldSixteenths)
+			if (detectedNote === expectedNote) {
+				const isNewNoteIndex = lastOnsetNoteIndex !== currentIndex;
+				if (isNewNoteIndex) {
+					currentNoteSuccess = false;
+				}
+				lastOnsetNoteIndex = currentIndex;
+				markNoteAsSuccess();
+				// short cooldown to avoid immediate retriggers from the same onset
+				ignoreInputUntil = performance.now() + 100;
+				return;
+			}
+
+			// Track onset even for wrong notes
+			const isNewNoteIndex = lastOnsetNoteIndex !== currentIndex;
+			if (isNewNoteIndex) {
+				currentNoteSuccess = false;
+			}
+			lastOnsetNoteIndex = currentIndex;
+			ignoreInputUntil = performance.now() + 100;
 		}
 	});
 
-	// Create synth for playback
-	const synth = createSynth({
-		waveform: 'sine',
-		volume: 0.25,
-		attack: 0.02,
-		decay: 0.1,
-		sustain: 0.7,
-		release: 0.1,
-		a4: DEFAULT_A4,
-		reverbMix: 0.1,
-		reverbDecay: 2
+	// Create synth hook for melody playback
+	const sightSynth = useSightGameSynth({
+		getInstrument,
+		getTempoBPM,
+		onPlaybackStart: () => {
+			tuner.pause();
+		},
+		onPlaybackEnd: () => {
+			// Reset tuner state
+			tuner.resetHoldDuration();
+			tuner.state.note = null;
+			tuner.state.cents = null;
+			tuner.state.isNoteActive = false;
+			tuner.state.heldSixteenths = 0;
+
+			// Unpause with cooldown
+			setTimeout(() => {
+				const cooldownMs = 300;
+				ignoreInputUntil = performance.now() + cooldownMs;
+				tuner.unpause();
+			}, 300);
+		}
 	});
 
 	// Keep tuner accidental aligned with key signature
@@ -96,10 +146,13 @@ export function useSightGameLogic(config: SightGameConfig) {
 		}
 	});
 
-	// Update synth with instrument-specific ADSR settings
+	// Track heldSixteenths even during cooldown periods
 	$effect(() => {
-		if (selectedInstrument.adsrConfig) {
-			synth.setOptions(selectedInstrument.adsrConfig);
+		const held = tuner.state.heldSixteenths;
+		const now = performance.now();
+
+		if (now < ignoreInputUntil) {
+			lastOnsetHeldSixteenths = Math.max(lastOnsetHeldSixteenths, held);
 		}
 	});
 
@@ -113,8 +166,8 @@ export function useSightGameLogic(config: SightGameConfig) {
 			currentIndex = 0;
 			showSuccess = false;
 			currentNoteSuccess = false;
-			lastOnsetHeldSixteenths = -1;
 			lastOnsetNoteIndex = -1;
+			lastOnsetHeldSixteenths = 0;
 			greatIntonationIndices = [];
 
 			// Reset tuner state
@@ -125,42 +178,17 @@ export function useSightGameLogic(config: SightGameConfig) {
 			tuner.state.heldSixteenths = 0;
 
 			// Schedule auto-play only after user has started listening
-			if (synthEnabled && tuner.state.isListening) {
+			if (sightSynth.synthEnabled() && tuner.state.isListening) {
 				setTimeout(() => {
-					playMelodyWithSynth();
+					sightSynth.playMelodyWithSynth(melody);
 				}, 0);
 			}
 		}
 	});
 
-	// Detect new onsets by watching for heldSixteenths resetting
-	$effect(() => {
-		const held = tuner.state.heldSixteenths;
-		const now = performance.now();
-
-		if (now < ignoreInputUntil) {
-			lastOnsetHeldSixteenths = Math.max(lastOnsetHeldSixteenths, 2);
-			return;
-		}
-
-		const descendingAttack = held < 0.5 && lastOnsetHeldSixteenths >= 1;
-		const risingFirstAttack =
-			held >= 0.5 && lastOnsetHeldSixteenths < 0.2 && lastOnsetNoteIndex !== currentIndex;
-
-		if (descendingAttack || risingFirstAttack) {
-			const isNewNoteIndex = lastOnsetNoteIndex !== currentIndex;
-			if (isNewNoteIndex) {
-				currentNoteSuccess = false;
-			}
-			lastOnsetNoteIndex = currentIndex;
-		}
-
-		lastOnsetHeldSixteenths = held;
-	});
-
 	// Check if current note matches expected note
 	const isCurrentNoteHit = $derived(() => {
-		if (!melody || !melody.length || isPlayingMelody) return false;
+		if (!melody || !melody.length || sightSynth.isPlayingMelody()) return false;
 		const target = melody[currentIndex].note;
 
 		if (target === null) return true;
@@ -182,7 +210,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 	// Ghost note display (show detected note transposed for display)
 	const ghostNoteDisplay = $derived(() => {
 		const note = tuner.state.note;
-		const playing = isPlayingMelody;
+		const playing = sightSynth.isPlayingMelody();
 		const onsetIndex = lastOnsetNoteIndex;
 		const curIndex = currentIndex;
 
@@ -197,32 +225,6 @@ export function useSightGameLogic(config: SightGameConfig) {
 		return null;
 	});
 
-	// Watch for note being held long enough to count as success
-	$effect(() => {
-		const detectedNote = tuner.state.note;
-
-		if (!melody || !melody.length) return;
-		if (currentNoteSuccess) return;
-		if (showSuccess || isPlayingMelody) return;
-		if (!detectedNote) return;
-		if (lastOnsetNoteIndex !== currentIndex) return;
-
-		const target = melody[currentIndex].note;
-		if (target === null) return;
-
-		const expectedNote = selectedInstrument
-			? transposeForTransposition(
-					target,
-					selectedInstrument.transpositionSemitones,
-					keySignature.preferredAccidental
-				)
-			: target;
-
-		if (detectedNote === expectedNote) {
-			markNoteAsSuccess();
-		}
-	});
-
 	// Handle rests automatically
 	$effect(() => {
 		if (melody && melody.length && currentIndex < melody.length && !showSuccess) {
@@ -230,7 +232,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 
 			if (currentNote === null) {
 				const timeoutId = setTimeout(() => {
-					advanceToNextNote();
+					handleCorrectNote();
 				}, 100);
 
 				return () => {
@@ -250,10 +252,6 @@ export function useSightGameLogic(config: SightGameConfig) {
 			greatIntonationIndices.push(currentIndex);
 		}
 
-		advanceToNextNote();
-	}
-
-	function advanceToNextNote() {
 		handleCorrectNote();
 	}
 
@@ -263,6 +261,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 				currentIndex += 1;
 				currentNoteSuccess = false;
 				lastOnsetNoteIndex = -1;
+				lastOnsetHeldSixteenths = 0; // Reset to allow next note detection
 				return;
 			}
 		}
@@ -280,64 +279,6 @@ export function useSightGameLogic(config: SightGameConfig) {
 		}, 1000);
 	}
 
-	async function playMelodyWithSynth() {
-		if (!melody || isPlayingMelody) return;
-
-		isPlayingMelody = true;
-		playheadPosition = 0;
-
-		tuner.pause();
-
-		try {
-			let currentSixteenth = 0;
-			const bpm = getTempoBPM?.() ?? 100;
-
-			for (const item of melody) {
-				const noteLength = item.length;
-				const noteDurationMs = lengthToMs(noteLength, bpm);
-				const startTime = performance.now();
-
-				const animatePlayhead = () => {
-					const elapsed = performance.now() - startTime;
-					const progress = Math.min(elapsed / noteDurationMs, 1);
-					playheadPosition = currentSixteenth + progress * noteLength;
-
-					if (progress < 1) {
-						requestAnimationFrame(animatePlayhead);
-					}
-				};
-				animatePlayhead();
-
-				await synth.playNote(item, bpm);
-				currentSixteenth += noteLength;
-				playheadPosition = currentSixteenth;
-			}
-		} catch (err) {
-			console.error('Error playing melody:', err);
-		} finally {
-			isPlayingMelody = false;
-
-			// Reset tuner state
-			tuner.resetHoldDuration();
-			tuner.state.note = null;
-			tuner.state.cents = null;
-			tuner.state.isNoteActive = false;
-			tuner.state.heldSixteenths = 0;
-
-			// Unpause with cooldown
-			setTimeout(() => {
-				const cooldownMs = 700;
-				ignoreInputUntil = performance.now() + cooldownMs;
-				tuner.unpause();
-			}, 400);
-
-			// Clear playhead after transition
-			setTimeout(() => {
-				playheadPosition = null;
-			}, 500);
-		}
-	}
-
 	// Cleanup
 	onDestroy(() => {
 		tuner.destroy();
@@ -349,9 +290,9 @@ export function useSightGameLogic(config: SightGameConfig) {
 		currentIndex: () => currentIndex,
 		streak: () => streak,
 		showSuccess: () => showSuccess,
-		synthEnabled: () => synthEnabled,
-		isPlayingMelody: () => isPlayingMelody,
-		playheadPosition: () => playheadPosition,
+		synthEnabled: sightSynth.synthEnabled,
+		isPlayingMelody: sightSynth.isPlayingMelody,
+		playheadPosition: sightSynth.playheadPosition,
 		greatIntonationIndices: () => greatIntonationIndices,
 
 		// Derived values
@@ -364,9 +305,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 		tuner,
 
 		// Actions
-		playMelodyWithSynth,
-		setSynthEnabled: (enabled: boolean) => {
-			synthEnabled = enabled;
-		}
+		playMelodyWithSynth: () => sightSynth.playMelodyWithSynth(melody),
+		setSynthEnabled: sightSynth.setSynthEnabled
 	};
 }

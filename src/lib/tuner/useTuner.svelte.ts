@@ -729,9 +729,9 @@ export function createTuner(options: TunerOptions = {}) {
 				: 0;
 
 		// B-rules only fire for re-articulation of the same note (pitch coherence check)
-		// Allow ±30 cents deviation from stable pitch for repeat note detection
+		// Allow ±20 cents deviation from stable pitch for repeat note detection (stricter)
 		const frequencyCoherent =
-			stablePitch && freq > 0 && Math.abs(1200 * Math.log2(freq / stablePitch)) < 30; // Within ±30 cents
+			stablePitch && freq > 0 && Math.abs(1200 * Math.log2(freq / stablePitch)) < 20; // Within ±20 cents
 
 		if (!cooldownActive && hasMinAmplitude) {
 			// Rule A — Guaranteed onset: pitch change with high confidence
