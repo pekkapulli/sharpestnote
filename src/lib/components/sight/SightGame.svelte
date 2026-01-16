@@ -64,10 +64,7 @@
 	let currentNoteSuccess = $state(false);
 	let lastOnsetHeldSixteenths = $state<number>(0);
 	let lastOnsetNoteIndex = $state<number>(-1); // Track which note index had the last onset
-	let animationTimeoutId: number | null = null;
-	let animationIntervalId: number | null = null;
-	let simulatedHeldSixteenths = $state<number | null>(null);
-	let animatingNoteIndex = $state<number | null>(null);
+	let advanceTimeoutId: number | null = null;
 	let synthEnabled = $state(true);
 	let greatIntonationIndices = $state<number[]>([]);
 
@@ -76,8 +73,49 @@
 		accidental: 'sharp',
 		debug: false,
 		gain: 15,
-		maxGain: 500
+		maxGain: 500,
+		onOnset: handleOnset()
 	});
+
+	function handleOnset():
+		| ((
+				event: import('/Users/pekkapulli/Documents/pekkapulli/Projects/sharpestnote/src/lib/tuner/types').OnsetEvent
+		  ) => void)
+		| undefined {
+		return (onsetData) => {
+			// Check if this onset is for the current note we're expecting
+			const now = performance.now();
+			if (now < ignoreInputUntil) return;
+			if (!melody || !melody.length) return;
+			if (showSuccess || isPlayingMelody) return;
+			if (currentNoteSuccess) return; // Already succeeded on current note
+
+			const target = melody[currentIndex].note;
+			if (target === null) return; // Skip rests
+
+			const detectedNote = onsetData.note;
+			if (!detectedNote) return;
+
+			const expectedNote = selectedInstrument
+				? transposeForTransposition(
+						target,
+						selectedInstrument.transpositionSemitones,
+						keySignature.preferredAccidental
+					)
+				: target;
+
+			if (detectedNote === expectedNote) {
+				console.log('[onOnset] Correct note detected!', {
+					detectedNote,
+					expectedNote,
+					currentIndex,
+					held: tuner.state.heldSixteenths
+				});
+				// Wait for note to be held for at least 1 sixteenth before marking success
+				// We'll check this in a separate effect that watches heldSixteenths
+			}
+		};
+	}
 
 	// Create synth voice for playing back melodies
 	const synth = createSynth({
@@ -141,17 +179,14 @@
 			held >= 0.5 && lastOnsetHeldSixteenths < 0.2 && lastOnsetNoteIndex !== currentIndex; // first note or new note after reset
 
 		if (descendingAttack || risingFirstAttack) {
-			// If we're already in a success state (animating), ignore spurious onsets
-			if (currentNoteSuccess) {
-			} else {
-				// Only reset note success if this onset belongs to a different note index
-				const isNewNoteIndex = lastOnsetNoteIndex !== currentIndex;
-				if (isNewNoteIndex) {
-					currentNoteSuccess = false;
-					lastSuccessNote = null;
-				}
-				lastOnsetNoteIndex = currentIndex; // Mark that this note index had an onset
+			// Accept new onsets even if currentNoteSuccess is true (since we don't animate anymore)
+			// Only reset note success if this onset belongs to a different note index
+			const isNewNoteIndex = lastOnsetNoteIndex !== currentIndex;
+			if (isNewNoteIndex) {
+				currentNoteSuccess = false;
+				lastSuccessNote = null;
 			}
+			lastOnsetNoteIndex = currentIndex; // Mark that this note index had an onset
 		}
 
 		lastOnsetHeldSixteenths = held;
@@ -175,8 +210,16 @@
 					keySignature.preferredAccidental
 				)
 			: target;
-		if (expectedNote !== tuner.state.note) return false;
-		return true;
+		const isHit = expectedNote === tuner.state.note;
+		if (isHit) {
+			console.log('[isCurrentNoteHit] Returning TRUE - note matches!', {
+				expectedNote,
+				detectedNote: tuner.state.note,
+				currentIndex,
+				lastOnsetNoteIndex
+			});
+		}
+		return isHit;
 	});
 
 	const ghostNoteDisplay = $derived(
@@ -191,32 +234,21 @@
 			: null
 	);
 
-	// Watch for correct note detection
+	// Watch for note being held long enough to count as success
 	$effect(() => {
-		const now = performance.now();
-
-		// Ignore input right after unpausing to let synth tail dissipate
-		if (now < ignoreInputUntil) {
-			return;
-		}
-
-		if (!melody || !melody.length) return;
-
-		const target = melody[currentIndex].note;
 		const held = tuner.state.heldSixteenths;
 		const detectedNote = tuner.state.note;
 
-		// Skip if current note is a rest
-		if (target === null) return;
+		// Skip if conditions aren't met
+		if (!melody || !melody.length) return;
+		if (currentNoteSuccess) return; // Already succeeded
+		if (showSuccess || isPlayingMelody) return;
+		if (!detectedNote) return;
+		if (lastOnsetNoteIndex !== currentIndex) return; // No onset detected for this index yet
+		if (held < 1) return; // Not held long enough
 
-		if (showSuccess || isPlayingMelody) {
-			return;
-		}
-
-		// If we have no detected pitch but there is some sustained hold, log why we're skipping
-		if (!detectedNote) {
-			return;
-		}
+		const target = melody[currentIndex].note;
+		if (target === null) return; // Skip rests
 
 		const expectedNote = selectedInstrument
 			? transposeForTransposition(
@@ -226,66 +258,13 @@
 				)
 			: target;
 
-		if (!expectedNote) {
-			return;
-		}
-
-		if (detectedNote !== expectedNote) {
-			// Only log mismatches when there's a measurable hold to avoid noise
-			return;
-		}
-
-		// Check if this is a fresh attack (not already succeeded)
-		if (currentNoteSuccess) {
-			return; // Already succeeded on this note
-		}
-
-		// Require: 1) An onset was detected for THIS note index, AND 2) Held for at least 1 sixteenth
-		if (lastOnsetNoteIndex === currentIndex && held >= 1) {
-			// Mark as success but continue animating
+		if (detectedNote === expectedNote) {
+			console.log('[Effect] Note held long enough - marking as success', {
+				detectedNote,
+				held,
+				currentIndex
+			});
 			markNoteAsSuccess();
-		}
-
-		// Check if player is playing the NEXT note while current one is still animating
-		if (currentNoteSuccess && currentIndex < melody.length - 1) {
-			const nextTarget = melody[currentIndex + 1].note;
-			if (nextTarget !== null) {
-				const expectedNextNote = selectedInstrument
-					? transposeForTransposition(
-							nextTarget,
-							selectedInstrument.transpositionSemitones,
-							keySignature.preferredAccidental
-						)
-					: nextTarget;
-
-				const currentTarget = melody[currentIndex].note;
-				const expectedCurrentNote = selectedInstrument
-					? transposeForTransposition(
-							currentTarget,
-							selectedInstrument.transpositionSemitones,
-							keySignature.preferredAccidental
-						)
-					: currentTarget;
-
-				// Only allow look-ahead if:
-				// 1. Next note is different from current note (to avoid same-pitch confusion)
-				// 2. OR it's same pitch but with a fresh onset (heldSixteenths < 0.75)
-				const isDifferentNote = expectedNextNote !== expectedCurrentNote;
-				const isFreshOnset = held < 0.75;
-
-				if (
-					expectedNextNote &&
-					detectedNote === expectedNextNote &&
-					(isDifferentNote || isFreshOnset)
-				) {
-					// Player hit the next note - allow advancing even during animation
-					advanceToNextNote();
-				} else if (expectedNextNote && detectedNote === expectedNextNote) {
-					console.log(
-						`[LOOK-AHEAD] Next note (${expectedNextNote}) detected but blocked: held=${held.toFixed(2)}, isDifferentNote=${isDifferentNote}, isFreshOnset=${isFreshOnset}`
-					);
-				}
-			}
 		}
 	});
 
@@ -294,66 +273,15 @@
 		if (melody && melody.length && currentIndex < melody.length && !showSuccess) {
 			const currentNote = melody[currentIndex].note;
 
-			// If current note is a rest (null), automatically advance after the rest duration
+			// If current note is a rest (null), automatically advance after 100ms
 			if (currentNote === null) {
-				const restLength = melody[currentIndex].length ?? 4;
-				const restDurationMs = lengthToMs(restLength, tempoBPM) * 0.5; // Double speed
-
-				animatingNoteIndex = currentIndex;
-
-				// Clear any existing animation
-				if (animationTimeoutId !== null) {
-					clearTimeout(animationTimeoutId);
-					animationTimeoutId = null;
-				}
-				if (animationIntervalId !== null) {
-					clearInterval(animationIntervalId);
-				}
-
-				// Simulate held sixteenths progressing
-				simulatedHeldSixteenths = 0;
-				const updateInterval = 50; // Update every 50ms
-				const totalUpdates = Math.ceil(restDurationMs / updateInterval);
-				let updateCount = 0;
-
-				animationIntervalId = setInterval(() => {
-					updateCount++;
-					// Calculate progress based on animation duration
-					const progress = Math.min(updateCount / totalUpdates, 1);
-					simulatedHeldSixteenths = progress * restLength;
-
-					if (updateCount >= totalUpdates) {
-						clearInterval(animationIntervalId!);
-						animationIntervalId = null;
-					}
-				}, updateInterval) as unknown as number;
-
-				// Advance to next note after rest duration
-				animationTimeoutId = setTimeout(() => {
-					simulatedHeldSixteenths = null;
-					animatingNoteIndex = null;
+				const timeoutId = setTimeout(() => {
 					advanceToNextNote();
-					animationTimeoutId = null;
-				}, restDurationMs) as unknown as number;
+				}, 100);
 
 				return () => {
-					if (animationTimeoutId !== null) {
-						clearTimeout(animationTimeoutId);
-						animationTimeoutId = null;
-					}
-					if (animationIntervalId !== null) {
-						clearInterval(animationIntervalId);
-						animationIntervalId = null;
-					}
-					simulatedHeldSixteenths = null;
-					animatingNoteIndex = null;
+					clearTimeout(timeoutId);
 				};
-			} else {
-				// Don't clear animation if we're currently animating a successful note
-				if (animatingNoteIndex !== currentIndex) {
-					simulatedHeldSixteenths = null;
-					animatingNoteIndex = null;
-				}
 			}
 		}
 	});
@@ -362,6 +290,7 @@
 		if (currentNoteSuccess) {
 			return; // Already marked as success
 		}
+		console.log('[markNoteAsSuccess] Marking note as success at index', currentIndex);
 		currentNoteSuccess = true;
 		lastSuccessNote = tuner.state.note;
 
@@ -370,77 +299,33 @@
 			greatIntonationIndices.push(currentIndex);
 		}
 
-		// Start animation simulation for the successfully detected note
-		if (melody) {
-			const noteLength = melody[currentIndex].length ?? 4;
-			const isLastNote = currentIndex === melody.length - 1;
-			// For the last note, animate only 50% of the duration for faster completion
-			const animationSpeedMultiplier = isLastNote ? 0.5 : 1.0;
-			const noteDurationMs = lengthToMs(noteLength, tempoBPM) * animationSpeedMultiplier * 0.5; // Double speed animation
-
-			animatingNoteIndex = currentIndex;
-
-			// Clear any existing animation
-			if (animationTimeoutId !== null) {
-				clearTimeout(animationTimeoutId);
-				animationTimeoutId = null;
-			}
-			if (animationIntervalId !== null) {
-				clearInterval(animationIntervalId);
-				animationIntervalId = null;
-			}
-
-			// Start animation from 0
-			simulatedHeldSixteenths = 0;
-			const updateInterval = 50; // Update every 50ms
-			const totalUpdates = Math.ceil(noteDurationMs / updateInterval);
-			let updateCount = 0;
-
-			animationIntervalId = setInterval(() => {
-				updateCount++;
-				// Calculate progress based on adjusted animation duration
-				const progress = Math.min(updateCount / totalUpdates, 1);
-				simulatedHeldSixteenths = progress * noteLength;
-
-				if (updateCount >= totalUpdates) {
-					clearInterval(animationIntervalId!);
-					animationIntervalId = null;
-					// Animation complete - advance to next note
-					advanceToNextNote();
-				}
-			}, updateInterval) as unknown as number;
+		// Clear any existing advance timeout
+		if (advanceTimeoutId !== null) {
+			clearTimeout(advanceTimeoutId);
 		}
+
+		// Wait 100ms before advancing to allow the current note to register
+		console.log('[markNoteAsSuccess] Setting timeout to advance in 100ms');
+		advanceTimeoutId = setTimeout(() => {
+			console.log('[setTimeout callback] Executing after 100ms, calling advanceToNextNote');
+			advanceTimeoutId = null;
+			advanceToNextNote();
+		}, 100) as unknown as number;
 	}
 
 	function advanceToNextNote() {
-		// Clear animation state
-		if (animationIntervalId !== null) {
-			clearInterval(animationIntervalId);
-			animationIntervalId = null;
-		}
-		if (animationTimeoutId !== null) {
-			clearTimeout(animationTimeoutId);
-			animationTimeoutId = null;
-		}
-		simulatedHeldSixteenths = null;
-		animatingNoteIndex = null;
-
-		// Advance
+		console.log('[advanceToNextNote] Advancing from index', currentIndex);
+		// Just advance - handleCorrectNote will reset the state
 		handleCorrectNote();
 	}
 
 	function refreshMelody() {
-		// Clear any pending animation
-		if (animationTimeoutId !== null) {
-			clearTimeout(animationTimeoutId);
-			animationTimeoutId = null;
+		// Clear any pending timeout
+		if (advanceTimeoutId !== null) {
+			clearTimeout(advanceTimeoutId);
+			advanceTimeoutId = null;
 		}
-		if (animationIntervalId !== null) {
-			clearInterval(animationIntervalId);
-			animationIntervalId = null;
-		}
-		simulatedHeldSixteenths = null;
-		animatingNoteIndex = null;
+		// Reset state
 		greatIntonationIndices = [];
 
 		const nextMelody = newMelody ? newMelody() : [];
@@ -528,17 +413,31 @@
 	}
 
 	function handleCorrectNote() {
+		console.log(
+			'[handleCorrectNote] Called at index',
+			currentIndex,
+			'melody length:',
+			melody?.length
+		);
 		// Advance within melody first
 		if (melody) {
 			if (currentIndex < melody.length - 1) {
+				console.log(
+					'[handleCorrectNote] Advancing index from',
+					currentIndex,
+					'to',
+					currentIndex + 1
+				);
 				currentIndex += 1;
 				currentNoteSuccess = false; // Reset for next note
 				lastOnsetNoteIndex = -1; // Always require new onset for next note
+				console.log('[handleCorrectNote] New index is now', currentIndex);
 				return;
 			}
 		}
 
 		// Melody completed
+		console.log('[handleCorrectNote] Melody completed!');
 		showSuccess = true;
 		streak += 1;
 
@@ -640,8 +539,8 @@
 					minWidth={staffMinWidth}
 					showTimeSignature={false}
 					{currentIndex}
-					animatingIndex={animatingNoteIndex}
-					animationProgress={simulatedHeldSixteenths}
+					animatingIndex={null}
+					animationProgress={null}
 					{playheadPosition}
 					ghostNote={ghostNoteDisplay}
 					cents={isPlayingMelody ? null : tuner.state.cents}
