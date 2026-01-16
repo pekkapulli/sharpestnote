@@ -9,6 +9,9 @@
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
 	let completionCount = $state(0);
+	let currentBlock = $state<MelodyItem[]>([]);
+	let isInitialized = $state(false);
+	let blockVersion = $state(0); // Track block changes
 
 	const sharePreviewData = $derived({
 		title: `Blocks - ${piece.label} - ${unit.title}`,
@@ -17,6 +20,9 @@
 		url: pageUrl
 	});
 
+	// Get the melody pool
+	const melodyPool = $derived(piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? []);
+
 	$effect(() => {
 		// Load completion count from localStorage
 		const storage = getUnitStorage(code);
@@ -24,20 +30,48 @@
 		completionCount = (storage as any)[gameKey] || 0;
 	});
 
-	function newMelody(): MelodyItem[] {
-		const pool = piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? [];
-		if (pool.length === 0) return [];
-		const index = Math.floor(Math.random() * pool.length);
-		const phrase = pool[index] ?? [];
-		// Return a deep copy to ensure reactivity when the same phrase repeats
-		return phrase.map((i) => ({ ...i }));
+	function createNextBlock() {
+		if (melodyPool.length === 0) {
+			currentBlock = [];
+			return;
+		}
+
+		console.log('[Blocks Page] Creating block');
+		// Pick a random phrase from the pool
+		const index = Math.floor(Math.random() * melodyPool.length);
+		const phrase = melodyPool[index] ?? [];
+
+		// Deep copy to ensure reactivity
+		currentBlock = phrase.map((i) => ({ ...i }));
+		blockVersion += 1; // Increment to force effect to re-run
+		console.log(
+			'[Blocks Page] New block created, length:',
+			currentBlock.length,
+			'version:',
+			blockVersion,
+			'pool index:',
+			index
+		);
 	}
 
-	function handleMelodyComplete() {
+	// Initialize first block
+	$effect(() => {
+		if (!isInitialized && melodyPool.length > 0) {
+			console.log('[Blocks Page] Initializing first block');
+			isInitialized = true;
+			createNextBlock();
+		}
+	});
+
+	function handleBlockComplete() {
+		console.log('[Blocks Page] Block complete');
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_blocks_completions`;
 		setUnitStorage(code, { [gameKey]: completionCount } as any);
+
+		// Continue to next block
+		setTimeout(() => createNextBlock(), 400);
 	}
 </script>
 
@@ -55,10 +89,10 @@
 			instrument={unit.instrument}
 			keyNote={piece.key}
 			mode={piece.mode}
-			tempoBPM={piece.tracks?.medium?.tempo ?? 100}
+			tempoBPM={piece.tracks?.medium?.tempo ?? 80}
 			barLength={piece.barLength}
-			{newMelody}
-			onMelodyComplete={handleMelodyComplete}
+			melody={currentBlock}
+			onMelodyComplete={handleBlockComplete}
 		/>
 	</div>
 </div>

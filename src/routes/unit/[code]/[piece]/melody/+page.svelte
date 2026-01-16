@@ -15,7 +15,9 @@
 	let melodyIndex = $state(0);
 	let completionCount = $state(0);
 	let showCompletionModal = $state(false);
-	let sightGameComponent: any = $state(null);
+	let currentMelody = $state<MelodyItem[]>([]);
+	let isInitialized = $state(false);
+	let melodyVersion = $state(0); // Track melody changes
 
 	// Get the total number of melodies in the piece
 	const melodyPool = $derived(piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? []);
@@ -31,6 +33,7 @@
 	$effect(() => {
 		// Initialize key access from URL or localStorage
 		void initUnitKeyAccess(unit).then((access) => {
+			console.log('[Melody Page] Key access:', access);
 			hasKeyAccess = access;
 		});
 	});
@@ -42,40 +45,69 @@
 		completionCount = (storage as any)[gameKey] || 0;
 	});
 
-	function newMelody(): MelodyItem[] {
+	function createNextMelody() {
 		const pool = piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? [];
-		if (pool.length === 0) return [];
+		if (pool.length === 0) {
+			currentMelody = [];
+			return;
+		}
 
+		console.log('[Melody Page] Creating melody at index:', melodyIndex);
 		// Get the current melody and advance to the next one
 		const phrase = pool[melodyIndex] ?? [];
 		melodyIndex = (melodyIndex + 1) % pool.length;
 
-		// Return a deep copy to ensure reactivity when the same phrase repeats
-		return phrase.map((i) => ({ ...i }));
+		// Deep copy to ensure reactivity when the same phrase repeats
+		currentMelody = phrase.map((i) => ({ ...i }));
+		melodyVersion += 1; // Increment to force effect to re-run
+		console.log(
+			'[Melody Page] New melody created, length:',
+			currentMelody.length,
+			'version:',
+			melodyVersion,
+			'next index will be:',
+			melodyIndex
+		);
 	}
 
+	// Initialize first melody
+	$effect(() => {
+		if (hasKeyAccess && !isInitialized && melodyPool.length > 0) {
+			console.log('[Melody Page] Initializing first melody');
+			isInitialized = true;
+			createNextMelody();
+		}
+	});
+
 	function handleMelodyComplete() {
+		console.log(
+			'[Melody Page] Melody complete. Current melodyIndex:',
+			melodyIndex,
+			'totalMelodies:',
+			totalMelodies
+		);
 		// Check if all melodies in the piece have been completed
 		// melodyIndex wraps to 0 when all melodies are done
 		if (melodyIndex === 0 && totalMelodies > 0) {
 			// All melodies completed! Increment completion count and save to localStorage
+			console.log('[Melody Page] All melodies completed! Showing modal.');
 			completionCount += 1;
 			const gameKey = `${pieceCode}_melody_completions`;
 			setUnitStorage(code, { [gameKey]: completionCount } as any);
 
-			// Show completion modal
+			// Show completion modal (don't create next melody yet)
 			showCompletionModal = true;
+		} else {
+			// Continue to next melody
+			console.log('[Melody Page] Continuing to next melody in 400ms');
+			setTimeout(() => createNextMelody(), 400);
 		}
 	}
 
 	function handleModalClose() {
 		showCompletionModal = false;
-		// After a short delay, trigger the next melody to play
-		setTimeout(() => {
-			if (sightGameComponent?.refreshAndPlayMelody) {
-				sightGameComponent.refreshAndPlayMelody();
-			}
-		}, 100);
+		// Create next melody after modal closes
+		setTimeout(() => createNextMelody(), 100);
 	}
 </script>
 
@@ -106,15 +138,13 @@
 				</p>
 			</div>
 			<SightGame
-				bind:this={sightGameComponent}
 				instrument={unit.instrument}
 				keyNote={piece.key}
 				mode={piece.mode}
-				tempoBPM={piece.tracks?.fast?.tempo ?? 100}
+				tempoBPM={piece.tracks?.fast?.tempo ?? 80}
 				barLength={piece.barLength}
-				{newMelody}
+				melody={currentMelody}
 				onMelodyComplete={handleMelodyComplete}
-				suppressAutoPlay={showCompletionModal}
 			/>
 		</div>
 

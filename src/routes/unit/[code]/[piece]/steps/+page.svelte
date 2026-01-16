@@ -9,6 +9,9 @@
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
 	let completionCount = $state(0);
+	let currentStep = $state<MelodyItem[]>([]);
+	let isInitialized = $state(false);
+	let stepVersion = $state(0); // Track step changes
 
 	const sharePreviewData = $derived({
 		title: `Steps - ${piece.label} - ${unit.title}`,
@@ -48,26 +51,51 @@
 		return Array.from(intervalSet);
 	});
 
-	function newMelody(): MelodyItem[] {
-		if (intervals.length === 0) return [];
+	function createNextStep() {
+		if (intervals.length === 0) {
+			currentStep = [];
+			return;
+		}
 
+		console.log('[Steps Page] Creating step');
 		// Pick a random interval and create a two-note melody
 		const randomInterval = intervals[Math.floor(Math.random() * intervals.length)];
 		const [note1, note2] = randomInterval.split('|');
 
-		const result: MelodyItem[] = [
+		// Deep copy to ensure reactivity
+		currentStep = [
 			{ note: note1, length: 4 },
 			{ note: note2, length: 4 }
 		];
-
-		return result;
+		stepVersion += 1; // Increment to force effect to re-run
+		console.log(
+			'[Steps Page] New step created, length:',
+			currentStep.length,
+			'version:',
+			stepVersion,
+			'interval:',
+			`${note1} → ${note2}`
+		);
 	}
 
-	function handleMelodyComplete() {
+	// Initialize first step
+	$effect(() => {
+		if (!isInitialized && intervals.length > 0) {
+			console.log('[Steps Page] Initializing first step');
+			isInitialized = true;
+			createNextStep();
+		}
+	});
+
+	function handleStepComplete() {
+		console.log('[Steps Page] Step complete');
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_steps_completions`;
 		setUnitStorage(code, { [gameKey]: completionCount } as any);
+
+		// Continue to next step
+		setTimeout(() => createNextStep(), 400);
 	}
 </script>
 
@@ -85,10 +113,10 @@
 			instrument={unit.instrument}
 			keyNote={piece.key}
 			mode={piece.mode}
-			tempoBPM={piece.tracks?.fast?.tempo ?? 100}
-			{newMelody}
+			tempoBPM={piece.tracks?.fast?.tempo ?? 80}
 			barLength={piece.barLength}
-			onMelodyComplete={handleMelodyComplete}
+			melody={currentStep}
+			onMelodyComplete={handleStepComplete}
 		/>
 	</div>
 </div>

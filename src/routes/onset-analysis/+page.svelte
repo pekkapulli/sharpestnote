@@ -145,7 +145,6 @@
 				if (timeSinceNote > MAX_ONSET_LATENCY_MS) {
 					onsetLatencyStatus = 'missed';
 					lastOnsetLatency = null;
-					console.log('[Onset] MISSED - no detection within 1000ms');
 
 					// Add to history as missed
 					latencyHistory.push({
@@ -705,7 +704,6 @@
 		};
 
 		try {
-			console.log('[Test] Playing random note:', randomNote);
 			await synth.playNote(note, tempo);
 		} catch (error) {
 			console.error('Error playing note:', error);

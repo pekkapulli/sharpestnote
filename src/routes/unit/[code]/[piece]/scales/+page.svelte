@@ -9,6 +9,9 @@
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
 	let completionCount = $state(0);
+	let currentScale = $state<MelodyItem[]>([]);
+	let isInitialized = $state(false);
+	let scaleVersion = $state(0); // Track scale changes
 
 	const sharePreviewData = $derived({
 		title: `Scales - ${piece.label} - ${unit.title}`,
@@ -24,23 +27,49 @@
 		completionCount = (storage as any)[gameKey] || 0;
 	});
 
-	function newMelody(): MelodyItem[] {
-		const scale = piece.scale.filter((s) => s.note != null) ?? [];
-		if (scale.length === 0) return [];
+	function createNextScale() {
+		const scale = piece.scale?.filter((s) => s.note != null) ?? [];
+		if (scale.length === 0) {
+			currentScale = [];
+			return;
+		}
 
+		console.log('[Scales Page] Creating scale');
 		// Alternate between ascending and descending for variety
 		const isAscending = Math.random() > 0.5;
 		const sequence = isAscending ? scale : [...scale].reverse();
 
-		// Return a deep copy to ensure reactivity
-		return sequence.map((i) => ({ ...i }));
+		// Deep copy to ensure reactivity
+		currentScale = sequence.map((i) => ({ ...i }));
+		scaleVersion += 1; // Increment to force effect to re-run
+		console.log(
+			'[Scales Page] New scale created, length:',
+			currentScale.length,
+			'version:',
+			scaleVersion,
+			'direction:',
+			isAscending ? 'ascending' : 'descending'
+		);
 	}
 
-	function handleMelodyComplete() {
+	// Initialize first scale
+	$effect(() => {
+		if (!isInitialized && piece.scale && piece.scale.length > 0) {
+			console.log('[Scales Page] Initializing first scale');
+			isInitialized = true;
+			createNextScale();
+		}
+	});
+
+	function handleScaleComplete() {
+		console.log('[Scales Page] Scale complete');
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_scales_completions`;
 		setUnitStorage(code, { [gameKey]: completionCount } as any);
+
+		// Continue to next scale
+		setTimeout(() => createNextScale(), 400);
 	}
 </script>
 
@@ -58,10 +87,10 @@
 			instrument={unit.instrument}
 			keyNote={piece.key}
 			mode={piece.mode}
-			tempoBPM={piece.tracks?.fast?.tempo ?? 100}
-			{newMelody}
+			tempoBPM={piece.tracks?.fast?.tempo ?? 80}
 			barLength={piece.barLength}
-			onMelodyComplete={handleMelodyComplete}
+			melody={currentScale}
+			onMelodyComplete={handleScaleComplete}
 		/>
 	</div>
 </div>

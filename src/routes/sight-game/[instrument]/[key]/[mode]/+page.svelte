@@ -18,6 +18,10 @@
 		selectedInstrument ? getInstrumentRangeForKey(instrument, keyNote, mode) : []
 	);
 
+	let currentMelody = $state<MelodyItem[]>([]);
+	let isInitialized = $state(false);
+	let melodyVersion = $state(0);
+
 	function createLengths(count: number): NoteLength[] {
 		if (count <= 1) return [16];
 		if (count === 2) return [8, 8];
@@ -55,7 +59,7 @@
 		return list[Math.floor(Math.random() * list.length)];
 	}
 
-	function newMelody(): MelodyItem[] {
+	function createNextMelody() {
 		const length = Math.floor(Math.random() * 1) + 3; // 3..4
 		const notes: string[] = [];
 		for (let i = 0; i < length; i += 1) {
@@ -63,8 +67,38 @@
 			notes.push(getRandomNote(prev));
 		}
 		const lens = createLengths(notes.length);
-		return notes.map((n, i) => ({ note: n, length: lens[i] }));
+
+		// Deep copy to ensure reactivity
+		currentMelody = notes.map((n, i) => ({ note: n, length: lens[i] }));
+		melodyVersion += 1;
+		console.log(
+			'[Sight Game Page] New melody created, length:',
+			currentMelody.length,
+			'version:',
+			melodyVersion
+		);
+	}
+
+	// Initialize first melody
+	$effect(() => {
+		if (!isInitialized && availableNotes.length > 0) {
+			console.log('[Sight Game Page] Initializing first melody');
+			isInitialized = true;
+			createNextMelody();
+		}
+	});
+
+	function handleMelodyComplete() {
+		console.log('[Sight Game Page] Melody complete');
+		// Continue to next melody
+		setTimeout(() => createNextMelody(), 400);
 	}
 </script>
 
-<SightGame {instrument} {keyNote} {mode} {newMelody} />
+<SightGame
+	{instrument}
+	{keyNote}
+	{mode}
+	melody={currentMelody}
+	onMelodyComplete={handleMelodyComplete}
+/>
