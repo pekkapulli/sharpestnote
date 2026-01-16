@@ -6,7 +6,12 @@ export const unitDatabase: Record<string, Unit> = {
 	'tw-va': { code: 'tw-va', keyCode: 'QPRT', backendCode: 'unit_002' },
 	'tw-r': { code: 'tw-r', keyCode: 'AEIH', backendCode: 'unit_003' },
 	'tw-c': { code: 'tw-c', keyCode: 'AOEG', backendCode: 'unit_004' },
-	'1st-finger-nature-va': { code: '1st-finger-nature-va', keyCode: 'ZKWD', backendCode: 'unit_005' }
+	'1st-finger-nature-va': {
+		code: '1st-finger-nature-va',
+		keyCode: 'ZKWD',
+		backendCode: 'unit_005'
+	},
+	'viljan-biisit-va': { code: 'viljan-biisit-va', keyCode: 'XYZA', backendCode: 'unit_006' }
 };
 
 export const handleUnitRoutes = async (request: IRequest): Promise<Response> => {
