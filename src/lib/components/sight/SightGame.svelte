@@ -245,7 +245,7 @@
 		if (showSuccess || isPlayingMelody) return;
 		if (!detectedNote) return;
 		if (lastOnsetNoteIndex !== currentIndex) return; // No onset detected for this index yet
-		if (held < 1) return; // Not held long enough
+		// if (held < 0.5) return; // Not held long enough
 
 		const target = melody[currentIndex].note;
 		if (target === null) return; // Skip rests
@@ -299,18 +299,9 @@
 			greatIntonationIndices.push(currentIndex);
 		}
 
-		// Clear any existing advance timeout
-		if (advanceTimeoutId !== null) {
-			clearTimeout(advanceTimeoutId);
-		}
-
-		// Wait 100ms before advancing to allow the current note to register
-		console.log('[markNoteAsSuccess] Setting timeout to advance in 100ms');
-		advanceTimeoutId = setTimeout(() => {
-			console.log('[setTimeout callback] Executing after 100ms, calling advanceToNextNote');
-			advanceTimeoutId = null;
-			advanceToNextNote();
-		}, 100) as unknown as number;
+		// Advance immediately - onset detection + hold requirement already provide enough validation
+		console.log('[markNoteAsSuccess] Advancing immediately');
+		advanceToNextNote();
 	}
 
 	function advanceToNextNote() {

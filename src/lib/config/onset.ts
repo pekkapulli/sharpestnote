@@ -32,7 +32,7 @@ export const onsetDetectionConfig = {
 	// ========================================================================
 	// RULE B4: Harmonic-focused excitation (bow direction changes)
 	// ========================================================================
-	b4_minNormalizedHarmonicFlux: 4.0, // Harmonic flux > 4.0 sigma (stricter - avoid cascading triggers)
+	b4_minNormalizedHarmonicFlux: 2.0, // Harmonic flux > 2.0 sigma (stricter - avoid cascading triggers)
 	b4_minRelativeIncrease: 0.3, // Require ≥30% increase vs previous frame
 
 	// ========================================================================
