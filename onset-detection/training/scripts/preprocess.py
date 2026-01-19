@@ -77,12 +77,14 @@ def extract_features(data: list, window_size: int = 5) -> tuple:
 
     if len(filtered_data) < window_size:
         print(
-            f"  Warning: Only {len(filtered_data)} active frames after filtering"
+            f"  Warning: Only {len(filtered_data)} active frames "
+            f"after filtering"
         )
         return np.array([]), np.array([])
 
     print(
-        f"  Filtered {len(data)} -> {len(filtered_data)} frames ({len(filtered_data)/max(1,len(data))*100:.1f}%)"
+        f"  Filtered {len(data)} -> {len(filtered_data)} frames "
+        f"({len(filtered_data)/max(1, len(data))*100:.1f}%)"
     )
 
     features = []
@@ -175,7 +177,8 @@ def preprocess_data(
         print("   Recommendation: Record more files with onset annotations")
     if y.sum() < 100:
         print(
-            f"\n⚠️  WARNING: Only {int(y.sum())} onset samples - need more onsets!"
+            f"\n⚠️  WARNING: Only {int(y.sum())} onset samples - "
+            f"need more onsets!"
         )
         print("   Recommendation: Add more onset markers when recording")
 
@@ -232,14 +235,17 @@ def preprocess_data(
     np.save(output_path / "X.npy", X_scaled)
     np.save(output_path / "y.npy", y)
 
-    # Save scaler for inference (both pickle and JSON for browser compatibility)
+    # Save scaler for inference
+    # (both pickle and JSON for browser compatibility)
     with open(output_path / "scaler.pkl", "wb") as f:
         pickle.dump(scaler, f)
 
     # Export scaler as JSON for browser/TypeScript use
+    assert scaler.mean_ is not None
+    assert scaler.scale_ is not None
     scaler_data = {
         "mean": scaler.mean_.tolist(),
-        "std": scaler.scale_.tolist(),  # Note: sklearn uses scale_ (1/std_dev)
+        "std": scaler.scale_.tolist(),  # sklearn uses scale_ (1/std_dev)
         "n_features": len(scaler.mean_),
         "feature_names": [
             "amplitude",
