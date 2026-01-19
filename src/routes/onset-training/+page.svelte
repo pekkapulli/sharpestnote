@@ -504,16 +504,52 @@
 			return;
 		}
 
-		// Filter to only ML-relevant features and add manual onset labels
-		const ONSET_WINDOW_MS = 50; // Mark frames in the next 50ms after onset as positive examples
+		// Calculate actual frame rate from data
+		if (recordedData.length < 2) {
+			alert('Need at least 2 frames to export data.');
+			return;
+		}
 
-		const mlData = recordedData.map((frame) => {
-			// Check if this frame is within 50ms AFTER a manual onset (not before)
-			const hasOnset = manualOnsets.some(
-				(onsetTime) =>
-					frame.timestamp >= onsetTime && frame.timestamp <= onsetTime + ONSET_WINDOW_MS
-			);
+		const timestamps = recordedData.map((f) => f.timestamp);
+		const diffs = [];
+		for (let i = 1; i < timestamps.length; i++) {
+			diffs.push(timestamps[i] - timestamps[i - 1]);
+		}
+		const avgHopMs = diffs.reduce((a, b) => a + b, 0) / diffs.length;
 
+		// ONSET LABELING STRATEGY (matching ML training requirements):
+		// - Fixed hop size: ~10ms (measured from data)
+		// - Tolerance window: ±10ms around each onset
+		// - At 10ms hop → ±1 frame
+		// - Label frames at positions: onset-1, onset, onset+1 as positive
+		const TOLERANCE_FRAMES = 1; // ±1 frame at 10ms hop = ±10ms tolerance
+
+		const mlData = recordedData.map((frame, frameIndex) => {
+			// Check if this frame is within tolerance window of any manual onset
+			let hasOnset = false;
+
+			for (const onsetTime of manualOnsets) {
+				// Find the frame index closest to this onset
+				let closestIndex = 0;
+				let minDiff = Math.abs(recordedData[0].timestamp - onsetTime);
+
+				for (let i = 1; i < recordedData.length; i++) {
+					const diff = Math.abs(recordedData[i].timestamp - onsetTime);
+					if (diff < minDiff) {
+						minDiff = diff;
+						closestIndex = i;
+					}
+				}
+
+				// Check if current frame is within tolerance window of the onset frame
+				if (Math.abs(frameIndex - closestIndex) <= TOLERANCE_FRAMES) {
+					hasOnset = true;
+					break;
+				}
+			}
+
+			// Export only features needed for causal windowing
+			// (Preprocessing will create 5-frame windows from these individual frames)
 			return {
 				timestamp: frame.timestamp,
 				amplitude: frame.amplitude,
@@ -524,6 +560,30 @@
 				hasManualOnset: hasOnset
 			};
 		});
+
+		// Calculate and log statistics
+		const positiveCount = mlData.filter((f) => f.hasManualOnset).length;
+		const positiveRatio = positiveCount / mlData.length;
+
+		console.log('Export Statistics:');
+		console.log(`  Frames: ${mlData.length}`);
+		console.log(`  Avg hop size: ${avgHopMs.toFixed(2)} ms`);
+		console.log(`  Frame rate: ${(1000 / avgHopMs).toFixed(1)} Hz`);
+		console.log(`  Manual onsets: ${manualOnsets.length}`);
+		console.log(`  Positive frames: ${positiveCount} (${(positiveRatio * 100).toFixed(1)}%)`);
+		console.log(
+			`  Tolerance: ±${TOLERANCE_FRAMES} frames (±${(TOLERANCE_FRAMES * avgHopMs).toFixed(0)} ms)`
+		);
+
+		// Show alert with statistics
+		alert(
+			`Export complete!\n\n` +
+				`Frames: ${mlData.length}\n` +
+				`Hop size: ${avgHopMs.toFixed(1)} ms (${(1000 / avgHopMs).toFixed(0)} Hz)\n` +
+				`Onsets: ${manualOnsets.length}\n` +
+				`Positive frames: ${positiveCount} (${(positiveRatio * 100).toFixed(1)}%)\n` +
+				`Tolerance: ±${TOLERANCE_FRAMES} frames`
+		);
 
 		const dataStr = JSON.stringify(mlData, null, 2);
 		const blob = new Blob([dataStr], { type: 'application/json' });
@@ -695,8 +755,9 @@
 		<h2>Export Data</h2>
 		<p class="info-text">
 			After recording, click on the timeline to add manual onset markers for ground truth labeling.
-			Export the labeled data for machine learning training. Frames in the 50ms AFTER an onset
-			marker will be labeled as positive examples.
+			Each onset creates a ±10ms tolerance window (±1 frame at 10ms hop). Frames within this window
+			are labeled as positive examples. The preprocessing script will create causal 5-frame windows
+			from this per-frame data.
 		</p>
 		<div class="button-group">
 			<button class="btn btn-success" onclick={exportData} disabled={recordedData.length === 0}>

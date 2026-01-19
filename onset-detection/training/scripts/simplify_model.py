@@ -71,6 +71,9 @@ with open(model_path, "w") as f:
 print(f"Simplified model saved to {model_path}")
 print(
     "Layers:",
-    [f"{l['class_name']}:{l['config']['name']}" for l in simplified_layers],
+    [
+        f"{layer['class_name']}:{layer['config']['name']}"
+        for layer in simplified_layers
+    ],
 )
 print("Weights:", [w["name"] for w in model["weightsManifest"][0]["weights"]])

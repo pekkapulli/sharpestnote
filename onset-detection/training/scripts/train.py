@@ -240,7 +240,8 @@ def _create_tfjs_from_keras(model, tfjs_path: Path, input_shape):
 
     # Simplify model config to TFJS-compatible Keras 2.x format
     def simplify_layer_config(layer):
-        """Convert Keras 3.x layer config to TFJS-compatible Keras 2.x format"""
+        """Convert Keras 3.x layer config to TFJS-compatible Keras
+        2.x format"""
         config = layer["config"].copy()
 
         # Simplify dtype if it's an object
@@ -307,7 +308,8 @@ def _create_tfjs_from_keras(model, tfjs_path: Path, input_shape):
         f.write(all_weights_bytes)
 
     print(
-        f"Created TFJS model with {len(weight_specs)} weight tensors (Keras 2.x compatible)"
+        f"Created TFJS model with {len(weight_specs)} weight tensors "
+        f"(Keras 2.x compatible)"
     )
 
 

@@ -1,5 +1,19 @@
 """
 Preprocess onset detection training data from JSON files.
+
+DATA FORMAT REQUIREMENTS:
+- Fixed hop size: ~10ms (100 Hz frame rate)
+- Causal windowing: 5 frames of history (50ms context)
+- Onset tolerance: ±10ms (±1 frame at 10ms hop)
+- Per-frame binary classification
+- No future lookahead
+
+Each input sample consists of:
+- 5 consecutive frames: [t-4, t-3, t-2, t-1, t]
+- Each frame has 5 features: amplitude, spectralFlux, phaseDeviation,
+  highFrequencyEnergy, hasPitch
+- Total input size: 5 frames × 5 features = 25 features
+- Label: 1 if frame t is within ±1 frame of an onset, 0 otherwise
 """
 
 import json
@@ -9,92 +23,88 @@ from sklearn.preprocessing import StandardScaler
 import pickle
 
 
-def load_json_file(filepath: str) -> dict:
+def load_json_file(filepath: str) -> list:
     """Load a single JSON training file."""
     with open(filepath, "r") as f:
         return json.load(f)
 
 
-def extract_features(data: dict, window_size: int = 5) -> tuple:
+def extract_features(data: list, window_size: int = 5) -> tuple:
     """
-    Extract features and labels from a single recording.
+    Extract features and labels using causal windowing.
+
+    Creates sliding windows of consecutive frames, where each window contains
+    the HISTORY leading up to and including the current frame.
 
     Args:
-        data: List of frame dictionaries or dict with 'manualOnsets' and
-        'analysisData'
-        window_size: Number of frames to include in temporal context
+        data: List of frame dictionaries with format:
+            {
+                'timestamp': float,
+                'amplitude': float,
+                'spectralFlux': float,
+                'phaseDeviation': float,
+                'highFrequencyEnergy': float,
+                'hasPitch': bool,
+                'hasManualOnset': bool  # Expanded to ±1 frame
+            }
+        window_size: Number of frames in causal window (default 5)
+                    Frame at index t uses frames [t-4, t-3, t-2, t-1, t]
 
     Returns:
-        features: numpy array of shape (n_samples, n_features)
+        features: numpy array of shape (n_samples, window_size * 5)
         labels: numpy array of shape (n_samples,)
     """
-    # Handle both formats: array of frames or dict with manualOnsets
-    if isinstance(data, list):
-        analysis_data = data
-        manual_onsets = set()
-    else:
-        manual_onsets = set(data["manualOnsets"])
-        analysis_data = data["analysisData"]
+    if not isinstance(data, list):
+        raise ValueError("Data must be a list of frame dictionaries")
 
     features = []
     labels = []
 
-    # Define onset window tolerance (e.g., ±50ms)
-    onset_tolerance = 0.05
+    # Start from frame (window_size - 1) to have full history
+    # For window_size=5, start from frame 4 (index 4)
+    for t in range(window_size - 1, len(data)):
+        # Build causal window: [t-4, t-3, t-2, t-1, t]
+        window_features = []
 
-    for i, frame in enumerate(analysis_data):
-        # Extract base features
-        feature_vector = [
-            frame["amplitude"],
-            frame["spectralFlux"],
-            frame["phaseDeviation"],
-            frame["highFrequencyEnergy"],
-            1.0 if frame["hasPitch"] else 0.0,
-        ]
+        for offset in range(window_size - 1, -1, -1):
+            frame_idx = t - offset
+            frame = data[frame_idx]
 
-        # Add temporal context: features from previous frames
-        for offset in range(1, window_size):
-            if i >= offset:
-                prev_frame = analysis_data[i - offset]
-                feature_vector.extend(
-                    [
-                        prev_frame["amplitude"],
-                        prev_frame["spectralFlux"],
-                        prev_frame["phaseDeviation"],
-                        prev_frame["highFrequencyEnergy"],
-                        1.0 if prev_frame["hasPitch"] else 0.0,
-                    ]
-                )
-            else:
-                # Pad with zeros if not enough history
-                feature_vector.extend([0.0, 0.0, 0.0, 0.0, 0.0])
-
-        features.append(feature_vector)
-
-        # Check if this frame is an onset
-        if isinstance(data, list):
-            # Use hasManualOnset field directly
-            is_onset = frame.get("hasManualOnset", False)
-        else:
-            # Check if timestamp matches any manual onset
-            timestamp = frame["timestamp"]
-            is_onset = any(
-                abs(timestamp - onset) <= onset_tolerance
-                for onset in manual_onsets
+            # Extract 5 features per frame
+            window_features.extend(
+                [
+                    frame["amplitude"],
+                    frame["spectralFlux"],
+                    frame["phaseDeviation"],
+                    frame["highFrequencyEnergy"],
+                    1.0 if frame["hasPitch"] else 0.0,
+                ]
             )
-        labels.append(1 if is_onset else 0)
+
+        features.append(window_features)
+
+        # Label is from the CURRENT frame (t), not future
+        current_frame = data[t]
+        labels.append(1 if current_frame.get("hasManualOnset", False) else 0)
 
     return np.array(features), np.array(labels)
 
 
-def preprocess_data(raw_dir: str, output_dir: str, window_size: int = 5):
+def preprocess_data(
+    raw_dir: str,
+    output_dir: str,
+    window_size: int = 5,
+    target_positive_ratio: float = 0.20,
+):
     """
     Preprocess all JSON files in the raw data directory.
 
     Args:
         raw_dir: Directory containing raw JSON files
         output_dir: Directory to save processed data
-        window_size: Temporal context window size
+        window_size: Temporal context window size (default 5 frames = 50ms)
+        target_positive_ratio: Minimum positive ratio (default 0.20 = 20%)
+                             If below this, negatives are downsampled
     """
     raw_path = Path(raw_dir)
     output_path = Path(output_dir)
@@ -114,15 +124,65 @@ def preprocess_data(raw_dir: str, output_dir: str, window_size: int = 5):
         all_features.append(features)
         all_labels.append(labels)
 
-        print(f"  - Extracted {len(features)} samples, {labels.sum()} onsets")
+        onset_pct = 100 * labels.mean()
+        print(
+            f"  - Extracted {len(features)} samples, "
+            f"{labels.sum()} onsets ({onset_pct:.2f}%)"
+        )
 
     # Concatenate all data
     X = np.vstack(all_features)
     y = np.concatenate(all_labels)
 
-    print(f"\nTotal samples: {len(X)}")
-    print(f"Total onsets: {y.sum()} ({100*y.mean():.2f}%)")
-    print(f"Feature shape: {X.shape}")
+    print("\nBefore balancing:")
+    print(f"  Total samples: {len(X)}")
+    print(f"  Total onsets: {y.sum()} ({100*y.mean():.2f}%)")
+    print(f"  Feature shape: {X.shape}")
+
+    # Balance data if positive ratio is too low
+    positive_ratio = y.mean()
+    if positive_ratio < target_positive_ratio:
+        print(
+            f"\nPositive ratio ({positive_ratio:.3f}) is below "
+            f"target ({target_positive_ratio:.3f})"
+        )
+        print("Downsampling negatives...")
+
+        # Get indices of positive and negative samples
+        pos_indices = np.where(y == 1)[0]
+        neg_indices = np.where(y == 0)[0]
+
+        n_positives = len(pos_indices)
+        # Calculate how many negatives we need to reach target ratio
+        # target_ratio = n_pos / (n_pos + n_neg_kept)
+        # n_neg_kept = n_pos * (1 - target_ratio) / target_ratio
+        n_negatives_keep = int(
+            n_positives * (1 - target_positive_ratio) / target_positive_ratio
+        )
+
+        # Randomly sample negatives
+        np.random.seed(42)
+        neg_indices_keep = np.random.choice(
+            neg_indices, size=n_negatives_keep, replace=False
+        )
+
+        # Combine and shuffle
+        keep_indices = np.concatenate([pos_indices, neg_indices_keep])
+        np.random.shuffle(keep_indices)
+
+        X = X[keep_indices]
+        y = y[keep_indices]
+
+        print(
+            f"  Kept {len(pos_indices)} positives + "
+            f"{n_negatives_keep} negatives"
+        )
+        print(f"  New ratio: {y.mean():.3f}")
+
+    print("\nAfter balancing:")
+    print(f"  Total samples: {len(X)}")
+    print(f"  Total onsets: {y.sum()} ({100*y.mean():.2f}%)")
+    print(f"  Feature shape: {X.shape}")
 
     # Normalize features
     scaler = StandardScaler()
@@ -143,6 +203,8 @@ def preprocess_data(raw_dir: str, output_dir: str, window_size: int = 5):
         "n_onsets": int(y.sum()),
         "onset_ratio": float(y.mean()),
         "window_size": window_size,
+        "features_per_frame": 5,
+        "total_frames_per_window": window_size,
     }
     with open(output_path / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
@@ -157,6 +219,23 @@ if __name__ == "__main__":
 
     raw_dir = training_dir / "data" / "raw"
     output_dir = training_dir / "data" / "processed"
-    window_size = 5  # Include 5 frames of temporal context
+
+    # Configuration matching the requirements:
+    # - Fixed hop: ~10ms (measured from data)
+    # - 5-frame causal window (50ms of history)
+    # - Onsets labeled across ±1 frame (±10ms)
+    # - Binary classification per frame
+    window_size = 5
+
+    print("=" * 60)
+    print("Onset Detection Training Data Preprocessing")
+    print("=" * 60)
+    print("\nConfiguration:")
+    print(f"  Window size: {window_size} frames (causal)")
+    print("  Features per frame: 5")
+    print(f"  Total input features: {window_size * 5}")
+    print("  Onset tolerance: ±1 frame (~±10ms)")
+    print("  Target positive ratio: ≥20%")
+    print("=" * 60)
 
     preprocess_data(str(raw_dir), str(output_dir), window_size)

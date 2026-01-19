@@ -1,7 +1,9 @@
 {
-  "n_samples": 8884,
+  "n_samples": 210,
   "n_features": 25,
-  "n_onsets": 1032,
-  "onset_ratio": 0.11616389013957677,
-  "window_size": 5
+  "n_onsets": 42,
+  "onset_ratio": 0.2,
+  "window_size": 5,
+  "features_per_frame": 5,
+  "total_frames_per_window": 5
 }
