@@ -33,9 +33,11 @@
 
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
 	let fluxCanvasEl: HTMLCanvasElement | null = null;
+	let mlProbCanvasEl: HTMLCanvasElement | null = null;
 	let fundamentalPhaseCanvasEl: HTMLCanvasElement | null = null;
 	let spectrumCtx: CanvasRenderingContext2D | null = null;
 	let fluxCtx: CanvasRenderingContext2D | null = null;
+	let mlProbCtx: CanvasRenderingContext2D | null = null;
 	let fundamentalPhaseCtx: CanvasRenderingContext2D | null = null;
 	let animationId: number | null = null;
 	let sampleTimer: number | null = null;
@@ -128,6 +130,7 @@
 	function draw() {
 		if (!spectrumCtx || !spectrumCanvasEl) return;
 		drawSpectrum();
+		drawMLProbability();
 		drawSpectralFlux();
 		drawFundamentalPhase();
 		scheduleNextFrame();
@@ -308,6 +311,90 @@
 		}
 	}
 
+	function drawMLProbability() {
+		if (!mlProbCtx || !mlProbCanvasEl) return;
+		const c = mlProbCtx;
+		const canvas = mlProbCanvasEl;
+		const now = performance.now();
+
+		const { width, height } = canvas;
+		c.clearRect(0, 0, width, height);
+
+		c.fillStyle = '#0b1226';
+		c.fillRect(0, 0, width, height);
+
+		if (!history.length) {
+			c.fillStyle = '#cbd5e1';
+			c.font = '12px sans-serif';
+			c.fillText('No data yet...', 12, 20);
+			return;
+		}
+
+		const oldest = now - HISTORY_MS;
+		const paddingTop = 6;
+		const paddingBottom = 20;
+		const graphHeight = height - paddingTop - paddingBottom;
+		const baseline = paddingTop + graphHeight;
+
+		// Draw probability as filled area (0-1)
+		c.fillStyle = 'rgba(139, 92, 246, 0.35)';
+		c.beginPath();
+		c.moveTo(0, baseline);
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = baseline - Math.min(Math.max(h.mlOnsetProbability, 0), 1) * graphHeight;
+			if (idx === 0) {
+				c.lineTo(x, y);
+			} else {
+				c.lineTo(x, y);
+			}
+		});
+		c.lineTo(width, baseline);
+		c.closePath();
+		c.fill();
+
+		// Outline
+		c.strokeStyle = '#8b5cf6';
+		c.lineWidth = 1.5;
+		c.beginPath();
+		history.forEach((h, idx) => {
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const y = baseline - Math.min(Math.max(h.mlOnsetProbability, 0), 1) * graphHeight;
+			if (idx === 0) c.moveTo(x, y);
+			else c.lineTo(x, y);
+		});
+		c.stroke();
+
+		// Threshold marker at 0.5
+		c.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+		c.setLineDash([4, 4]);
+		c.beginPath();
+		c.moveTo(0, baseline - 0.5 * graphHeight);
+		c.lineTo(width, baseline - 0.5 * graphHeight);
+		c.stroke();
+		c.setLineDash([]);
+
+		// Onset markers
+		history.forEach((h, idx) => {
+			if (!h.mlOnsetDetected) return;
+			const nextT = history[idx + 1]?.t ?? now;
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+			const xNext = ((nextT - oldest) / HISTORY_MS) * width;
+			const columnWidth = Math.max(2, Math.ceil(xNext - x));
+			c.fillStyle = '#f472b6';
+			c.fillRect(x, paddingTop - 1, columnWidth, graphHeight + 2);
+		});
+
+		// Labels
+		c.fillStyle = '#cbd5e1';
+		c.font = '10px monospace';
+		c.textAlign = 'left';
+		c.fillText('ML probability', 8, paddingTop + 10);
+		c.textAlign = 'right';
+		c.fillText('1.0', width - 8, paddingTop + 10);
+		c.fillText('0.0', width - 8, baseline + 12);
+	}
+
 	function drawSpectralFlux() {
 		if (!fluxCtx || !fluxCanvasEl) return;
 		const c = fluxCtx;
@@ -329,7 +416,7 @@
 		}
 
 		const oldest = now - HISTORY_MS;
-		const paddingTop = 8;
+		const paddingTop = 6;
 		const paddingBottom = 20;
 		const graphHeight = height - paddingTop - paddingBottom;
 		const baseline = paddingTop + graphHeight;
@@ -535,6 +622,9 @@
 		if (fluxCanvasEl) {
 			fluxCtx = fluxCanvasEl.getContext('2d');
 		}
+		if (mlProbCanvasEl) {
+			mlProbCtx = mlProbCanvasEl.getContext('2d');
+		}
 		if (fundamentalPhaseCanvasEl) {
 			fundamentalPhaseCtx = fundamentalPhaseCanvasEl.getContext('2d');
 		}
@@ -549,6 +639,10 @@
 				fluxCanvasEl.width = fluxCanvasEl.clientWidth * dpr;
 				fluxCanvasEl.height = 100 * dpr;
 			}
+			if (mlProbCanvasEl) {
+				mlProbCanvasEl.width = mlProbCanvasEl.clientWidth * dpr;
+				mlProbCanvasEl.height = 90 * dpr;
+			}
 			if (fundamentalPhaseCanvasEl) {
 				fundamentalPhaseCanvasEl.width = fundamentalPhaseCanvasEl.clientWidth * dpr;
 				fundamentalPhaseCanvasEl.height = 160 * dpr;
@@ -556,6 +650,7 @@
 		});
 		if (spectrumCanvasEl) resizeObserver.observe(spectrumCanvasEl);
 		if (fluxCanvasEl) resizeObserver.observe(fluxCanvasEl);
+		if (mlProbCanvasEl) resizeObserver.observe(mlProbCanvasEl);
 		if (fundamentalPhaseCanvasEl) resizeObserver.observe(fundamentalPhaseCanvasEl);
 
 		tuner.checkSupport();
@@ -572,6 +667,7 @@
 		if (resizeObserver) {
 			if (spectrumCanvasEl) resizeObserver.unobserve(spectrumCanvasEl);
 			if (fluxCanvasEl) resizeObserver.unobserve(fluxCanvasEl);
+			if (mlProbCanvasEl) resizeObserver.unobserve(mlProbCanvasEl);
 			if (fundamentalPhaseCanvasEl) resizeObserver.unobserve(fundamentalPhaseCanvasEl);
 		}
 		tuner.destroy();
@@ -666,6 +762,13 @@
 					{/if}
 				</div>
 				<canvas bind:this={spectrumCanvasEl} class="h-72 w-full rounded-xl bg-slate-900"></canvas>
+			</div>
+			<div class="rounded-2xl bg-white p-4 shadow-sm">
+				<div class="mb-2 flex items-center justify-between">
+					<p class="text-sm font-semibold text-slate-700">ML probability (last 10s)</p>
+					<span class="text-xs text-slate-500">0 → 1</span>
+				</div>
+				<canvas bind:this={mlProbCanvasEl} class="h-24 w-full rounded-xl bg-slate-900"></canvas>
 			</div>
 			<div class="rounded-2xl bg-white p-4 shadow-sm">
 				<div class="mb-2">

@@ -112,8 +112,7 @@ export class OnsetModel {
 			inputTensor.dispose();
 			prediction.dispose();
 
-			// Slightly higher threshold for single frame
-			const isOnset = probability > this.config.optimalThreshold * 1.3;
+			const isOnset = probability > this.config.optimalThreshold;
 
 			return {
 				probability,

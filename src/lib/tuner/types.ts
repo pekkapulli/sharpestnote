@@ -41,6 +41,7 @@ export interface TunerOptions {
 	minGain?: number;
 	gainAdjustRate?: number;
 	autoGainInterval?: number;
+	basePath?: string; // Base path for asset resolution
 	debug?: boolean; // Enable debug logging
 	onOnset?: (event: OnsetEvent) => void; // Callback when an onset is detected
 }
