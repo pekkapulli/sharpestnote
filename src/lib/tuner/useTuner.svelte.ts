@@ -54,7 +54,7 @@ import {
 	resetOnsetAnalysis
 } from './onsetAnalysis.svelte';
 import type { InstrumentKind, TunerOptions, TunerState } from './types';
-export type { InstrumentKind, TunerOptions, TunerState } from './types';
+export type { InstrumentKind, TunerOptions, TunerState, OnsetMode } from './types';
 
 /**
  * Create a tuner instance for pitch detection and audio analysis.
@@ -79,6 +79,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const amplitudeHistory: number[] = [];
 	const debug = options.debug ?? false; // Capture debug flag
 	const onOnsetCallback = options.onOnset; // Callback for onset events
+	const onsetMode = options.onsetMode ?? 'algorithmic'; // Default to algorithmic mode
 
 	// Detect Safari for browser-specific handling
 	const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -641,7 +642,8 @@ export function createTuner(options: TunerOptions = {}) {
 		let onsetDetected = false;
 
 		// Check cooldown FIRST (Step 5 enforcement)
-		const cooldownMs = Math.max(0, onsetDetectionConfig.cooldownMs);
+		// ML mode uses 200ms cooldown, algorithmic mode uses configured cooldown (200ms default)
+		const cooldownMs = onsetMode === 'ml' ? 200 : Math.max(0, onsetDetectionConfig.cooldownMs);
 		const cooldownActive = timeSinceLastOnset < cooldownMs;
 
 		// Minimum amplitude check for all rules
@@ -666,124 +668,219 @@ export function createTuner(options: TunerOptions = {}) {
 			freq > 0 &&
 			Math.abs(1200 * Math.log2(freq / onsetAnalysis.stablePitch)) < 20; // Within ±20 cents
 
-		if (!cooldownActive && hasMinAmplitude) {
-			// Rule A — Guaranteed onset: pitch change with high confidence
-			if (pitchChangeDetected) {
-				onsetDetected = true;
-				state.lastOnsetRule = 'A';
-				debugLog(
-					`✓ Onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, confidence=${onsetAnalysis.pitchConfidence.toFixed(2)}`
-				);
-			}
-			// Rule B1 — Re-articulation: excitation cue (sufficient for detecting attacks)
-			// Enhanced with SuperFlux adaptive threshold
-			// Only fires if frequency matches established pitch (same note re-articulation)
-			else if (
-				hasPitch &&
-				frequencyCoherent &&
-				normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation && // Moderate excitation
-				(onsetAnalysis.onsetFunctionHistory.length < 10 ||
-					combinedOnsetFunction > adaptiveThreshold) // Adaptive check
-			) {
-				onsetDetected = true;
-				state.lastOnsetRule = 'B1';
-				debugLog(
-					`✓ Onset: Rule B1 (excitation-only) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
-				);
-			}
-			// Rule B2 — Asymmetric: strong phase + weak/negative excitation (require pitch lock)
-			// Only fires if frequency matches established pitch (same note re-articulation)
-			else if (
-				hasPitch &&
-				frequencyCoherent &&
-				normalizedPhase > onsetDetectionConfig.b2_minNormalizedPhase && // Strong phase
-				normalizedExcitation > onsetDetectionConfig.b2_minNormalizedExcitation // Allow negative excitation
-			) {
-				onsetDetected = true;
-				state.lastOnsetRule = 'B2';
-				debugLog(
-					`✓ Onset: Rule B2 (phase-dominant) - phase=${normalizedPhase.toFixed(1)}σ exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
-				);
-			}
-			// Rule B3 — Very strong excitation alone (for attacks with clear energy spike)
-			// Only fires if frequency matches established pitch (same note re-articulation)
-			else if (
-				hasPitch &&
-				frequencyCoherent &&
-				normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation
-			) {
-				onsetDetected = true;
-				state.lastOnsetRule = 'B3';
-				debugLog(
-					`✓ Onset: Rule B3 (strong excitation) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
-				);
-			}
-			// Rule B4 — Harmonic flux burst (bow direction change / re-bow)
-			// Only fires if frequency matches established pitch (same note re-articulation)
-			else if (
-				hasPitch &&
-				frequencyCoherent &&
-				normalizedHarmonicFlux > onsetDetectionConfig.b4_minNormalizedHarmonicFlux &&
-				relativeHarmonicIncrease >= onsetDetectionConfig.b4_minRelativeIncrease
-			) {
-				onsetDetected = true;
-				state.lastOnsetRule = 'B4';
-				debugLog(
-					`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% freq=${freq.toFixed(1)}Hz`
-				);
-			}
-			// Rule B5 — Legato rebound: dip then rise with harmonic brightening
-			// Only fires if frequency matches established pitch (same note re-articulation)
-			else if (
-				hasPitch &&
-				frequencyCoherent &&
-				onsetAnalysis.legatoDipActive &&
-				onsetAnalysis.legatoRiseFrames >= onsetDetectionConfig.b5_minRiseFrames &&
-				normalizedHarmonicFlux > onsetDetectionConfig.b5_minNormalizedHarmonicFlux
-			) {
-				const avgSlope =
-					onsetAnalysis.legatoSlopeCount > 0
-						? onsetAnalysis.legatoSlopeSumNorm / onsetAnalysis.legatoSlopeCount
-						: 0;
-				const percentRise =
-					onsetAnalysis.legatoDipMinAmp > 0
-						? (amplitude - onsetAnalysis.legatoDipMinAmp) / onsetAnalysis.legatoDipMinAmp
-						: 0;
-				const withinWindow =
-					onsetAnalysis.legatoRiseElapsedMs <= onsetDetectionConfig.b5_riseWindowMs;
-				if (
-					withinWindow &&
-					avgSlope >= onsetDetectionConfig.b5_minAvgSlope &&
-					percentRise >= onsetDetectionConfig.b5_minRisePercent
+		// ========================================================================
+		// MODE-SPECIFIC ONSET DETECTION
+		// ========================================================================
+		if (onsetMode === 'algorithmic') {
+			// ALGORITHMIC MODE: Full rule-based onset detection
+			if (!cooldownActive && hasMinAmplitude) {
+				// Rule A — Guaranteed onset: pitch change with high confidence
+				if (pitchChangeDetected) {
+					onsetDetected = true;
+					state.lastOnsetRule = 'A';
+					debugLog(
+						`✓ Onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, confidence=${onsetAnalysis.pitchConfidence.toFixed(2)}`
+					);
+				}
+				// Rule B1 — Re-articulation: excitation cue (sufficient for detecting attacks)
+				// Enhanced with SuperFlux adaptive threshold
+				// Only fires if frequency matches established pitch (same note re-articulation)
+				else if (
+					hasPitch &&
+					frequencyCoherent &&
+					normalizedExcitation > onsetDetectionConfig.b1_minNormalizedExcitation && // Moderate excitation
+					(onsetAnalysis.onsetFunctionHistory.length < 10 ||
+						combinedOnsetFunction > adaptiveThreshold) // Adaptive check
 				) {
 					onsetDetected = true;
-					state.lastOnsetRule = 'B5';
-					onsetAnalysis.legatoDipActive = false;
-					onsetAnalysis.legatoRiseFrames = 0;
-					onsetAnalysis.legatoSlopeSumNorm = 0;
-					onsetAnalysis.legatoSlopeCount = 0;
+					state.lastOnsetRule = 'B1';
 					debugLog(
-						`✓ Onset: Rule B5 (legato rebound) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ avgSlope=${avgSlope.toFixed(2)} rise=${(percentRise * 100).toFixed(0)}% window=${Math.round(onsetAnalysis.legatoRiseElapsedMs)}ms freq=${freq.toFixed(1)}Hz`
+						`✓ Onset: Rule B1 (excitation-only) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+					);
+				}
+				// Rule B2 — Asymmetric: strong phase + weak/negative excitation (require pitch lock)
+				// Only fires if frequency matches established pitch (same note re-articulation)
+				else if (
+					hasPitch &&
+					frequencyCoherent &&
+					normalizedPhase > onsetDetectionConfig.b2_minNormalizedPhase && // Strong phase
+					normalizedExcitation > onsetDetectionConfig.b2_minNormalizedExcitation // Allow negative excitation
+				) {
+					onsetDetected = true;
+					state.lastOnsetRule = 'B2';
+					debugLog(
+						`✓ Onset: Rule B2 (phase-dominant) - phase=${normalizedPhase.toFixed(1)}σ exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+					);
+				}
+				// Rule B3 — Very strong excitation alone (for attacks with clear energy spike)
+				// Only fires if frequency matches established pitch (same note re-articulation)
+				else if (
+					hasPitch &&
+					frequencyCoherent &&
+					normalizedExcitation > onsetDetectionConfig.b3_minNormalizedExcitation
+				) {
+					onsetDetected = true;
+					state.lastOnsetRule = 'B3';
+					debugLog(
+						`✓ Onset: Rule B3 (strong excitation) - exc=${normalizedExcitation.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+					);
+				}
+				// Rule B4 — Harmonic flux burst (bow direction change / re-bow)
+				// Only fires if frequency matches established pitch (same note re-articulation)
+				else if (
+					hasPitch &&
+					frequencyCoherent &&
+					normalizedHarmonicFlux > onsetDetectionConfig.b4_minNormalizedHarmonicFlux &&
+					relativeHarmonicIncrease >= onsetDetectionConfig.b4_minRelativeIncrease
+				) {
+					onsetDetected = true;
+					state.lastOnsetRule = 'B4';
+					debugLog(
+						`✓ Onset: Rule B4 (harmonic flux) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ rel+${(relativeHarmonicIncrease * 100).toFixed(0)}% freq=${freq.toFixed(1)}Hz`
+					);
+				}
+				// Rule B5 — Legato rebound: dip then rise with harmonic brightening
+				// Only fires if frequency matches established pitch (same note re-articulation)
+				else if (
+					hasPitch &&
+					frequencyCoherent &&
+					onsetAnalysis.legatoDipActive &&
+					onsetAnalysis.legatoRiseFrames >= onsetDetectionConfig.b5_minRiseFrames &&
+					normalizedHarmonicFlux > onsetDetectionConfig.b5_minNormalizedHarmonicFlux
+				) {
+					const avgSlope =
+						onsetAnalysis.legatoSlopeCount > 0
+							? onsetAnalysis.legatoSlopeSumNorm / onsetAnalysis.legatoSlopeCount
+							: 0;
+					const percentRise =
+						onsetAnalysis.legatoDipMinAmp > 0
+							? (amplitude - onsetAnalysis.legatoDipMinAmp) / onsetAnalysis.legatoDipMinAmp
+							: 0;
+					const withinWindow =
+						onsetAnalysis.legatoRiseElapsedMs <= onsetDetectionConfig.b5_riseWindowMs;
+					if (
+						withinWindow &&
+						avgSlope >= onsetDetectionConfig.b5_minAvgSlope &&
+						percentRise >= onsetDetectionConfig.b5_minRisePercent
+					) {
+						onsetDetected = true;
+						state.lastOnsetRule = 'B5';
+						onsetAnalysis.legatoDipActive = false;
+						onsetAnalysis.legatoRiseFrames = 0;
+						onsetAnalysis.legatoSlopeSumNorm = 0;
+						onsetAnalysis.legatoSlopeCount = 0;
+						debugLog(
+							`✓ Onset: Rule B5 (legato rebound) - hFlux=${normalizedHarmonicFlux.toFixed(1)}σ avgSlope=${avgSlope.toFixed(2)} rise=${(percentRise * 100).toFixed(0)}% window=${Math.round(onsetAnalysis.legatoRiseElapsedMs)}ms freq=${freq.toFixed(1)}Hz`
+						);
+					}
+				}
+				// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
+				// Only fires if frequency matches established pitch (same note re-articulation)
+				else if (
+					hasPitch &&
+					frequencyCoherent &&
+					normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase
+				) {
+					// Very strong phase with pitch lock
+					onsetDetected = true;
+					state.lastOnsetRule = 'D';
+					debugLog(
+						`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
 					);
 				}
 			}
-			// Rule D — Soft-attack fallback: very strong normalized phase disruption alone
-			// Only fires if frequency matches established pitch (same note re-articulation)
-			else if (
-				hasPitch &&
-				frequencyCoherent &&
-				normalizedPhase > onsetDetectionConfig.d_minNormalizedPhase
-			) {
-				// Very strong phase with pitch lock
-				onsetDetected = true;
-				state.lastOnsetRule = 'D';
-				debugLog(
-					`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
-				);
+		} else if (onsetMode === 'ml') {
+			// ML MODE: ML-based onset detection + Rule A (pitch change)
+			// This mode requires stable pitch verification before firing onset
+
+			// First check Rule A (pitch change) - immediate onset without ML
+			if (!cooldownActive && hasMinAmplitude && pitchChangeDetected) {
+				// Store as pending onset - requires 100ms stable pitch verification
+				if (onsetAnalysis.pendingOnsetTimestamp === null) {
+					onsetAnalysis.pendingOnsetTimestamp = now;
+					onsetAnalysis.pendingOnsetFrequency = freq;
+					onsetAnalysis.pendingOnsetRule = 'A';
+					debugLog(
+						`⏳ Pending onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, awaiting stable pitch`
+					);
+				}
 			}
-			// Suppress near-miss logs; only log actual onsets
-		} else {
-			// Suppress cooldown/low amplitude logs
+
+			// Check for ML onset detection
+			mlState.updateMLDiagnostics(now);
+			if (mlState.state.mlModelReady) {
+				const prediction = mlState.predict(
+					normalizedAmplitude,
+					normalizedExcitation,
+					normalizedPhase,
+					state.highFrequencyEnergy,
+					hasPitch,
+					false, // Don't pass rule-based detection in ML mode
+					state.frequency
+				);
+				if (prediction) {
+					state.mlOnsetDetected = prediction.isOnset;
+					state.mlOnsetProbability = prediction.probability;
+
+					// Store as pending onset if ML detected and we have pitch
+					if (prediction.isOnset && hasPitch && !cooldownActive && hasMinAmplitude) {
+						if (onsetAnalysis.pendingOnsetTimestamp === null) {
+							onsetAnalysis.pendingOnsetTimestamp = now;
+							onsetAnalysis.pendingOnsetFrequency = freq;
+							onsetAnalysis.pendingOnsetRule = 'ML';
+							debugLog(
+								`⏳ Pending onset: ML detection - ${freq.toFixed(1)}Hz prob=${prediction.probability.toFixed(3)}, awaiting stable pitch`
+							);
+						}
+					}
+				}
+			} else {
+				state.mlOnsetDetected = false;
+				state.mlOnsetProbability = 0;
+			}
+
+			// Verify pending onset: check if pitch has been stable for 100ms
+			if (
+				onsetAnalysis.pendingOnsetTimestamp !== null &&
+				onsetAnalysis.pendingOnsetFrequency !== null
+			) {
+				const timeSincePending = now - onsetAnalysis.pendingOnsetTimestamp;
+
+				// Check if pitch is still stable within threshold
+				const pitchDriftCents =
+					hasPitch && freq > 0
+						? Math.abs(1200 * Math.log2(freq / onsetAnalysis.pendingOnsetFrequency))
+						: 999;
+
+				const pitchStable = pitchDriftCents < onsetDetectionConfig.stablePitchThresholdCents;
+
+				if (timeSincePending >= onsetDetectionConfig.stablePitchVerificationMs) {
+					if (pitchStable && hasPitch) {
+						// Pitch has been stable for 100ms - fire onset!
+						onsetDetected = true;
+						state.lastOnsetRule = onsetAnalysis.pendingOnsetRule;
+						debugLog(
+							`✓ Onset: ${state.lastOnsetRule} (verified after ${timeSincePending.toFixed(0)}ms) - ${freq.toFixed(1)}Hz`
+						);
+					} else {
+						// Pitch not stable - cancel pending onset
+						debugLog(
+							`✗ Cancelled pending onset: pitch unstable (drift=${pitchDriftCents.toFixed(1)}¢)`
+						);
+					}
+					// Clear pending state either way
+					onsetAnalysis.pendingOnsetTimestamp = null;
+					onsetAnalysis.pendingOnsetFrequency = null;
+					onsetAnalysis.pendingOnsetRule = null;
+				} else if (!pitchStable) {
+					// Pitch became unstable before verification period - cancel
+					debugLog(`✗ Cancelled pending onset early: pitch drift ${pitchDriftCents.toFixed(1)}¢`);
+					onsetAnalysis.pendingOnsetTimestamp = null;
+					onsetAnalysis.pendingOnsetFrequency = null;
+					onsetAnalysis.pendingOnsetRule = null;
+				}
+				// Otherwise, keep waiting for verification period
+			}
 		}
 
 		// Apply onset if detected
@@ -814,39 +911,42 @@ export function createTuner(options: TunerOptions = {}) {
 		}
 
 		// ========================================================================
-		// ML MODEL COMPARISON (Experimental - runs in parallel, no effect on rule-based detection)
+		// ML MODEL COMPARISON (Only in algorithmic mode - ML mode uses prediction directly)
 		// ========================================================================
-		// Minimal diagnostics to surface why ML may be silent
-		mlState.updateMLDiagnostics(now);
+		if (onsetMode === 'algorithmic') {
+			// Minimal diagnostics to surface why ML may be silent
+			mlState.updateMLDiagnostics(now);
 
-		if (mlState.state.mlModelReady) {
-			const prediction = mlState.predict(
-				normalizedAmplitude,
-				normalizedExcitation,
-				normalizedPhase,
-				state.highFrequencyEnergy,
-				hasPitch,
-				onsetDetected,
-				state.frequency
-			);
-			if (prediction) {
-				state.mlOnsetDetected = prediction.isOnset;
-				state.mlOnsetProbability = prediction.probability;
-				// If ML detects onset but rule-based didn't, trigger callback for logging/analysis
-				if (prediction.isOnset && !onsetDetected && onOnsetCallback) {
-					onOnsetCallback({
-						frequency: state.frequency ?? 0,
-						note: state.note,
-						rule: 'ML',
-						amplitude,
-						timestamp: now
-					});
+			if (mlState.state.mlModelReady) {
+				const prediction = mlState.predict(
+					normalizedAmplitude,
+					normalizedExcitation,
+					normalizedPhase,
+					state.highFrequencyEnergy,
+					hasPitch,
+					onsetDetected,
+					state.frequency
+				);
+				if (prediction) {
+					state.mlOnsetDetected = prediction.isOnset;
+					state.mlOnsetProbability = prediction.probability;
+					// If ML detects onset but rule-based didn't, trigger callback for logging/analysis
+					if (prediction.isOnset && !onsetDetected && onOnsetCallback) {
+						onOnsetCallback({
+							frequency: state.frequency ?? 0,
+							note: state.note,
+							rule: 'ML',
+							amplitude,
+							timestamp: now
+						});
+					}
 				}
+			} else {
+				state.mlOnsetDetected = false;
+				state.mlOnsetProbability = 0;
 			}
-		} else {
-			state.mlOnsetDetected = false;
-			state.mlOnsetProbability = 0;
 		}
+		// In ML mode, ML state is already updated within the mode logic above
 
 		performanceMetrics.onsetDecisionMs = performance.now() - stepStart;
 

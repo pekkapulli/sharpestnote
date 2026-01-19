@@ -38,6 +38,11 @@ export interface OnsetAnalysisState {
 	previousPitch: number | null;
 	stablePitch: number | null;
 	pitchConfidence: number;
+
+	// Stable pitch verification (for post-onset confirmation)
+	pendingOnsetTimestamp: number | null;
+	pendingOnsetFrequency: number | null;
+	pendingOnsetRule: string | null;
 }
 
 const HISTORY_LENGTH = 50; // From onsetDetectionConfig.historyLength
@@ -67,7 +72,10 @@ export function createOnsetAnalysisState(): OnsetAnalysisState {
 		previousFFT: null,
 		previousPitch: null,
 		stablePitch: null,
-		pitchConfidence: 0
+		pitchConfidence: 0,
+		pendingOnsetTimestamp: null,
+		pendingOnsetFrequency: null,
+		pendingOnsetRule: null
 	};
 }
 
@@ -188,4 +196,7 @@ export function resetOnsetAnalysis(state: OnsetAnalysisState) {
 	state.phaseCueEmaInitialized = false;
 	state.phaseCueEma = 0;
 	state.previousPhaseCueEma = 0;
+	state.pendingOnsetTimestamp = null;
+	state.pendingOnsetFrequency = null;
+	state.pendingOnsetRule = null;
 }

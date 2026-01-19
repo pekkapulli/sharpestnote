@@ -112,7 +112,13 @@ export const onsetDetectionConfig = {
 	whiteningAlpha: 0.6, // Exponential smoothing factor (higher = slower adaptation)
 	whiteningMinClamp: 0.01, // Minimum whitened value (prevent division by near-zero)
 	whiteningMaxClamp: 10.0, // Maximum whitened value (prevent extreme spikes)
-	whiteningEpsilon: 0.001 // Small constant to prevent division by zero
+	whiteningEpsilon: 0.001, // Small constant to prevent division by zero
+
+	// ========================================================================
+	// STABLE PITCH VERIFICATION (for ML mode + Rule A)
+	// ========================================================================
+	stablePitchVerificationMs: 100, // Wait for stable pitch for 100ms after initial onset detection
+	stablePitchThresholdCents: 30 // Pitch must remain within ±30 cents to be considered stable
 };
 
 export type OnsetDetectionConfig = typeof onsetDetectionConfig;

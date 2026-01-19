@@ -21,6 +21,7 @@
 		debug: false,
 		gain: 15,
 		maxGain: 50,
+		onsetMode: 'algorithmic',
 		onOnset: (event) => {
 			// Capture every onset detection
 			onsetEvents.push({
