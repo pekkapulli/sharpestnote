@@ -50,6 +50,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 		debug: false,
 		gain: 15,
 		maxGain: 500,
+		onsetMode: 'hybrid',
 		onOnset: (onsetData) => {
 			const now = performance.now();
 			const held = tuner.state.heldSixteenths;

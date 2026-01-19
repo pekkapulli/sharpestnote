@@ -5,6 +5,7 @@
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import { onsetDetectionConfig } from '$lib/config/onset';
+	import { lengthToMs } from '$lib/config/melody';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	let { data } = $props();
@@ -14,6 +15,9 @@
 
 	// Track all onset events (not just note state changes)
 	let onsetEvents: { timestamp: number; rule: string | null; frequency: number }[] = [];
+	let minOnsetIntervalMs = $state(Infinity);
+	let maxOnsetIntervalMs = $state(0);
+	let lastOnsetTimestamp: number | null = null;
 
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
@@ -21,7 +25,7 @@
 		debug: false,
 		gain: 15,
 		maxGain: 50,
-		onsetMode: 'algorithmic',
+		onsetMode: 'hybrid',
 		onOnset: (event) => {
 			// Capture every onset detection
 			onsetEvents.push({
@@ -29,6 +33,13 @@
 				rule: event.rule,
 				frequency: event.frequency
 			});
+			// Track cooldown verification: min/max time between onsets
+			if (lastOnsetTimestamp !== null) {
+				const interval = event.timestamp - lastOnsetTimestamp;
+				minOnsetIntervalMs = Math.min(minOnsetIntervalMs, interval);
+				maxOnsetIntervalMs = Math.max(maxOnsetIntervalMs, interval);
+			}
+			lastOnsetTimestamp = event.timestamp;
 		}
 	});
 
@@ -65,6 +76,9 @@
 	function startSampling() {
 		stopSampling();
 		onsetEvents = []; // Clear onset events when starting
+		minOnsetIntervalMs = Infinity;
+		maxOnsetIntervalMs = 0;
+		lastOnsetTimestamp = null;
 		sampleTimer = window.setInterval(() => {
 			const now = performance.now();
 			const isActive = tuner.state.isNoteActive;
@@ -770,6 +784,62 @@
 					<span class="text-xs text-slate-500">0 → 1</span>
 				</div>
 				<canvas bind:this={mlProbCanvasEl} class="h-24 w-full rounded-xl bg-slate-900"></canvas>
+				<div class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">
+					<div class="flex flex-wrap gap-4">
+						<div>
+							<span class="font-semibold text-slate-900">Pending</span>
+							<span class="ml-1 text-slate-500">(entered wait)</span>
+							<div class="text-sm text-slate-800">{tuner.performanceMetrics.mlPendingCount}</div>
+						</div>
+						<div>
+							<span class="font-semibold text-slate-900">Verified</span>
+							<span class="ml-1 text-slate-500">(pitch stayed stable)</span>
+							<div class="text-sm text-emerald-700">{tuner.performanceMetrics.mlVerifiedCount}</div>
+						</div>
+						<div>
+							<span class="font-semibold text-slate-900">Cancelled</span>
+							<span class="ml-1 text-slate-500">(pitch drifted)</span>
+							<div class="text-sm text-rose-700">
+								{tuner.performanceMetrics.mlCancelledUnstableCount}
+							</div>
+						</div>
+						<div>
+							<span class="font-semibold text-slate-900">Last wait</span>
+							<span class="ml-1 text-slate-500"
+								>(ms, target {onsetDetectionConfig.stablePitchVerificationMs}ms)</span
+							>
+							<div class="text-sm text-slate-800">
+								{tuner.performanceMetrics.mlLastPendingDurationMs.toFixed(0)}
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="mt-3 border-t border-slate-200 pt-3">
+					<p class="mb-2 text-xs font-semibold text-slate-700">
+						Onset cooldown spacing (all onsets)
+					</p>
+					<div class="flex flex-wrap gap-4 text-xs text-slate-700">
+						<div>
+							<span class="font-semibold text-slate-900">Min interval</span>
+							<div class="text-sm text-slate-800">
+								{minOnsetIntervalMs === Infinity ? '—' : minOnsetIntervalMs.toFixed(0)} ms
+							</div>
+						</div>
+						<div>
+							<span class="font-semibold text-slate-900">Max interval</span>
+							<div class="text-sm text-slate-800">
+								{maxOnsetIntervalMs === 0 ? '—' : maxOnsetIntervalMs.toFixed(0)} ms
+							</div>
+						</div>
+						<div>
+							<span class="font-semibold text-slate-900">Target cooldown</span>
+							<span class="ml-1 text-slate-500">(8th note × 0.8)</span>
+							<div class="text-sm text-slate-800">
+								{(lengthToMs(2, tuner.tempoBPM as number) * 0.8).toFixed(0)} ms @ {tuner.tempoBPM} BPM
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 			<div class="rounded-2xl bg-white p-4 shadow-sm">
 				<div class="mb-2">

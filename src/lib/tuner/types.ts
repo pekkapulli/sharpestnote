@@ -27,7 +27,7 @@ export interface TunerState {
 	mlOnsetProbability: number; // ML model onset probability (0-1)
 }
 
-export type OnsetMode = 'algorithmic' | 'ml';
+export type OnsetMode = 'algorithmic' | 'ml' | 'hybrid';
 
 export interface TunerOptions {
 	a4?: number;
@@ -46,7 +46,7 @@ export interface TunerOptions {
 	basePath?: string; // Base path for asset resolution
 	debug?: boolean; // Enable debug logging
 	onOnset?: (event: OnsetEvent) => void; // Callback when an onset is detected
-	onsetMode?: OnsetMode; // Onset detection mode: 'algorithmic' (rule-based) or 'ml' (ML + Rule A)
+	onsetMode?: OnsetMode; // Onset detection mode: 'algorithmic' (rules), 'ml' (ML + Rule A), or 'hybrid' (both)
 }
 
 export interface OnsetEvent {
