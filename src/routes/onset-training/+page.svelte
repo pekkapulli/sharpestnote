@@ -5,6 +5,8 @@
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import { instrumentConfigs } from '$lib/config/instruments';
+	import type { InstrumentId } from '$lib/config/types';
 
 	let { data } = $props();
 
@@ -19,6 +21,7 @@
 		note: string | null;
 		cents: number | null;
 		// Spectral features
+		spectrum: Uint8Array | null; // FFT spectrum magnitude
 		phases: number[]; // Phase angles
 		spectralFlux: number;
 		phaseDeviation: number;
@@ -32,6 +35,7 @@
 	let manualOnsets: number[] = $state([]); // Array of timestamps for manual onsets
 	let isRecording = $state(false);
 	let selectedSource: 'file' | 'microphone' = $state('microphone');
+	let selectedInstrument: InstrumentId = $state('violin');
 
 	// Manual onset interaction state
 	let draggedOnsetIndex: number | null = null;
@@ -63,7 +67,6 @@
 	});
 
 	// Visualization
-	let spectrumCanvasEl: HTMLCanvasElement | null = null;
 	let timelineCanvasEl: HTMLCanvasElement | null = null;
 	let timelineScrollContainer: HTMLDivElement | null = null;
 	let spectrumCtx: CanvasRenderingContext2D | null = null;
@@ -179,6 +182,7 @@
 				frequency: tuner.state.frequency,
 				note: tuner.state.note,
 				cents: tuner.state.cents,
+				spectrum: tuner.state.spectrum ? new Uint8Array(tuner.state.spectrum) : null,
 				phases: tuner.state.phases ? Array.from(tuner.state.phases) : [],
 				spectralFlux: tuner.state.spectralFlux,
 				phaseDeviation: tuner.state.phaseDeviation,
@@ -205,7 +209,6 @@
 	}
 
 	function draw() {
-		drawSpectrum();
 		drawTimeline();
 
 		// Auto-scroll to end when recording
@@ -214,58 +217,6 @@
 		}
 
 		animationId = requestAnimationFrame(draw);
-	}
-
-	function drawSpectrum() {
-		if (!spectrumCtx || !spectrumCanvasEl || !tuner.state.spectrum) return;
-
-		const c = spectrumCtx;
-		const canvas = spectrumCanvasEl;
-		const { width, height } = canvas;
-
-		c.clearRect(0, 0, width, height);
-
-		// Dark background
-		c.fillStyle = '#0b1226';
-		c.fillRect(0, 0, width, height);
-
-		const spectrum = tuner.state.spectrum;
-		const barWidth = width / spectrum.length;
-
-		// Draw spectrum bars
-		for (let i = 0; i < spectrum.length; i++) {
-			const magnitude = spectrum[i] / 255;
-			const barHeight = magnitude * height;
-
-			// Color gradient from blue to red based on magnitude
-			const hue = (1 - magnitude) * 240; // 240 = blue, 0 = red
-			c.fillStyle = `hsl(${hue}, 80%, 50%)`;
-
-			c.fillRect(i * barWidth, height - barHeight, barWidth - 1, barHeight);
-		}
-
-		// Draw amplitude indicator
-		c.fillStyle = '#ffffff';
-		c.font = '14px monospace';
-		c.fillText(`Amp: ${tuner.state.amplitude.toFixed(3)}`, 10, 20);
-
-		if (tuner.state.frequency) {
-			c.fillText(`Freq: ${tuner.state.frequency.toFixed(1)} Hz`, 10, 40);
-			c.fillText(`Note: ${tuner.state.note || 'N/A'}`, 10, 60);
-		}
-
-		// Show onset detection
-		if (tuner.state.lastOnsetRule) {
-			c.fillStyle = '#fbbf24';
-			c.font = 'bold 16px monospace';
-			c.fillText(`ONSET: ${tuner.state.lastOnsetRule}`, 10, 80);
-		}
-
-		// Show flux and phase
-		c.fillStyle = '#4facfe';
-		c.font = '12px monospace';
-		c.fillText(`Flux: ${tuner.state.spectralFlux.toFixed(3)}`, 10, height - 40);
-		c.fillText(`Phase: ${tuner.state.phaseDeviation.toFixed(3)}`, 10, height - 20);
 	}
 
 	// Manual onset annotation handlers
@@ -409,42 +360,54 @@
 		const lastTime = recordedData[recordedData.length - 1].timestamp;
 		const timeRange = Math.max(lastTime - firstTime, 1000); // At least 1 second
 
-		// Draw spectrum heatmap (similar to audio-analysis page)
-		const paddingTop = 60; // Space for text at top
-		const paddingBottom = 20;
-		const heatmapHeight = height * 0.5; // Use bottom half for spectrum
-		const heatmapTop = height - heatmapHeight - paddingBottom;
+		// Draw spectrum heatmap timeline (similar to audio-analysis page)
+		const paddingTop = 12;
+		const paddingBottom = 32;
+		const heatmapHeight = height - paddingTop - paddingBottom;
 
-		// Get max number of spectrum bins from recorded data
-		const sampleWithSpectrum = recordedData.find((f) => tuner.state.spectrum);
-		const binCount = tuner.state.spectrum?.length ?? 0;
+		// Find a sample with spectrum data to determine bin count
+		const sampleWithSpectrum = recordedData.find((f) => f.spectrum);
+		const fullBinCount = sampleWithSpectrum?.spectrum?.length ?? 0;
 
-		// Draw spectrum heatmap for each frame
-		if (binCount > 0 && tuner.state.spectrum) {
-			// Sample spectrum from current tuner state at each recorded frame position
-			recordedData.forEach((frame, idx) => {
-				const nextFrame = recordedData[idx + 1];
+		// Cap frequency to 8000 Hz
+		// Assuming 44.1kHz sample rate and 2048 FFT size:
+		// Each bin represents 44100/2048 ≈ 21.5 Hz
+		// To get 8000 Hz: 8000 / 21.5 ≈ 372 bins
+		const MAX_FREQ_HZ = 8000;
+		const SAMPLE_RATE = 44100; // Typical sample rate
+		const FFT_SIZE = 2048; // Typical FFT size
+		const binFreqHz = SAMPLE_RATE / FFT_SIZE;
+		const maxBin = Math.min(Math.floor(MAX_FREQ_HZ / binFreqHz), fullBinCount);
+
+		// Helper function to convert magnitude to color (matching audio-analysis)
+		const magnitudeToColor = (mag: number): string => {
+			const intensity = mag / 255;
+			if (intensity < 0.1) return `hsl(200, 80%, 10%)`;
+			if (intensity < 0.3) return `hsl(200, 80%, ${10 + intensity * 30}%)`;
+			if (intensity < 0.6) return `hsl(180, 80%, ${20 + intensity * 40}%)`;
+			return `hsl(160, 90%, ${40 + intensity * 40}%)`;
+		};
+
+		// Draw spectrum heatmap for each recorded frame
+		if (maxBin > 0) {
+			for (let i = 0; i < recordedData.length; i++) {
+				const frame = recordedData[i];
+				if (!frame.spectrum) continue;
+
+				const nextFrame = recordedData[i + 1];
 				const x = ((frame.timestamp - firstTime) / timeRange) * width;
 				const xNext = nextFrame ? ((nextFrame.timestamp - firstTime) / timeRange) * width : width;
 				const columnWidth = Math.max(1, Math.ceil(xNext - x));
 
-				// Use current spectrum (live visualization, not stored in recordedData)
-				const spectrum = tuner.state.spectrum;
-				if (!spectrum) return;
-
-				for (let b = 0; b < binCount; b++) {
-					const mag = spectrum[b];
-					const y = heatmapTop + heatmapHeight - ((b + 1) / binCount) * heatmapHeight;
-					const binHeight = Math.ceil(heatmapHeight / binCount) + 1;
-
-					// Color gradient from dark blue to bright cyan
-					const intensity = mag / 255;
-					const hue = 200; // Blue-cyan range
-					const lightness = 15 + intensity * 60; // Dark to bright
-					c.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
+				// Draw spectrum bins up to maxBin (8000 Hz)
+				for (let b = 0; b < maxBin; b++) {
+					const mag = frame.spectrum[b];
+					const y = paddingTop + heatmapHeight - ((b + 1) / maxBin) * heatmapHeight;
+					const binHeight = Math.ceil(heatmapHeight / maxBin) + 1;
+					c.fillStyle = magnitudeToColor(mag);
 					c.fillRect(x, y, columnWidth, binHeight);
 				}
-			});
+			}
 		}
 
 		// Draw amplitude timeline overlaid on spectrum
@@ -453,11 +416,11 @@
 		c.beginPath();
 
 		const maxAmp = Math.max(...recordedData.map((f) => f.amplitude), 0.01);
+		const baseline = paddingTop + heatmapHeight;
 
 		recordedData.forEach((frame, idx) => {
 			const x = ((frame.timestamp - firstTime) / timeRange) * width;
-			// Draw amplitude in the spectrum area
-			const y = heatmapTop + heatmapHeight - (frame.amplitude / maxAmp) * heatmapHeight;
+			const y = baseline - (frame.amplitude / maxAmp) * heatmapHeight;
 
 			if (idx === 0) {
 				c.moveTo(x, y);
@@ -498,7 +461,7 @@
 	}
 
 	// Export data
-	function exportData() {
+	async function exportData() {
 		if (recordedData.length === 0) {
 			alert('No data to export. Please record first.');
 			return;
@@ -575,26 +538,41 @@
 			`  Tolerance: ±${TOLERANCE_FRAMES} frames (±${(TOLERANCE_FRAMES * avgHopMs).toFixed(0)} ms)`
 		);
 
-		// Show alert with statistics
-		alert(
-			`Export complete!\n\n` +
-				`Frames: ${mlData.length}\n` +
-				`Hop size: ${avgHopMs.toFixed(1)} ms (${(1000 / avgHopMs).toFixed(0)} Hz)\n` +
-				`Onsets: ${manualOnsets.length}\n` +
-				`Positive frames: ${positiveCount} (${(positiveRatio * 100).toFixed(1)}%)\n` +
-				`Tolerance: ±${TOLERANCE_FRAMES} frames`
-		);
+		// Save to server
+		try {
+			const response = await fetch('/api/save-training-data', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					data: mlData,
+					instrument: selectedInstrument
+				})
+			});
 
-		const dataStr = JSON.stringify(mlData, null, 2);
-		const blob = new Blob([dataStr], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
+			if (!response.ok) {
+				const error = await response.text();
+				throw new Error(error);
+			}
 
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `onset-training-${Date.now()}.json`;
-		a.click();
+			const result = await response.json();
 
-		URL.revokeObjectURL(url);
+			// Show success alert with statistics
+			alert(
+				`Data saved successfully!\n\n` +
+					`File: ${result.filename}\n` +
+					`Instrument: ${selectedInstrument}\n` +
+					`Frames: ${mlData.length}\n` +
+					`Hop size: ${avgHopMs.toFixed(1)} ms (${(1000 / avgHopMs).toFixed(0)} Hz)\n` +
+					`Onsets: ${manualOnsets.length}\n` +
+					`Positive frames: ${positiveCount} (${(positiveRatio * 100).toFixed(1)}%)\n` +
+					`Tolerance: ±${TOLERANCE_FRAMES} frames`
+			);
+		} catch (error) {
+			console.error('Export error:', error);
+			alert(`Failed to save data: ${error}`);
+		}
 	}
 
 	function clearData() {
@@ -606,9 +584,6 @@
 	}
 
 	onMount(() => {
-		if (spectrumCanvasEl) {
-			spectrumCtx = spectrumCanvasEl.getContext('2d');
-		}
 		if (timelineCanvasEl) {
 			timelineCtx = timelineCanvasEl.getContext('2d');
 		}
@@ -644,60 +619,59 @@
 			selected={selectedSource}
 			onSelect={(value) => (selectedSource = value as 'file' | 'microphone')}
 		/>
-	</div>
-
-	{#if selectedSource === 'microphone'}
-		<div class="control-section">
-			<h3>Select Microphone</h3>
-			<MicrophoneSelector
-				tunerState={tuner.state}
-				onStartListening={() => {}}
-				onDeviceChange={async (deviceId) => {
-					await tuner.refreshDevices();
-					// Device change is handled by tuner internally
-				}}
-			/>
-		</div>
-	{:else}
-		<div class="control-section">
-			<h3>Upload Audio File</h3>
-			<div
-				class="dropzone"
-				class:dragging={isDragging}
-				ondrop={handleDrop}
-				ondragover={handleDragOver}
-				ondragleave={handleDragLeave}
-				role="button"
-				tabindex="0"
-			>
-				<input
-					type="file"
-					accept="audio/*"
-					onchange={handleFileInput}
-					id="audio-file-input"
-					style="display: none;"
+		{#if selectedSource === 'microphone'}
+			<div class="mt-4">
+				<h3>Select Microphone</h3>
+				<MicrophoneSelector
+					tunerState={tuner.state}
+					onStartListening={() => {}}
+					onDeviceChange={async (deviceId) => {
+						await tuner.refreshDevices();
+						// Device change is handled by tuner internally
+					}}
 				/>
-				<label for="audio-file-input" class="dropzone-label">
-					{#if uploadedFileName}
-						<div class="file-info">
-							<span class="file-icon">🎵</span>
-							<span class="file-name">{uploadedFileName}</span>
-						</div>
-					{:else}
-						<div class="drop-prompt">
-							<span class="drop-icon">📁</span>
-							<p>Drag & drop an audio file here</p>
-							<p class="drop-subtext">or click to browse</p>
-						</div>
-					{/if}
-				</label>
 			</div>
+		{:else}
+			<div class="mt-4">
+				<h3>Upload Audio File</h3>
+				<div
+					class="dropzone"
+					class:dragging={isDragging}
+					ondrop={handleDrop}
+					ondragover={handleDragOver}
+					ondragleave={handleDragLeave}
+					role="button"
+					tabindex="0"
+				>
+					<input
+						type="file"
+						accept="audio/*"
+						onchange={handleFileInput}
+						id="audio-file-input"
+						style="display: none;"
+					/>
+					<label for="audio-file-input" class="dropzone-label">
+						{#if uploadedFileName}
+							<div class="file-info">
+								<span class="file-icon">🎵</span>
+								<span class="file-name">{uploadedFileName}</span>
+							</div>
+						{:else}
+							<div class="drop-prompt">
+								<span class="drop-icon">📁</span>
+								<p>Drag & drop an audio file here</p>
+								<p class="drop-subtext">or click to browse</p>
+							</div>
+						{/if}
+					</label>
+				</div>
 
-			{#if audioFileUrl}
-				<audio bind:this={audioElement} src={audioFileUrl} style="display: none;"></audio>
-			{/if}
-		</div>
-	{/if}
+				{#if audioFileUrl}
+					<audio bind:this={audioElement} src={audioFileUrl} style="display: none;"></audio>
+				{/if}
+			</div>
+		{/if}
+	</div>
 
 	<!-- Recording Controls -->
 	<div class="control-section">
@@ -719,12 +693,6 @@
 				🗑️ Clear Data
 			</button>
 		</div>
-	</div>
-
-	<!-- Live Visualization -->
-	<div class="visualization-section">
-		<h2>Live Spectrum</h2>
-		<canvas bind:this={spectrumCanvasEl} width="800" height="400" class="canvas"></canvas>
 	</div>
 
 	<div class="visualization-section">
@@ -759,9 +727,19 @@
 			are labeled as positive examples. The preprocessing script will create causal 5-frame windows
 			from this per-frame data.
 		</p>
+
+		<div style="margin-bottom: 1rem;">
+			<h3>Training Instrument</h3>
+			<select bind:value={selectedInstrument} class="instrument-select">
+				{#each instrumentConfigs as instrument}
+					<option value={instrument.id}>{instrument.label}</option>
+				{/each}
+			</select>
+		</div>
+
 		<div class="button-group">
 			<button class="btn btn-success" onclick={exportData} disabled={recordedData.length === 0}>
-				💾 Export JSON (Full Data)
+				💾 Save to Training Data Folder
 			</button>
 		</div>
 
@@ -993,5 +971,27 @@
 
 	.data-stats strong {
 		color: #f8fafc;
+	}
+
+	.instrument-select {
+		width: 100%;
+		max-width: 300px;
+		padding: 0.75rem;
+		font-size: 1rem;
+		background: #0f172a;
+		color: #f8fafc;
+		border: 2px solid #475569;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: border-color 0.2s ease;
+	}
+
+	.instrument-select:hover {
+		border-color: #4facfe;
+	}
+
+	.instrument-select:focus {
+		outline: none;
+		border-color: #4facfe;
 	}
 </style>

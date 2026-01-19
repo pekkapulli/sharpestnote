@@ -17,7 +17,8 @@ export interface OnsetPrediction {
 export class OnsetModel {
 	private model: tf.LayersModel | null = null;
 	private config: OnsetModelConfig | null = null;
-	private scaler: { mean: number[]; std: number[] } | null = null;
+	private scalerMean: number[] = [];
+	private scalerStd: number[] = [];
 	private isLoaded = false;
 
 	async load(modelPath: string): Promise<void> {
@@ -29,12 +30,56 @@ export class OnsetModel {
 			const configResponse = await fetch(`${modelPath}/config.json`);
 			this.config = await configResponse.json();
 
+			// Load the scaler (mean and std from training)
+			try {
+				const scalerResponse = await fetch(`${modelPath}/scaler.json`);
+				if (scalerResponse.ok) {
+					const scalerData = await scalerResponse.json();
+					this.scalerMean = scalerData.mean;
+					this.scalerStd = scalerData.std;
+					console.log('[OnsetModel] Scaler loaded', {
+						meanLength: this.scalerMean.length,
+						stdLength: this.scalerStd.length
+					});
+				} else {
+					console.warn('[OnsetModel] Scaler.json not found, predictions will use raw features');
+				}
+			} catch (scalerError) {
+				console.warn('[OnsetModel] Failed to load scaler:', scalerError);
+			}
+
 			this.isLoaded = true;
 			console.log('[OnsetModel] Model loaded successfully', this.config);
 		} catch (error) {
 			console.error('[OnsetModel] Failed to load model:', error);
 			throw error;
 		}
+	}
+
+	/**
+	 * Apply StandardScaler normalization to raw features
+	 * @param features Raw feature values
+	 * @returns Scaled features (mean=0, std=1)
+	 */
+	private scaleFeatures(features: number[]): number[] {
+		if (this.scalerMean.length === 0 || this.scalerStd.length === 0) {
+			// Scaler not loaded, return raw features with warning (first time only)
+			if (features.length === 25 && this.scalerMean.length === 0) {
+				console.warn(
+					'[OnsetModel] Scaler not available, using raw features. ' +
+						'Predictions may be inaccurate. Ensure scaler.json is available.'
+				);
+			}
+			return features;
+		}
+
+		return features.map((value, i) => {
+			const mean = this.scalerMean[i] ?? 0;
+			const std = this.scalerStd[i] ?? 1;
+			// Prevent division by zero
+			if (std === 0) return 0;
+			return (value - mean) / std;
+		});
 	}
 
 	/**
@@ -53,8 +98,11 @@ export class OnsetModel {
 		}
 
 		try {
-			// Create tensor from features
-			const inputTensor = tf.tensor2d([features], [1, 25]);
+			// CRITICAL: Scale features using training set statistics
+			const scaledFeatures = this.scaleFeatures(features);
+
+			// Create tensor from scaled features
+			const inputTensor = tf.tensor2d([scaledFeatures], [1, 25]);
 
 			// Run prediction
 			const prediction = this.model.predict(inputTensor) as tf.Tensor;
@@ -64,7 +112,8 @@ export class OnsetModel {
 			inputTensor.dispose();
 			prediction.dispose();
 
-			const isOnset = probability > this.config.optimalThreshold;
+			// Slightly higher threshold for single frame
+			const isOnset = probability > this.config.optimalThreshold * 1.3;
 
 			return {
 				probability,
@@ -86,7 +135,10 @@ export class OnsetModel {
 		}
 
 		try {
-			const inputTensor = tf.tensor2d(featuresBatch);
+			// Scale each feature vector in the batch
+			const scaledBatch = featuresBatch.map((features) => this.scaleFeatures(features));
+
+			const inputTensor = tf.tensor2d(scaledBatch);
 			const predictions = this.model.predict(inputTensor) as tf.Tensor;
 			const probabilities = Array.from(predictions.dataSync());
 

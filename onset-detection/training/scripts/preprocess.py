@@ -57,18 +57,46 @@ def extract_features(data: list, window_size: int = 5) -> tuple:
     if not isinstance(data, list):
         raise ValueError("Data must be a list of frame dictionaries")
 
+    # FILTER OUT SILENT/EMPTY SECTIONS
+    # Remove frames where all features are zero or near-zero
+    # This prevents the model from learning on empty space
+    MIN_AMPLITUDE = 0.001
+    MIN_ACTIVITY = 0.01  # Minimum flux or phase deviation
+
+    filtered_data = []
+    for frame in data:
+        # Keep frame if it has any significant activity
+        has_activity = (
+            frame["amplitude"] > MIN_AMPLITUDE
+            or frame["spectralFlux"] > MIN_ACTIVITY
+            or frame["phaseDeviation"] > MIN_ACTIVITY
+            or frame.get("hasManualOnset", False)  # Always keep onset frames
+        )
+        if has_activity:
+            filtered_data.append(frame)
+
+    if len(filtered_data) < window_size:
+        print(
+            f"  Warning: Only {len(filtered_data)} active frames after filtering"
+        )
+        return np.array([]), np.array([])
+
+    print(
+        f"  Filtered {len(data)} -> {len(filtered_data)} frames ({len(filtered_data)/max(1,len(data))*100:.1f}%)"
+    )
+
     features = []
     labels = []
 
     # Start from frame (window_size - 1) to have full history
     # For window_size=5, start from frame 4 (index 4)
-    for t in range(window_size - 1, len(data)):
+    for t in range(window_size - 1, len(filtered_data)):
         # Build causal window: [t-4, t-3, t-2, t-1, t]
         window_features = []
 
         for offset in range(window_size - 1, -1, -1):
             frame_idx = t - offset
-            frame = data[frame_idx]
+            frame = filtered_data[frame_idx]
 
             # Extract 5 features per frame
             window_features.extend(
@@ -84,7 +112,7 @@ def extract_features(data: list, window_size: int = 5) -> tuple:
         features.append(window_features)
 
         # Label is from the CURRENT frame (t), not future
-        current_frame = data[t]
+        current_frame = filtered_data[t]
         labels.append(1 if current_frame.get("hasManualOnset", False) else 0)
 
     return np.array(features), np.array(labels)
@@ -139,6 +167,18 @@ def preprocess_data(
     print(f"  Total onsets: {y.sum()} ({100*y.mean():.2f}%)")
     print(f"  Feature shape: {X.shape}")
 
+    # Warn if we don't have enough data
+    if len(X) < 1000:
+        print(
+            f"\n⚠️  WARNING: Only {len(X)} samples - need more training data!"
+        )
+        print("   Recommendation: Record more files with onset annotations")
+    if y.sum() < 100:
+        print(
+            f"\n⚠️  WARNING: Only {int(y.sum())} onset samples - need more onsets!"
+        )
+        print("   Recommendation: Add more onset markers when recording")
+
     # Balance data if positive ratio is too low
     positive_ratio = y.mean()
     if positive_ratio < target_positive_ratio:
@@ -192,9 +232,26 @@ def preprocess_data(
     np.save(output_path / "X.npy", X_scaled)
     np.save(output_path / "y.npy", y)
 
-    # Save scaler for inference
+    # Save scaler for inference (both pickle and JSON for browser compatibility)
     with open(output_path / "scaler.pkl", "wb") as f:
         pickle.dump(scaler, f)
+
+    # Export scaler as JSON for browser/TypeScript use
+    scaler_data = {
+        "mean": scaler.mean_.tolist(),
+        "std": scaler.scale_.tolist(),  # Note: sklearn uses scale_ (1/std_dev)
+        "n_features": len(scaler.mean_),
+        "feature_names": [
+            "amplitude",
+            "spectralFlux",
+            "phaseDeviation",
+            "highFrequencyEnergy",
+            "hasPitch",
+        ]
+        * 5,  # Repeated for each of 5 frames
+    }
+    with open(output_path / "scaler.json", "w") as f:
+        json.dump(scaler_data, f, indent=2)
 
     # Save metadata
     metadata = {

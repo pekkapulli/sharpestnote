@@ -11,7 +11,11 @@ export interface AudioChain {
 	sourceType: 'microphone' | 'file';
 }
 
-const FFT_SIZE = 2048;
+// FFT window size for spectral analysis
+// Using 1024 samples for ~23ms window at 44.1kHz
+// This gives ~512 sample hop (~11.6ms), close to target 10ms frame rate
+// Avoids duplicating spectral features across multiple 10ms recording frames
+const FFT_SIZE = 1024;
 
 export async function createAudioChain(
 	audioContext: AudioContext,

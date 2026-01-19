@@ -128,11 +128,18 @@ def _copy_to_static(tfjs_dir: Path) -> None:
     static_dir = repo_root / "static" / "models" / "onset-model-v1"
     static_dir.mkdir(parents=True, exist_ok=True)
     # Copy files individually to avoid stale leftovers
-    for fname in ["model.json", "group1-shard1of1.bin", "config.json"]:
+    for fname in [
+        "model.json",
+        "group1-shard1of1.bin",
+        "config.json",
+        "scaler.json",
+    ]:
         src = tfjs_dir / fname
         if src.exists():
             shutil.copy2(src, static_dir / fname)
             print(f"Copied {fname} -> {static_dir}")
+        elif fname == "scaler.json":
+            print(f"Warning: {fname} not found in {tfjs_dir}")
 
 
 def export_tfjs_model(
@@ -177,6 +184,18 @@ def export_tfjs_model(
 
     # Patch tfjs manifest so batch_input_shape is present for tfjs loader
     _fix_tfjs_input_layer(tfjs_path / "model.json", input_shape)
+
+    # Copy scaler from processed data directory to tfjs model directory
+    from pathlib import Path
+
+    training_dir = Path(__file__).parent.parent
+    scaler_src = training_dir / "data" / "processed" / "scaler.json"
+    if scaler_src.exists():
+        scaler_dst = tfjs_path / "scaler.json"
+        shutil.copy2(scaler_src, scaler_dst)
+        print(f"Copied scaler.json to {scaler_dst}")
+    else:
+        print(f"Warning: scaler.json not found at {scaler_src}")
 
     # Copy into app static folder for immediate use
     _copy_to_static(tfjs_path)
@@ -364,12 +383,13 @@ def train_model(
     model_callbacks = [
         callbacks.EarlyStopping(
             monitor="val_loss",
-            patience=15,
+            patience=25,  # Increased patience to allow more exploration
+            min_delta=0.001,  # Only stop if improvement is < 0.001
             restore_best_weights=True,
             verbose=1,
         ),
         callbacks.ReduceLROnPlateau(
-            monitor="val_loss", factor=0.5, patience=5, min_lr=1e-6, verbose=1
+            monitor="val_loss", factor=0.5, patience=8, min_lr=1e-6, verbose=1
         ),
         callbacks.ModelCheckpoint(
             str(output_path / "best_model.keras"),
