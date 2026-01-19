@@ -267,6 +267,38 @@ export function calculatePhaseDeviationFocused(
 }
 
 /**
+ * Calculate energy in high-frequency range (>3kHz)
+ *
+ * Measures absolute energy above a frequency threshold.
+ * Useful for detecting bright transients, pick attacks, and articulation.
+ *
+ * @param fftResult Current frame FFT result
+ * @param sampleRate Sample rate in Hz
+ * @param frequencyThreshold Frequency threshold in Hz (default 3000)
+ * @returns Normalized HF energy (0-1 range typical)
+ */
+export function calculateHighFrequencyEnergy(
+	fftResult: FFTResult,
+	sampleRate: number,
+	frequencyThreshold: number = 3000
+): number {
+	const binCount = fftResult.magnitudes.length;
+	const frequencyPerBin = sampleRate / (binCount * 2);
+	const startBin = Math.floor(frequencyThreshold / frequencyPerBin);
+
+	let hfEnergy = 0;
+	let binCountUsed = 0;
+
+	for (let i = startBin; i < binCount; i++) {
+		hfEnergy += fftResult.magnitudes[i];
+		binCountUsed++;
+	}
+
+	// Normalize by number of bins to get average energy per bin
+	return binCountUsed > 0 ? hfEnergy / binCountUsed : 0;
+}
+
+/**
  * High-frequency burst detector
  *
  * Detects sudden energy increase in upper frequency bands.

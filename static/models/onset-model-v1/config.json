@@ -1,0 +1,11 @@
+{
+  "inputShape": [
+    25
+  ],
+  "outputShape": [
+    1
+  ],
+  "optimalThreshold": 0.5004673004150391,
+  "version": "1.0.0",
+  "created": "2026-01-19"
+}

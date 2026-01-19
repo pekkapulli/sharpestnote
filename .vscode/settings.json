@@ -1,5 +1,12 @@
 {
 	"files.associations": {
 		"*.css": "tailwindcss"
-	}
+	},
+	"python-envs.pythonProjects": [],
+	"[python]": {
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"editor.formatOnSave": true
+	},
+	"python.analysis.typeCheckingMode": "basic",
+	"python.analysis.stubPath": "${workspaceFolder}/typings"
 }

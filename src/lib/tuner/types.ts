@@ -15,12 +15,16 @@ export interface TunerState {
 	selectedDeviceId: string | null;
 	amplitude: number;
 	isNoteActive: boolean;
+	hasPitch: boolean; // True when there's a stable pitch (even without onset)
 	heldSixteenths: number;
 	spectrum: Uint8Array | null;
 	phases: Float32Array | null; // Phase angles in radians for each frequency bin
 	lastOnsetRule: string | null; // Which rule triggered the most recent onset (A, B1, B2, B3, B4, B5, B6, C, D)
 	spectralFlux: number; // Current frame spectral flux
 	phaseDeviation: number; // Current frame phase deviation
+	highFrequencyEnergy: number; // Energy above 3kHz (useful for onset detection)
+	mlOnsetDetected: boolean; // ML model onset prediction (experimental)
+	mlOnsetProbability: number; // ML model onset probability (0-1)
 }
 
 export interface TunerOptions {

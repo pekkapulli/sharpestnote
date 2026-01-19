@@ -1,0 +1,39 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Data
+data/raw/*.json
+data/processed/*.npy
+data/processed/*.pkl
+
+# Models
+models/saved/*.keras
+models/saved/*.h5
+models/saved/tfjs_model/
+
+# Logs and outputs
+*.log
+*.png
+*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Keep directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!models/saved/.gitkeep

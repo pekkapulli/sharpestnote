@@ -38,6 +38,7 @@
 		"wrangler": "^4.54.0"
 	},
 	"dependencies": {
+		"@tensorflow/tfjs": "^4.22.0",
 		"fft.js": "^4.0.4",
 		"soundbank-reverb": "^1.1.2",
 		"vexflow": "^5.0.0"

@@ -18,7 +18,7 @@
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
 		accidental: 'sharp',
-		debug: true,
+		debug: false,
 		gain: 15,
 		maxGain: 50,
 		onOnset: (event) => {
@@ -54,6 +54,8 @@
 		frequency?: number | null;
 		phaseDeviation: number;
 		spectralFlux: number;
+		mlOnsetDetected: boolean; // ML model prediction
+		mlOnsetProbability: number; // ML model probability
 	}[] = [];
 	let prevNoteActive = false;
 
@@ -88,7 +90,9 @@
 					active: isActive,
 					frequency: evt.frequency,
 					phaseDeviation,
-					spectralFlux
+					spectralFlux,
+					mlOnsetDetected: tuner.state.mlOnsetDetected,
+					mlOnsetProbability: tuner.state.mlOnsetProbability
 				});
 			}
 
@@ -103,7 +107,9 @@
 				active: isActive,
 				frequency: tuner.state.frequency ?? null,
 				phaseDeviation,
-				spectralFlux
+				spectralFlux,
+				mlOnsetDetected: tuner.state.mlOnsetDetected,
+				mlOnsetProbability: tuner.state.mlOnsetProbability
 			});
 
 			history = history.filter((h) => h.t >= now - HISTORY_MS);
@@ -273,6 +279,33 @@
 			const y = ruleToY(rule);
 			c.fillText(ruleLabels[rule], width - 8, y + 3);
 		});
+
+		// Draw ML onset detection as a separate line at the bottom
+		const mlY = topMarkY + 10 * 24; // Below all rule lines
+		c.fillStyle = '#8b5cf6'; // Purple for ML
+		c.font = '24px monospace';
+		c.textAlign = 'right';
+		c.fillText('ML Model', width - 8, mlY + 3);
+
+		// Draw ML onset markers
+		for (let i = 0; i < history.length; i++) {
+			const h = history[i];
+			if (!h.mlOnsetDetected) continue;
+			const x = ((h.t - oldest) / HISTORY_MS) * width;
+
+			// Draw ML onset dot (purple)
+			c.fillStyle = h.onset ? '#22c55e' : '#8b5cf6'; // Green if both detected, purple if ML only
+			c.beginPath();
+			c.arc(x, mlY, h.onset ? 6 : 4, 0, Math.PI * 2); // Larger if both systems agree
+			c.fill();
+
+			// Show probability on hover (simplified: just show prob as text)
+			if (h.mlOnsetProbability > 0.7) {
+				c.fillStyle = '#8b5cf6';
+				c.font = '8px monospace';
+				c.fillText((h.mlOnsetProbability * 100).toFixed(0) + '%', x + 7, mlY - 5);
+			}
+		}
 	}
 
 	function drawSpectralFlux() {

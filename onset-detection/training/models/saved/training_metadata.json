@@ -1,0 +1,13 @@
+{
+  "epochs": 51,
+  "batch_size": 256,
+  "final_val_loss": 0.27554017305374146,
+  "final_val_accuracy": 0.8771676421165466,
+  "final_val_precision": 0.5173501372337341,
+  "final_val_recall": 0.9060773253440857,
+  "final_val_auc": 0.9452496767044067,
+  "class_weights": {
+    "0": 0.5754108591637196,
+    "1": 3.8151724137931033
+  }
+}

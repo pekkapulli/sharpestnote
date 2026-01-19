@@ -1,3 +1,4 @@
+import { base } from '$app/paths';
 import { untrack } from 'svelte';
 import { SvelteDate } from 'svelte/reactivity';
 import {
@@ -20,6 +21,7 @@ import {
 	calculatePhaseDeviationFocused,
 	calculateHarmonicFlux,
 	calculateHighFrequencyBurst,
+	calculateHighFrequencyEnergy,
 	applySpectralWhitening,
 	applyMaximumFilter,
 	applyLogFrequencyGrouping,
@@ -34,6 +36,7 @@ import {
 import { genericDetectionConfig, instrumentMap } from '$lib/config/instruments';
 import { onsetDetectionConfig } from '$lib/config/onset';
 import { lengthToMs } from '$lib/config/melody';
+import { OnsetModel } from './ml/onsetModel';
 import type { InstrumentKind, TunerOptions, TunerState } from './types';
 export type { InstrumentKind, TunerOptions, TunerState } from './types';
 
@@ -104,6 +107,17 @@ export function createTuner(options: TunerOptions = {}) {
 	// Cooldown enforcement (refractory period)
 	let lastOnsetTime = 0;
 
+	// ML Model for onset detection (experimental comparison)
+	const mlModel = new OnsetModel();
+	let mlModelReady = false;
+	let mlModelLoadStarted = false;
+	let mlModelLoadFailed = false;
+	const mlFeatureHistory: number[][] = []; // Store last 4 frames of base features for temporal context
+	const ML_WINDOW_SIZE = 5; // Same as training: current + 4 previous frames
+	let mlDiagLastState: string | null = null; // Track ML diagnostic state to avoid log spam
+	let mlDiagLastLogTime = 0;
+	const mlModelPath = `${base || ''}/models/onset-model-v1`;
+
 	let spectrumBuffer: Uint8Array | null = null; // Latest magnitude spectrum (byte values)
 
 	const state = $state<TunerState>({
@@ -117,12 +131,16 @@ export function createTuner(options: TunerOptions = {}) {
 		selectedDeviceId: null,
 		amplitude: 0,
 		isNoteActive: false,
+		hasPitch: false,
 		heldSixteenths: 0,
 		spectrum: null,
 		phases: null,
 		lastOnsetRule: null,
 		spectralFlux: 0,
-		phaseDeviation: 0
+		phaseDeviation: 0,
+		highFrequencyEnergy: 0,
+		mlOnsetDetected: false,
+		mlOnsetProbability: 0
 	});
 
 	// Performance monitoring
@@ -192,6 +210,11 @@ export function createTuner(options: TunerOptions = {}) {
 		}
 	}
 
+	function debugLogForce(...args: unknown[]): void {
+		const timestamp = new SvelteDate().toISOString().split('T')[1].slice(0, -1); // HH:MM:SS.mmm
+		console.log(`[Tuner ${timestamp}]`, ...args);
+	}
+
 	async function refreshDevices() {
 		try {
 			const list = await navigator.mediaDevices.enumerateDevices();
@@ -203,6 +226,49 @@ export function createTuner(options: TunerOptions = {}) {
 			console.error(err);
 			state.error = 'Could not list audio devices.';
 		}
+	}
+
+	async function ensureMlModelLoad() {
+		if (mlModelReady || mlModelLoadStarted) return;
+		mlModelLoadStarted = true;
+		mlModelLoadFailed = false;
+		const loadStart = performance.now();
+		const loadTimeout = window.setTimeout(() => {
+			if (!mlModelReady) {
+				debugLogForce('[ML] Model load still pending after 5s');
+			}
+		}, 5000);
+		debugLogForce(`[ML] Loading onset model from ${mlModelPath}`);
+		try {
+			const probe = await fetch(`${mlModelPath}/model.json`, { method: 'GET' });
+			if (!probe.ok) {
+				throw new Error(`Probe failed with status ${probe.status}`);
+			}
+		} catch (err) {
+			mlModelLoadFailed = true;
+			mlModelLoadStarted = false;
+			window.clearTimeout(loadTimeout);
+			debugLogForce('[ML] Probe failed before loading model', err);
+			return;
+		}
+
+		mlModel
+			.load(mlModelPath)
+			.then(() => {
+				mlModelReady = true;
+				mlModelLoadFailed = false;
+				debugLogForce(
+					`[ML] Onset model loaded successfully in ${Math.round(performance.now() - loadStart)}ms`
+				);
+			})
+			.catch((err) => {
+				mlModelLoadFailed = true;
+				mlModelLoadStarted = false; // allow retry on next start
+				debugLogForce('[ML] Failed to load model', err);
+			})
+			.finally(() => {
+				window.clearTimeout(loadTimeout);
+			});
 	}
 
 	async function start() {
@@ -233,6 +299,10 @@ export function createTuner(options: TunerOptions = {}) {
 
 			state.isListening = true;
 			refreshDevices();
+
+			// Load ML model asynchronously (non-blocking)
+			ensureMlModelLoad();
+
 			tick();
 		} catch (err) {
 			console.error('[Tuner] Start failed:', err);
@@ -578,6 +648,8 @@ export function createTuner(options: TunerOptions = {}) {
 		// Expose analysis metrics for visualization
 		state.spectralFlux = excitationCue;
 		state.phaseDeviation = phaseCueAbsSmoothed;
+		state.hasPitch = hasPitch;
+		state.highFrequencyEnergy = calculateHighFrequencyEnergy(fftResult, audioContext.sampleRate);
 
 		// Track pitch confidence: stable pitch over multiple frames
 		if (hasPitch) {
@@ -873,6 +945,112 @@ export function createTuner(options: TunerOptions = {}) {
 				});
 			}
 		}
+
+		// ========================================================================
+		// ML MODEL COMPARISON (Experimental - runs in parallel, no effect on rule-based detection)
+		// ========================================================================
+		// Minimal diagnostics to surface why ML may be silent
+		const mlDiagState = mlModelLoadFailed
+			? 'failed'
+			: !mlModelReady
+				? 'not-ready'
+				: mlFeatureHistory.length < ML_WINDOW_SIZE
+					? 'warming-up'
+					: 'predicting';
+
+		if (mlDiagState !== mlDiagLastState && now - mlDiagLastLogTime > 500) {
+			mlDiagLastState = mlDiagState;
+			mlDiagLastLogTime = now;
+			switch (mlDiagState) {
+				case 'failed':
+					debugLogForce('[ML] Model load failed — see previous error');
+					break;
+				case 'not-ready':
+					debugLogForce('[ML] Waiting for model to load...');
+					// If load never started, kick it off from here as a safety net
+					if (!mlModelLoadStarted) {
+						ensureMlModelLoad();
+					}
+					break;
+				case 'warming-up':
+					debugLogForce('[ML] Collecting history before first prediction');
+					break;
+				case 'predicting':
+					debugLogForce('[ML] Running predictions');
+					break;
+			}
+		}
+
+		if (mlModelReady) {
+			// Build feature vector: [amplitude, spectralFlux, phaseDeviation, highFrequencyEnergy, hasPitch]
+			// Note: hasPitch is included as a feature so model can use it, but we don't gate on it
+			const currentFeatures = [
+				amplitude,
+				state.spectralFlux,
+				state.phaseDeviation,
+				state.highFrequencyEnergy,
+				state.hasPitch ? 1.0 : 0.0
+			];
+
+			// Store in history
+			mlFeatureHistory.push(currentFeatures);
+			if (mlFeatureHistory.length > ML_WINDOW_SIZE) {
+				mlFeatureHistory.shift(); // Keep only last 5 frames
+			}
+
+			// Once we have enough history, build full feature vector and predict
+			if (mlFeatureHistory.length === ML_WINDOW_SIZE) {
+				// Build feature vector: current frame + 4 previous frames (25 features total)
+				const fullFeatures: number[] = [];
+				for (let i = 0; i < ML_WINDOW_SIZE; i++) {
+					fullFeatures.push(...mlFeatureHistory[i]);
+				}
+
+				const prediction = mlModel.predict(fullFeatures);
+				if (prediction) {
+					// Update state with ML prediction
+					state.mlOnsetDetected = prediction.isOnset;
+					state.mlOnsetProbability = prediction.probability;
+
+					// Log ML prediction for comparison (show all detections)
+					if (prediction.isOnset) {
+						const pitchInfo = hasPitch
+							? `freq=${state.frequency?.toFixed(1)}Hz`
+							: '(no pitch lock)';
+						if (!onsetDetected) {
+							debugLogForce(
+								`🤖 ML detected onset (rule-based missed): prob=${prediction.probability.toFixed(3)} ${pitchInfo}`
+							);
+						} else if (onsetDetected) {
+							debugLogForce(
+								`✅ Both detected onset: ML prob=${prediction.probability.toFixed(3)} rule=${state.lastOnsetRule}`
+							);
+						}
+					} else if (!prediction.isOnset && onsetDetected) {
+						debugLogForce(
+							`📊 Rule-based detected onset (ML missed): prob=${prediction.probability.toFixed(3)}`
+						);
+					}
+					// Debug: Log high probabilities even without onset
+					if (prediction.probability > 0.3 && !prediction.isOnset) {
+						debugLog(
+							`🔍 ML high probability (no onset): prob=${prediction.probability.toFixed(3)}`
+						);
+					}
+				} else {
+					debugLogForce('⚠️ ML prediction returned null');
+				}
+			} else {
+				// Not enough history yet, reset ML state
+				state.mlOnsetDetected = false;
+				state.mlOnsetProbability = 0;
+			}
+		} else {
+			// ML model not ready, reset state
+			state.mlOnsetDetected = false;
+			state.mlOnsetProbability = 0;
+		}
+
 		performanceMetrics.onsetDecisionMs = performance.now() - stepStart;
 
 		// ========================================================================
