@@ -65,6 +65,7 @@
 	// Visualization
 	let spectrumCanvasEl: HTMLCanvasElement | null = null;
 	let timelineCanvasEl: HTMLCanvasElement | null = null;
+	let timelineScrollContainer: HTMLDivElement | null = null;
 	let spectrumCtx: CanvasRenderingContext2D | null = null;
 	let timelineCtx: CanvasRenderingContext2D | null = null;
 	let animationId: number | null = null;
@@ -206,6 +207,12 @@
 	function draw() {
 		drawSpectrum();
 		drawTimeline();
+
+		// Auto-scroll to end when recording
+		if (isRecording && timelineScrollContainer) {
+			timelineScrollContainer.scrollLeft = timelineScrollContainer.scrollWidth;
+		}
+
 		animationId = requestAnimationFrame(draw);
 	}
 
@@ -402,8 +409,46 @@
 		const lastTime = recordedData[recordedData.length - 1].timestamp;
 		const timeRange = Math.max(lastTime - firstTime, 1000); // At least 1 second
 
-		// Draw amplitude timeline
-		c.strokeStyle = '#4facfe';
+		// Draw spectrum heatmap (similar to audio-analysis page)
+		const paddingTop = 60; // Space for text at top
+		const paddingBottom = 20;
+		const heatmapHeight = height * 0.5; // Use bottom half for spectrum
+		const heatmapTop = height - heatmapHeight - paddingBottom;
+
+		// Get max number of spectrum bins from recorded data
+		const sampleWithSpectrum = recordedData.find((f) => tuner.state.spectrum);
+		const binCount = tuner.state.spectrum?.length ?? 0;
+
+		// Draw spectrum heatmap for each frame
+		if (binCount > 0 && tuner.state.spectrum) {
+			// Sample spectrum from current tuner state at each recorded frame position
+			recordedData.forEach((frame, idx) => {
+				const nextFrame = recordedData[idx + 1];
+				const x = ((frame.timestamp - firstTime) / timeRange) * width;
+				const xNext = nextFrame ? ((nextFrame.timestamp - firstTime) / timeRange) * width : width;
+				const columnWidth = Math.max(1, Math.ceil(xNext - x));
+
+				// Use current spectrum (live visualization, not stored in recordedData)
+				const spectrum = tuner.state.spectrum;
+				if (!spectrum) return;
+
+				for (let b = 0; b < binCount; b++) {
+					const mag = spectrum[b];
+					const y = heatmapTop + heatmapHeight - ((b + 1) / binCount) * heatmapHeight;
+					const binHeight = Math.ceil(heatmapHeight / binCount) + 1;
+
+					// Color gradient from dark blue to bright cyan
+					const intensity = mag / 255;
+					const hue = 200; // Blue-cyan range
+					const lightness = 15 + intensity * 60; // Dark to bright
+					c.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
+					c.fillRect(x, y, columnWidth, binHeight);
+				}
+			});
+		}
+
+		// Draw amplitude timeline overlaid on spectrum
+		c.strokeStyle = '#ffffff'; // White line for visibility over heatmap
 		c.lineWidth = 2;
 		c.beginPath();
 
@@ -411,7 +456,8 @@
 
 		recordedData.forEach((frame, idx) => {
 			const x = ((frame.timestamp - firstTime) / timeRange) * width;
-			const y = height - (frame.amplitude / maxAmp) * (height * 0.8);
+			// Draw amplitude in the spectrum area
+			const y = heatmapTop + heatmapHeight - (frame.amplitude / maxAmp) * heatmapHeight;
 
 			if (idx === 0) {
 				c.moveTo(x, y);
@@ -459,12 +505,13 @@
 		}
 
 		// Filter to only ML-relevant features and add manual onset labels
-		const ONSET_WINDOW_MS = 50; // Consider frames within 50ms of onset as positive examples
+		const ONSET_WINDOW_MS = 50; // Mark frames in the next 50ms after onset as positive examples
 
 		const mlData = recordedData.map((frame) => {
-			// Check if this frame is near a manual onset
+			// Check if this frame is within 50ms AFTER a manual onset (not before)
 			const hasOnset = manualOnsets.some(
-				(onsetTime) => Math.abs(frame.timestamp - onsetTime) <= ONSET_WINDOW_MS
+				(onsetTime) =>
+					frame.timestamp >= onsetTime && frame.timestamp <= onsetTime + ONSET_WINDOW_MS
 			);
 
 			return {
@@ -485,55 +532,6 @@
 		const a = document.createElement('a');
 		a.href = url;
 		a.download = `onset-training-${Date.now()}.json`;
-		a.click();
-
-		URL.revokeObjectURL(url);
-	}
-
-	function exportCSV() {
-		if (recordedData.length === 0) {
-			alert('No data to export. Please record first.');
-			return;
-		}
-
-		// Create CSV header
-		const headers = [
-			'timestamp',
-			'amplitude',
-			'spectralFlux',
-			'phaseDeviation',
-			'highFrequencyEnergy',
-			'hasPitch',
-			'hasOnset'
-		];
-
-		const ONSET_WINDOW_MS = 50;
-
-		// Create CSV rows
-		const rows = recordedData.map((frame) => {
-			const hasOnset = manualOnsets.some(
-				(onsetTime) => Math.abs(frame.timestamp - onsetTime) <= ONSET_WINDOW_MS
-			);
-
-			return [
-				frame.timestamp,
-				frame.amplitude,
-				frame.spectralFlux,
-				frame.phaseDeviation,
-				frame.highFrequencyEnergy,
-				frame.hasPitch ? 1 : 0,
-				hasOnset ? 1 : 0
-			];
-		});
-
-		const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
-
-		const blob = new Blob([csvContent], { type: 'text/csv' });
-		const url = URL.createObjectURL(blob);
-
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `onset-training-${Date.now()}.csv`;
 		a.click();
 
 		URL.revokeObjectURL(url);
@@ -676,7 +674,7 @@
 				Click to add onset markers, click again to remove, or drag to move them
 			</p>
 		{/if}
-		<div class="timeline-scroll-container">
+		<div class="timeline-scroll-container" bind:this={timelineScrollContainer}>
 			<canvas
 				bind:this={timelineCanvasEl}
 				width={timelineWidth}
@@ -697,15 +695,12 @@
 		<h2>Export Data</h2>
 		<p class="info-text">
 			After recording, click on the timeline to add manual onset markers for ground truth labeling.
-			Export the labeled data for machine learning training. Frames within 50ms of an onset marker
-			will be labeled as positive examples.
+			Export the labeled data for machine learning training. Frames in the 50ms AFTER an onset
+			marker will be labeled as positive examples.
 		</p>
 		<div class="button-group">
 			<button class="btn btn-success" onclick={exportData} disabled={recordedData.length === 0}>
 				💾 Export JSON (Full Data)
-			</button>
-			<button class="btn btn-success" onclick={exportCSV} disabled={recordedData.length === 0}>
-				📊 Export CSV (Summary)
 			</button>
 		</div>
 

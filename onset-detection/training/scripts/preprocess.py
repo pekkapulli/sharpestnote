@@ -151,8 +151,12 @@ def preprocess_data(raw_dir: str, output_dir: str, window_size: int = 5):
 
 
 if __name__ == "__main__":
-    raw_dir = "../data/raw"
-    output_dir = "../data/processed"
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent.resolve()
+    training_dir = script_dir.parent
+
+    raw_dir = training_dir / "data" / "raw"
+    output_dir = training_dir / "data" / "processed"
     window_size = 5  # Include 5 frames of temporal context
 
-    preprocess_data(raw_dir, output_dir, window_size)
+    preprocess_data(str(raw_dir), str(output_dir), window_size)

@@ -186,8 +186,12 @@ def evaluate_model(
 
 
 if __name__ == "__main__":
-    model_path = "../models/saved/best_model.keras"
-    data_dir = "../data/processed"
-    output_dir = "../models/saved"
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent.resolve()
+    training_dir = script_dir.parent
+
+    model_path = str(training_dir / "models" / "saved" / "best_model.keras")
+    data_dir = str(training_dir / "data" / "processed")
+    output_dir = str(training_dir / "models" / "saved")
 
     evaluate_model(model_path, data_dir, output_dir)

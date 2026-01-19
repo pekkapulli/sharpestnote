@@ -4,6 +4,7 @@ Train the onset detection neural network.
 
 import json
 import numpy as np
+import shutil
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
@@ -98,6 +99,218 @@ def plot_training_history(history, output_dir: Path):
     )
 
 
+def _fix_tfjs_input_layer(tfjs_model_json: Path, input_shape) -> None:
+    """Ensure tfjs model.json has batch_input_shape for the InputLayer."""
+    with tfjs_model_json.open("r") as f:
+        data = json.load(f)
+
+    try:
+        layers_cfg = data["modelTopology"]["model_config"]["config"]["layers"]
+        input_cfg = layers_cfg[0]["config"]
+        if "batch_input_shape" not in input_cfg:
+            batch_shape = input_cfg.get("batch_shape") or [None] + list(
+                input_shape[1:]
+            )
+            input_cfg["batch_input_shape"] = batch_shape
+            print(f"Added batch_input_shape to tfjs manifest: {batch_shape}")
+    except Exception as err:  # noqa: BLE001
+        print(
+            f"Warning: could not patch batch_input_shape in model.json: {err}"
+        )
+    else:
+        with tfjs_model_json.open("w") as f:
+            json.dump(data, f, separators=(",", ":"))
+
+
+def _copy_to_static(tfjs_dir: Path) -> None:
+    """Copy exported tfjs model into the app static path."""
+    repo_root = Path(__file__).resolve().parents[3]
+    static_dir = repo_root / "static" / "models" / "onset-model-v1"
+    static_dir.mkdir(parents=True, exist_ok=True)
+    # Copy files individually to avoid stale leftovers
+    for fname in ["model.json", "group1-shard1of1.bin", "config.json"]:
+        src = tfjs_dir / fname
+        if src.exists():
+            shutil.copy2(src, static_dir / fname)
+            print(f"Copied {fname} -> {static_dir}")
+
+
+def export_tfjs_model(
+    model, output_dir: Path, input_shape, X_val=None, y_val=None
+):
+    """Export model to TensorFlow.js format with proper configuration."""
+
+    tfjs_path = output_dir / "tfjs_model"
+    tfjs_path.mkdir(parents=True, exist_ok=True)
+
+    print("\nConverting model to TensorFlow.js format...")
+
+    # Create TFJS-compatible model from Keras
+    _create_tfjs_from_keras(model, tfjs_path, input_shape)
+
+    # Calculate optimal threshold if validation data provided
+    optimal_threshold = 0.5  # Default
+    if X_val is not None and y_val is not None:
+        from sklearn.metrics import roc_curve
+
+        print("Calculating optimal threshold from validation data...")
+        y_pred = model.predict(X_val, verbose=0)
+        fpr, tpr, thresholds = roc_curve(y_val, y_pred)
+        # Find threshold that maximizes TPR - FPR
+        optimal_idx = np.argmax(tpr - fpr)
+        optimal_threshold = float(thresholds[optimal_idx])
+        print(f"Optimal threshold: {optimal_threshold:.4f}")
+
+    # Save model configuration for browser
+    from datetime import datetime
+
+    model_config = {
+        "inputShape": list(input_shape[1:]),
+        "outputShape": list(model.output_shape[1:]),
+        "optimalThreshold": optimal_threshold,
+        "version": "2.0.0",
+        "created": datetime.utcnow().strftime("%Y-%m-%d"),
+    }
+
+    with open(tfjs_path / "config.json", "w") as f:
+        json.dump(model_config, f, indent=2)
+
+    # Patch tfjs manifest so batch_input_shape is present for tfjs loader
+    _fix_tfjs_input_layer(tfjs_path / "model.json", input_shape)
+
+    # Copy into app static folder for immediate use
+    _copy_to_static(tfjs_path)
+
+    print(f"TensorFlow.js model saved to {tfjs_path}")
+
+
+def _create_tfjs_from_keras(model, tfjs_path: Path, input_shape):
+    """Create TFJS-compatible model by serializing weights properly."""
+    tfjs_path.mkdir(parents=True, exist_ok=True)
+
+    print("Creating TFJS-compatible model...")
+
+    # Get model config
+    model_config = model.get_config()
+
+    # Ensure first layer has proper batch input shape
+    if model_config["layers"]:
+        first_layer = model_config["layers"][0]
+        if "config" in first_layer:
+            config = first_layer["config"]
+            if "batch_input_shape" not in config:
+                config["batch_input_shape"] = [None] + list(input_shape[1:])
+                print(
+                    f"Set batch_input_shape to {config['batch_input_shape']}"
+                )
+
+    # Collect weights with proper TFJS names
+    weight_specs = []
+    all_weights_bytes = b""
+
+    # Iterate through layers and get weights in order
+    for layer in model.layers:
+        if not layer.weights:
+            continue
+
+        layer_name = layer.name
+
+        for w in layer.weights:
+            weight_array = w.numpy().astype(np.float32)
+            weight_bytes = weight_array.tobytes()
+
+            # Construct proper TFJS weight name
+            # Format: "layer_name/weight_name"
+            #   (NOT "model_name/layer_name/weight_name")
+            # e.g., "dense/kernel" or "dense_1/bias"
+            weight_type = w.name  # This is just "kernel" or "bias" in Keras 3
+            weight_name = f"{layer_name}/{weight_type}"
+
+            print(f"  Weight: {weight_name}, shape: {weight_array.shape}")
+
+            weight_specs.append(
+                {
+                    "name": weight_name,
+                    "shape": list(weight_array.shape),
+                    "dtype": "float32",
+                }
+            )
+
+            all_weights_bytes += weight_bytes
+
+    # Simplify model config to TFJS-compatible Keras 2.x format
+    def simplify_layer_config(layer):
+        """Convert Keras 3.x layer config to TFJS-compatible Keras 2.x format"""
+        config = layer["config"].copy()
+
+        # Simplify dtype if it's an object
+        if isinstance(config.get("dtype"), dict):
+            config["dtype"] = "float32"
+
+        # Remove Keras 3.x specific fields that TFJS doesn't understand
+        for key in ["module", "registered_name", "build_config", "autocast"]:
+            config.pop(key, None)
+
+        # Simplify initializers - just keep class name and config
+        for key in [
+            "kernel_initializer",
+            "bias_initializer",
+            "kernel_regularizer",
+            "bias_regularizer",
+            "kernel_constraint",
+            "bias_constraint",
+        ]:
+            if key in config and isinstance(config[key], dict):
+                if config[key] is None:
+                    continue
+                # Remove module and registered_name from nested configs
+                init_config = config[key]
+                simplified = {
+                    "class_name": init_config["class_name"],
+                    "config": init_config.get("config", {}),
+                }
+                config[key] = simplified
+
+        return {"class_name": layer["class_name"], "config": config}
+
+    # Simplify the model topology for TFJS compatibility
+    simplified_layers = [
+        simplify_layer_config(layer) for layer in model_config["layers"]
+    ]
+
+    # Create model.json with TFJS-compatible Keras 2.x format
+    model_json = {
+        "modelTopology": {
+            "class_name": model.__class__.__name__,
+            "config": {
+                "name": model_config.get("name", "sequential"),
+                "layers": simplified_layers,
+            },
+            # Claim Keras 2.x for TFJS compatibility
+            "keras_version": "2.11.0",
+            "backend": "tensorflow",
+        },
+        "weightsManifest": [
+            {
+                "paths": ["group1-shard1of1.bin"],
+                "weights": weight_specs,
+            }
+        ],
+    }
+
+    # Save model.json
+    with open(tfjs_path / "model.json", "w") as f:
+        json.dump(model_json, f)
+
+    # Save weights binary
+    with open(tfjs_path / "group1-shard1of1.bin", "wb") as f:
+        f.write(all_weights_bytes)
+
+    print(
+        f"Created TFJS model with {len(weight_specs)} weight tensors (Keras 2.x compatible)"
+    )
+
+
 def train_model(
     data_dir: str, output_dir: str, epochs: int = 100, batch_size: int = 256
 ):
@@ -184,6 +397,9 @@ def train_model(
     # Plot training history
     plot_training_history(history, output_path)
 
+    # Export to TensorFlow.js format with optimal threshold calculation
+    export_tfjs_model(model, output_path, X.shape, X_val, y_val)
+
     # Save training metadata
     training_metadata = {
         "epochs": len(history.history["loss"]),
@@ -209,8 +425,12 @@ def train_model(
 
 
 if __name__ == "__main__":
-    data_dir = "../data/processed"
-    output_dir = "../models/saved"
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent.resolve()
+    training_dir = script_dir.parent
+
+    data_dir = str(training_dir / "data" / "processed")
+    output_dir = str(training_dir / "models" / "saved")
 
     train_model(
         data_dir=data_dir, output_dir=output_dir, epochs=100, batch_size=256
