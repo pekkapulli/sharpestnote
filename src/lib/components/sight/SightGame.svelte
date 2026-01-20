@@ -116,13 +116,14 @@
 			</div>
 		</header>
 
-		{#if !micStarted}
+		<div class={micStarted ? 'mx-auto mb-2 max-w-sm' : 'mb-6'}>
 			<MicrophoneSelector
 				tunerState={game.tuner.state}
 				onStartListening={startListening}
 				onDeviceChange={handleDeviceChange}
+				onRefreshDevices={game.tuner.refreshDevices}
 			/>
-		{/if}
+		</div>
 
 		{#if game.melody() && micStarted}
 			<!-- Staff display -->

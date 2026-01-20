@@ -430,6 +430,24 @@
 		});
 		c.stroke();
 
+		// Draw hasPitch indicator as a blue line
+		c.strokeStyle = '#3b82f6'; // Blue for pitch detection
+		c.lineWidth = 1.5;
+		c.beginPath();
+
+		recordedData.forEach((frame, idx) => {
+			const x = ((frame.timestamp - firstTime) / timeRange) * width;
+			// Show pitch as a line at mid-height when detected, near baseline when not
+			const y = frame.hasPitch ? paddingTop + heatmapHeight * 0.25 : baseline - heatmapHeight * 0.1;
+
+			if (idx === 0) {
+				c.moveTo(x, y);
+			} else {
+				c.lineTo(x, y);
+			}
+		});
+		c.stroke();
+
 		// Draw manual onset markers as vertical lines
 		manualOnsets.forEach((onsetTime, idx) => {
 			const x = ((onsetTime - firstTime) / timeRange) * width;
@@ -629,6 +647,7 @@
 						await tuner.refreshDevices();
 						// Device change is handled by tuner internally
 					}}
+					onRefreshDevices={tuner.refreshDevices}
 				/>
 			</div>
 		{:else}

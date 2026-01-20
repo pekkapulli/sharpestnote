@@ -820,6 +820,7 @@
 								tunerState={tuner.state}
 								onStartListening={tuner.start}
 								onDeviceChange={handleDeviceChange}
+								onRefreshDevices={tuner.refreshDevices}
 							/>
 						</div>
 

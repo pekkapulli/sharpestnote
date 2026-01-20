@@ -1,7 +1,7 @@
 {
-  "n_samples": 2150,
+  "n_samples": 2750,
   "n_features": 25,
-  "n_onsets": 430,
+  "n_onsets": 550,
   "onset_ratio": 0.2,
   "window_size": 5,
   "features_per_frame": 5,

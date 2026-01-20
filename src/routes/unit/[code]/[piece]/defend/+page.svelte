@@ -354,13 +354,7 @@
 					down and auto-shoot!
 				</p>
 
-				{#if !tuner.state.isListening}
-					<MicrophoneSelector
-						tunerState={tuner.state}
-						onStartListening={startListening}
-						onDeviceChange={handleDeviceChange}
-					/>
-				{:else}
+				{#if tuner.state.isListening}
 					{#if gameActive}
 						<div class="mb-4 text-center">
 							<p class="text-2xl font-bold text-dark-blue">Score: {score}</p>
@@ -452,6 +446,14 @@
 						{/if}
 					</div>
 				{/if}
+				<div class={tuner.state.isListening ? 'mt-8 mb-2 max-w-sm' : 'mb-6'}>
+					<MicrophoneSelector
+						tunerState={tuner.state}
+						onStartListening={startListening}
+						onDeviceChange={handleDeviceChange}
+						onRefreshDevices={tuner.refreshDevices}
+					/>
+				</div>
 			</div>
 		</div>
 	</div>

@@ -60,7 +60,9 @@ def extract_features(data: list, window_size: int = 5) -> tuple:
     # FILTER OUT SILENT/EMPTY SECTIONS
     # Remove frames where all features are zero or near-zero
     # This prevents the model from learning on empty space
-    MIN_AMPLITUDE = 0.001
+    MIN_AMPLITUDE = (
+        0.01  # Drop frames below this loudness before model ingestion
+    )
     MIN_ACTIVITY = 0.01  # Minimum flux or phase deviation
 
     filtered_data = []
@@ -107,7 +109,9 @@ def extract_features(data: list, window_size: int = 5) -> tuple:
                     frame["spectralFlux"],
                     frame["phaseDeviation"],
                     frame["highFrequencyEnergy"],
-                    1.0 if frame["hasPitch"] else 0.0,
+                    (
+                        2.0 if frame["hasPitch"] else 0.0
+                    ),  # Boost pitch presence signal
                 ]
             )
 

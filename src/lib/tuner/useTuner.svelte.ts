@@ -659,6 +659,8 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// Minimum amplitude check for all rules
 		const hasMinAmplitude = amplitude > tuning.onsetMinAmplitude;
+		// Minimum amplitude check before invoking ML (avoid firing on very quiet frames)
+		const passesMlAmplitude = amplitude > tuning.onsetMinAmplitude;
 
 		// Compute adaptive threshold using SuperFlux technique
 		// This adjusts sensitivity based on local context
@@ -824,7 +826,7 @@ export function createTuner(options: TunerOptions = {}) {
 
 			// Check for ML onset detection - fire immediately, don't wait for pitch stability
 			mlState.updateMLDiagnostics(now);
-			if (mlState.state.mlModelReady) {
+			if (mlState.state.mlModelReady && passesMlAmplitude) {
 				const prediction = mlState.predict(
 					normalizedAmplitude,
 					normalizedExcitation,
@@ -913,7 +915,7 @@ export function createTuner(options: TunerOptions = {}) {
 			// ====================================================================
 			mlState.updateMLDiagnostics(now);
 
-			if (mlState.state.mlModelReady) {
+			if (mlState.state.mlModelReady && passesMlAmplitude) {
 				const prediction = mlState.predict(
 					normalizedAmplitude,
 					normalizedExcitation,

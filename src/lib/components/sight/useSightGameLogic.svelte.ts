@@ -46,7 +46,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 	// Create tuner with onset handler
 	const tuner = createTuner({
 		a4: DEFAULT_A4,
-		accidental: 'sharp',
+		accidental: keySignature.preferredAccidental,
 		debug: false,
 		gain: 15,
 		maxGain: 500,
