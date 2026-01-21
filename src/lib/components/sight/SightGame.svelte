@@ -96,6 +96,7 @@
 
 	function handleDeviceChange(deviceId: string) {
 		game.tuner.state.selectedDeviceId = deviceId;
+		startListening();
 	}
 </script>
 

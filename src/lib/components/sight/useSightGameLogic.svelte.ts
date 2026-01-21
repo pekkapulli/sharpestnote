@@ -15,6 +15,7 @@ import {
 	transposeDetectedNoteForDisplay as transposeDetectedForDisplay
 } from '$lib/util/noteNames';
 import type { MelodyItem } from '$lib/config/melody';
+import { lengthToMs } from '$lib/config/melody';
 
 interface SightGameConfig {
 	getInstrument: () => InstrumentId;
@@ -23,6 +24,16 @@ interface SightGameConfig {
 	getTempoBPM?: () => number;
 	getMelody: () => MelodyItem[];
 	getOnMelodyComplete?: () => (() => void) | undefined;
+}
+
+/**
+ * Calculate cooldown duration in milliseconds based on note length and tempo.
+ * Uses note length * 0.8 to allow detection after most of the note has played.
+ */
+function getNoteCooldownMs(noteLength: number, tempoBPM?: number): number {
+	const bpm = tempoBPM ?? 120; // Default to 120 BPM if not provided
+	const durationMs = lengthToMs(noteLength, bpm);
+	return durationMs * 0.8; // 80% of note length
 }
 
 export function useSightGameLogic(config: SightGameConfig) {
@@ -94,8 +105,9 @@ export function useSightGameLogic(config: SightGameConfig) {
 				}
 				lastOnsetNoteIndex = currentIndex;
 				markNoteAsSuccess();
-				// short cooldown to avoid immediate retriggers from the same onset
-				ignoreInputUntil = performance.now() + 100;
+				// Cooldown based on note length and tempo to avoid accidental onsets
+				const cooldownMs = getNoteCooldownMs(melody[currentIndex].length, getTempoBPM?.());
+				ignoreInputUntil = performance.now() + cooldownMs;
 				return;
 			}
 
@@ -105,7 +117,8 @@ export function useSightGameLogic(config: SightGameConfig) {
 				currentNoteSuccess = false;
 			}
 			lastOnsetNoteIndex = currentIndex;
-			ignoreInputUntil = performance.now() + 100;
+			const cooldownMs = getNoteCooldownMs(melody[currentIndex].length, getTempoBPM?.());
+			ignoreInputUntil = performance.now() + cooldownMs;
 		}
 	});
 
