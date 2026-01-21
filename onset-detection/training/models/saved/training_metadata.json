@@ -1,13 +1,13 @@
 {
-  "epochs": 100,
+  "epochs": 88,
   "batch_size": 256,
-  "final_val_loss": 0.1797090768814087,
-  "final_val_accuracy": 0.9327272772789001,
-  "final_val_precision": 0.7919999957084656,
-  "final_val_recall": 0.8999999761581421,
-  "final_val_auc": 0.9727376103401184,
+  "final_val_loss": 0.31534942984580994,
+  "final_val_accuracy": 0.8777292370796204,
+  "final_val_precision": 0.6448979377746582,
+  "final_val_recall": 0.8633880019187927,
+  "final_val_auc": 0.9324319958686829,
   "class_weights": {
-    "0": 0.625,
-    "1": 2.5
+    "0": 0.6250426475605595,
+    "1": 2.499317871759891
   }
 }

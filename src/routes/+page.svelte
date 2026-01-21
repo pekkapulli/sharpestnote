@@ -110,6 +110,7 @@
 			Students scan the QR code on the sheet music to practice interactively between lessons. The
 			interactive material runs directly in the browser and works on phones, tablets, and computers.
 		</p>
+		<p class="font-bold">Students play on their own instrument, getting immediate feedback.</p>
 	</section>
 
 	<section class="mt-16 w-full max-w-md">
