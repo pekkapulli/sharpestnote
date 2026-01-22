@@ -22,6 +22,7 @@ export interface InstrumentConfig {
 	sustaining: boolean; // whether the instrument can sustain notes
 	bottomNote: string; // lowest written note
 	topNote: string; // highest written note
+	openStrings?: number[]; // MIDI note numbers for open strings (for string instruments)
 	detectionConfig: DetectionConfig;
 	adsrConfig?: {
 		attack: number;
@@ -51,6 +52,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'G3',
 		topNote: 'G5',
+		openStrings: [55, 62, 69, 76], // G3, D4, A4, E5 (low to high)
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.3
@@ -70,6 +72,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: -12, // sounds an octave lower than written
 		bottomNote: 'E3',
 		topNote: 'E5',
+		openStrings: [40, 45, 50, 55, 59, 64], // E2, A2, D3, G3, B3, E4 (low to high)
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.5
@@ -89,6 +92,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C3',
 		topNote: 'D5',
+		openStrings: [48, 55, 62, 69], // C3, G3, D4, A4 (low to high)
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.3
@@ -108,6 +112,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C2',
 		topNote: 'G4',
+		openStrings: [36, 43, 50, 57], // C2, G2, D3, A3 (low to high)
 		detectionConfig: genericDetectionConfig,
 		adsrConfig: {
 			attack: 0.06, // Slightly slower bow attack for deeper tone
