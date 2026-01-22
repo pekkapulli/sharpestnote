@@ -35,7 +35,7 @@
 		{/if}
 
 		<!-- String underline (if present) -->
-		{#if hasString && stringColor}
+		<!-- {#if hasString && stringColor}
 			<line
 				x1={x - underlineLength / 2}
 				x2={x + underlineLength / 2}
@@ -45,6 +45,6 @@
 				stroke-width={lineSpacing * 0.4}
 				stroke-linecap="round"
 			/>
-		{/if}
+		{/if} -->
 	</g>
 {/if}
