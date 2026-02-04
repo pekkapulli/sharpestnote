@@ -7,7 +7,7 @@ const config = {
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
-	kit: { adapter: adapter({ compatibilityFlags: ['nodejs_compat'] }) },
+	kit: { adapter: adapter() },
 	compilerOptions: {
 		runes: true
 	}
