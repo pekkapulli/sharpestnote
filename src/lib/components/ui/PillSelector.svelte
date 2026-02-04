@@ -1,32 +1,33 @@
 <script lang="ts" generics="T extends string">
 	import { onMount, onDestroy } from 'svelte';
+	import Tooltip from './Tooltip.svelte';
 	interface Props {
-		options: { value: T; label: string }[];
+		options: { value: T; label: string; icon?: string; iconNegative?: string }[];
 		selected: T;
 		onSelect: (value: T) => void;
 		ariaLabel?: string;
+		iconOnly?: boolean;
 	}
 
-	let { options, selected, onSelect, ariaLabel }: Props = $props();
+	let { options, selected, onSelect, ariaLabel, iconOnly }: Props = $props();
 
 	let buttonRefs = $state<(HTMLButtonElement | null)[]>([]);
 	let indicatorStyle = $state('');
+	let containerElement: HTMLDivElement | null = $state(null);
 
 	const selectedIndex = $derived(options.findIndex((opt) => opt.value === selected));
 
 	let rafId = 0;
 	function updateIndicatorNow() {
-		if (selectedIndex >= 0 && buttonRefs[selectedIndex]) {
+		if (selectedIndex >= 0 && buttonRefs[selectedIndex] && containerElement) {
 			const selectedButton = buttonRefs[selectedIndex]!;
 			const rect = selectedButton.getBoundingClientRect();
-			const containerRect = selectedButton.parentElement?.getBoundingClientRect();
-			if (containerRect) {
-				const left = rect.left - containerRect.left;
-				const top = rect.top - containerRect.top;
-				const width = rect.width;
-				const height = rect.height;
-				indicatorStyle = `width: ${width}px; height: ${height}px; transform: translate(${left}px, ${top}px)`;
-			}
+			const containerRect = containerElement.getBoundingClientRect();
+			const left = rect.left - containerRect.left;
+			const top = rect.top - containerRect.top;
+			const width = rect.width;
+			const height = rect.height;
+			indicatorStyle = `width: ${width}px; height: ${height}px; transform: translate(${left}px, ${top}px)`;
 		}
 	}
 
@@ -40,8 +41,7 @@
 		if (typeof ResizeObserver === 'undefined') return;
 		if (!ro) ro = new ResizeObserver(() => updateIndicator());
 		ro.disconnect();
-		const container = buttonRefs[0]?.parentElement as HTMLElement | undefined;
-		if (container) ro.observe(container);
+		if (containerElement) ro.observe(containerElement);
 		for (const btn of buttonRefs) if (btn) ro.observe(btn);
 	}
 
@@ -119,21 +119,73 @@
 	}
 </script>
 
-<div class="pill-group" role="tablist" aria-label={ariaLabel || 'Options selector'}>
+<div
+	class="pill-group"
+	role="tablist"
+	aria-label={ariaLabel || 'Options selector'}
+	bind:this={containerElement}
+>
 	{#each options as option, index}
-		<button
-			bind:this={buttonRefs[index]}
-			role="tab"
-			aria-selected={selected === option.value}
-			tabindex={selected === option.value ? 0 : -1}
-			class="pill-button {index === 0 ? 'pill-button-first' : ''} {index === options.length - 1
-				? 'pill-button-last'
-				: ''} {selected === option.value ? 'pill-active' : ''}"
-			onclick={() => onSelect(option.value)}
-			onkeydown={(e) => handleKeydown(e, index)}
-		>
-			{option.label}
-		</button>
+		{#if iconOnly && option.icon}
+			<Tooltip text={option.label} position="top">
+				<button
+					bind:this={buttonRefs[index]}
+					role="tab"
+					aria-label={option.label}
+					aria-selected={selected === option.value}
+					tabindex={selected === option.value ? 0 : -1}
+					class="pill-button {index === 0 ? 'pill-button-first' : ''} {index === options.length - 1
+						? 'pill-button-last'
+						: ''} {selected === option.value ? 'pill-active' : ''} {iconOnly
+						? 'pill-icon-only'
+						: ''}"
+					onclick={() => onSelect(option.value)}
+					onkeydown={(e) => handleKeydown(e, index)}
+				>
+					<img
+						src={selected === option.value && option.iconNegative
+							? option.iconNegative
+							: option.icon}
+						alt=""
+						aria-hidden="true"
+						class={`pill-icon ${
+							selected === option.value && option.iconNegative ? 'pill-icon-negative' : ''
+						}`}
+					/>
+				</button>
+			</Tooltip>
+		{:else}
+			<button
+				bind:this={buttonRefs[index]}
+				role="tab"
+				aria-label={option.label}
+				aria-selected={selected === option.value}
+				tabindex={selected === option.value ? 0 : -1}
+				class="pill-button {index === 0 ? 'pill-button-first' : ''} {index === options.length - 1
+					? 'pill-button-last'
+					: ''} {selected === option.value ? 'pill-active' : ''} {iconOnly ? 'pill-icon-only' : ''}"
+				onclick={() => onSelect(option.value)}
+				onkeydown={(e) => handleKeydown(e, index)}
+			>
+				{#if iconOnly}
+					<span class="pill-label">{option.label}</span>
+				{:else}
+					{#if option.icon}
+						<img
+							src={selected === option.value && option.iconNegative
+								? option.iconNegative
+								: option.icon}
+							alt=""
+							aria-hidden="true"
+							class={`pill-icon ${
+								selected === option.value && option.iconNegative ? 'pill-icon-negative' : ''
+							}`}
+						/>
+					{/if}
+					<span class="pill-label">{option.label}</span>
+				{/if}
+			</button>
+		{/if}
 	{/each}
 	<div class="pill-indicator" style={indicatorStyle}></div>
 </div>
@@ -146,12 +198,17 @@
 		border: 1px solid rgb(226 232 240);
 		border-radius: 0.75rem;
 		padding: 0.25rem;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	.pill-button {
 		position: relative;
 		flex: 1;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		gap: 0;
 		padding: 0.625rem 1rem;
 		font-size: 0.875rem;
 		font-weight: 500;
@@ -159,7 +216,6 @@
 		background: transparent;
 		border: none;
 		margin: 0;
-		text-align: center;
 		transition: color 200ms ease-in-out;
 		cursor: pointer;
 		z-index: 1;
@@ -186,6 +242,42 @@
 		color: var(--color-dark-blue);
 	}
 
+	/* Tooltip styles are in Tooltip.svelte for icon-only labels */
+
+	.pill-button.pill-icon-only {
+		padding: 0.5rem;
+		min-width: 2.25rem;
+	}
+
+	.pill-button.pill-icon-only {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.pill-button.pill-icon-only .pill-icon {
+		margin-right: 0;
+	}
+
+	.pill-icon {
+		width: 2.5rem;
+		height: 1.5rem;
+		vertical-align: -0.125rem;
+		filter: none;
+		transition:
+			filter 150ms ease-in-out,
+			opacity 150ms ease-in-out;
+	}
+
+	.pill-button.pill-active .pill-icon {
+		/* For typical monochrome SVGs this will render them white */
+		filter: brightness(0) invert(1);
+	}
+
+	.pill-button.pill-active .pill-icon-negative {
+		filter: none;
+	}
+
 	.pill-button.pill-active {
 		color: white;
 	}
@@ -205,19 +297,36 @@
 	}
 
 	@media (max-width: 360px) {
-		.pill-group {
-			flex-direction: column;
-			width: 100%;
+		.pill-icon {
+			width: 1em;
+			height: 1em;
+			flex: none;
+			object-fit: contain;
+			margin-right: 0.5rem;
+			filter: none;
+			transition:
+				filter 150ms ease-in-out,
+				opacity 150ms ease-in-out,
+				transform 150ms ease-in-out;
 		}
 
-		.pill-button-first {
-			border-top-left-radius: 0.5rem;
-			border-top-right-radius: 0.5rem;
-			border-bottom-left-radius: 0;
+		.pill-button.pill-active .pill-icon {
+			/* For typical monochrome SVGs this will render them white */
+			filter: brightness(0) invert(1);
+			transform: translateY(0);
 		}
-		.pill-button-last {
-			border-bottom-left-radius: 0.5rem;
-			border-bottom-right-radius: 0.5rem;
+
+		.pill-button.pill-active .pill-icon-negative {
+			filter: none;
+		}
+
+		.pill-button.pill-icon-only .pill-icon {
+			margin-right: 0;
+		}
+
+		.pill-label {
+			display: inline-block;
+			line-height: 1;
 			border-top-right-radius: 0;
 		}
 		.pill-button {

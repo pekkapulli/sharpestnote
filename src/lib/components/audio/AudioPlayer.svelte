@@ -4,6 +4,13 @@
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import RollingStaff from './RollingStaff.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
+	import tempoSlowIcon from '$lib/assets/tempo-slow.svg';
+	import tempoMediumIcon from '$lib/assets/tempo-medium.svg';
+	import tempoFastIcon from '$lib/assets/tempo-fast.svg';
+	import trackBackingIcon from '$lib/assets/track-backing.svg';
+	import trackBackingNegativeIcon from '$lib/assets/track-backing-negative.svg';
+	import trackFullIcon from '$lib/assets/track-full.svg';
+	import trackFullNegativeIcon from '$lib/assets/track-full-negative.svg';
 
 	interface Props {
 		unit: UnitMaterial;
@@ -30,10 +37,12 @@
 
 	let audioElement: HTMLAudioElement | null = null;
 
-	const currentVariant = $derived(piece.tracks[selectedSpeed]);
+	const currentVariant = $derived(piece.tracks?.[selectedSpeed]);
 
 	const currentUrl = $derived(
-		`${fileStore}/${unit.code}/${selectedTrack === 'backing' ? currentVariant.backingTrackUrl : currentVariant.audioUrl}`
+		currentVariant
+			? `${fileStore}/${unit.code}/${selectedTrack === 'backing' ? currentVariant.backingTrackUrl : currentVariant.audioUrl}`
+			: ''
 	);
 
 	function setupAudioElement() {
@@ -406,27 +415,39 @@
 			<!-- Speed + Track Selection -->
 			<div class="selectors">
 				<div class="selector-item">
-					<p class="mb-3 text-sm font-semibold text-dark-blue">Speed</p>
+					<p class="text-sm font-semibold text-dark-blue">Speed</p>
 					<PillSelector
 						options={[
-							{ value: 'slow', label: `Slow` },
-							{ value: 'medium', label: `Medium` },
-							{ value: 'fast', label: `Fast` }
+							{ value: 'slow', label: `Slow`, icon: tempoSlowIcon },
+							{ value: 'medium', label: `Medium`, icon: tempoMediumIcon },
+							{ value: 'fast', label: `Fast`, icon: tempoFastIcon }
 						]}
 						selected={selectedSpeed}
 						onSelect={(speed) => handleSpeedChange(speed)}
+						iconOnly
 					/>
 				</div>
 
 				<div class="selector-item">
-					<p class="mb-3 text-sm font-semibold text-dark-blue">Select track</p>
+					<p class="text-sm font-semibold text-dark-blue">Select track</p>
 					<PillSelector
 						options={[
-							{ value: 'backing', label: 'Backing track' },
-							{ value: 'full', label: 'Full track' }
+							{
+								value: 'full',
+								label: 'Full track',
+								icon: trackFullIcon,
+								iconNegative: trackFullNegativeIcon
+							},
+							{
+								value: 'backing',
+								label: 'Backing track',
+								icon: trackBackingIcon,
+								iconNegative: trackBackingNegativeIcon
+							}
 						]}
 						selected={selectedTrack}
 						onSelect={(track) => handleTrackChange(track)}
+						iconOnly
 					/>
 				</div>
 			</div>
@@ -449,23 +470,33 @@
 	.selectors {
 		display: flex;
 		flex-direction: column;
+		align-items: center;
+		justify-content: center;
 		gap: 1rem;
 		margin-top: 1.5rem;
 	}
 
 	.selector-item {
 		padding: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
 	}
 
-	@media (min-width: 640px) {
+	@media (min-width: 520px) {
 		.selectors {
 			flex-direction: row;
-			align-items: stretch;
 			gap: 1rem;
+			width: 100%;
 		}
 
 		.selector-item {
-			flex: 1;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: flex-start;
+			gap: 0;
 		}
 	}
 
