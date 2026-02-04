@@ -556,41 +556,31 @@
 			`  Tolerance: ±${TOLERANCE_FRAMES} frames (±${(TOLERANCE_FRAMES * avgHopMs).toFixed(0)} ms)`
 		);
 
-		// Save to server
-		try {
-			const response = await fetch('/api/save-training-data', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					data: mlData,
-					instrument: selectedInstrument
-				})
-			});
+		// Download as JSON file
+		const timestamp = Date.now();
+		const filename = `onset-training-${selectedInstrument}-${timestamp}.json`;
+		const dataStr = JSON.stringify(mlData, null, 2);
+		const blob = new Blob([dataStr], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
 
-			if (!response.ok) {
-				const error = await response.text();
-				throw new Error(error);
-			}
-
-			const result = await response.json();
-
-			// Show success alert with statistics
-			alert(
-				`Data saved successfully!\n\n` +
-					`File: ${result.filename}\n` +
-					`Instrument: ${selectedInstrument}\n` +
-					`Frames: ${mlData.length}\n` +
-					`Hop size: ${avgHopMs.toFixed(1)} ms (${(1000 / avgHopMs).toFixed(0)} Hz)\n` +
-					`Onsets: ${manualOnsets.length}\n` +
-					`Positive frames: ${positiveCount} (${(positiveRatio * 100).toFixed(1)}%)\n` +
-					`Tolerance: ±${TOLERANCE_FRAMES} frames`
-			);
-		} catch (error) {
-			console.error('Export error:', error);
-			alert(`Failed to save data: ${error}`);
-		}
+		// Show success message with statistics
+		alert(
+			`Data downloaded successfully!\n\n` +
+				`File: ${filename}\n` +
+				`Instrument: ${selectedInstrument}\n` +
+				`Frames: ${mlData.length}\n` +
+				`Hop size: ${avgHopMs.toFixed(1)} ms (${(1000 / avgHopMs).toFixed(0)} Hz)\n` +
+				`Onsets: ${manualOnsets.length}\n` +
+				`Positive frames: ${positiveCount} (${(positiveRatio * 100).toFixed(1)}%)\n` +
+				`Tolerance: ±${TOLERANCE_FRAMES} frames`
+		);
 	}
 
 	function clearData() {
