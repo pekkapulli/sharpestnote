@@ -45,6 +45,8 @@
 
 	function handleTouchEnd() {
 		if (touchTimeout) {
+			showTooltip = false;
+			isVisible = false;
 			clearTimeout(touchTimeout);
 		}
 	}
