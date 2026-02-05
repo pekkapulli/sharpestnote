@@ -47,7 +47,6 @@
 		if (touchTimeout) {
 			showTooltip = false;
 			isVisible = false;
-			clearTimeout(touchTimeout);
 		}
 	}
 
@@ -155,27 +154,27 @@
 		top: 100%;
 		left: 50%;
 		transform: translateX(-50%);
-		border-top-color: rgba(30, 30, 30, 0.95);
+		border-top-color: var(--color-dark-blue);
 	}
 
 	.tooltip.bottom::after {
 		bottom: 100%;
 		left: 50%;
 		transform: translateX(-50%);
-		border-bottom-color: rgba(30, 30, 30, 0.95);
+		border-bottom-color: var(--color-dark-blue);
 	}
 
 	.tooltip.left::after {
 		left: 100%;
 		top: 50%;
 		transform: translateY(-50%);
-		border-left-color: rgba(30, 30, 30, 0.95);
+		border-left-color: var(--color-dark-blue);
 	}
 
 	.tooltip.right::after {
 		right: 100%;
 		top: 50%;
 		transform: translateY(-50%);
-		border-right-color: rgba(30, 30, 30, 0.95);
+		border-right-color: var(--color-dark-blue);
 	}
 </style>
