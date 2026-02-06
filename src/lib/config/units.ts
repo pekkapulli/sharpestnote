@@ -886,6 +886,84 @@ export const units: Units = {
 				]
 			}
 		]
+	},
+	'happy-bd-song': {
+		code: 'happy-bd-song',
+		instrument: 'violin',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/happy-birthday-song',
+		title: 'Happy Birthday Song',
+		description:
+			'A musical, playable way for violin students to practice Happy Birthday — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
+		pieces: [
+			{
+				code: 'happy-birthday',
+				label: 'Happy Birthday',
+				composer: 'trad.',
+				arranger: 'Pekka Pulli',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				barLength: 12,
+				key: 'D',
+				mode: 'major',
+				scale: [
+					{ note: 'a/4', length: 4, finger: 1 },
+					{ note: 'b/4', length: 4, finger: 2 },
+					{ note: 'c#/5', length: 4, finger: 3 },
+					{ note: 'd/5', length: 4, finger: 0 },
+					{ note: 'e/5', length: 4, finger: 1 },
+					{ note: 'f#/5', length: 4, finger: 2 },
+					{ note: 'g/5', length: 4, finger: 3 },
+					{ note: 'a/5', length: 4, finger: 0 }
+				],
+				melody: [
+					[
+						{ note: null, length: 4 },
+						{ note: null, length: 4 },
+						{ note: 'a/4', length: 3, finger: 1 },
+						{ note: 'a/4', length: 1, finger: 1 },
+						{ note: 'b/4', length: 4, finger: 2 },
+						{ note: 'a/4', length: 4, finger: 1 },
+						{ note: 'd/5', length: 4, finger: 0 },
+						{ note: 'c#/5', length: 4, finger: 3 },
+						{ note: null, length: 8 }
+					],
+					[
+						{ note: null, length: 4 },
+						{ note: null, length: 4 },
+						{ note: 'a/4', length: 3, finger: 1 },
+						{ note: 'a/4', length: 1, finger: 1 },
+						{ note: 'b/4', length: 4, finger: 2 },
+						{ note: 'a/4', length: 4, finger: 1 },
+						{ note: 'e/5', length: 4, finger: 2 },
+						{ note: 'd/5', length: 4, finger: 0 },
+						{ note: null, length: 8 }
+					],
+					[
+						{ note: null, length: 4 },
+						{ note: null, length: 4 },
+						{ note: 'a/4', length: 3, finger: 1 },
+						{ note: 'a/4', length: 1, finger: 1 },
+						{ note: 'a/5', length: 4, finger: 0 },
+						{ note: 'f#/5', length: 4, finger: 2 },
+						{ note: 'd/5', length: 4, finger: 0 },
+						{ note: 'd/5', length: 4, finger: 0 },
+						{ note: 'c#/5', length: 4, finger: 3 },
+						{ note: null, length: 4, finger: 1 }
+					],
+					[
+						{ note: null, length: 4 },
+						{ note: null, length: 4 },
+						{ note: 'g/5', length: 3, finger: 3 },
+						{ note: 'g/5', length: 1, finger: 3 },
+						{ note: 'f#/5', length: 4, finger: 2 },
+						{ note: 'd/5', length: 4, finger: 0 },
+						{ note: 'e/5', length: 4, finger: 1 },
+						{ note: 'd/5', length: 8, finger: 0 },
+						{ note: null, length: 4 }
+					]
+				]
+			}
+		]
 	}
 };
 

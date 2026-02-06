@@ -57,6 +57,10 @@
 		greatIntonationIndices = []
 	}: Props = $props();
 
+	$effect(() => {
+		console.log(barLength, sequence);
+	});
+
 	// Flatten bars into a single sequence for indexing
 	const sequence = $derived(bars.flat());
 	let lineSpacing = $state(10); // VexFlow's line spacing
@@ -114,7 +118,7 @@
 	$effect(() => {
 		if (vexflowContainer && bars.length > 0 && containerWidth > 0) {
 			// Create a key from the render parameters
-			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${containerWidth}-${noteColors.join(',')}`;
+			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${containerWidth}-${noteColors.join(',')}-${barLength ?? 'none'}-${showTimeSignature}`;
 
 			// Only render if parameters have actually changed
 			if (renderKey === lastRenderKey) {

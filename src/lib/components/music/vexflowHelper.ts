@@ -1,4 +1,4 @@
-import { Factory, Dot, Beam, type Stave } from 'vexflow';
+import { Factory, Dot, Beam, Voice, type Stave } from 'vexflow';
 import type { KeySignature } from '$lib/config/keys';
 import type { Clef } from '$lib/config/types';
 import type { MelodyItem } from '$lib/config/melody';
@@ -140,14 +140,9 @@ export function renderVexFlowStaff(
 
 	let timeSignature = '4/4';
 	if (barLengthSixteenths && barLengthSixteenths > 0) {
-		// If bar length is provided, derive signature directly
+		// If bar length is provided, derive signature directly (sixteenths -> quarter beats)
 		const beats = barLengthSixteenths / 4;
-		// Handle common 6/8 case (12 sixteenths)
-		if (barLengthSixteenths === 12) {
-			timeSignature = '6/8';
-		} else {
-			timeSignature = `${Math.max(1, Math.round(beats))}/4`;
-		}
+		timeSignature = `${Math.max(1, Math.round(beats))}/4`;
 	} else {
 		// Guess time signature - prefer common time signatures
 		if (totalBeats % 3 === 0) {
@@ -245,6 +240,7 @@ export function renderVexFlowStaff(
 		}
 
 		const voice = vf.Voice({ time: { numBeats: totalBeats, beatValue: 4 } });
+		voice.setMode(Voice.Mode.SOFT);
 		voice.addTickables(allNotes);
 
 		// Automatically beam eighth notes and shorter
