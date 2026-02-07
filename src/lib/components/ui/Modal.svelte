@@ -115,9 +115,24 @@
 			aria-labelledby={title ? 'modal-title' : undefined}
 			class="mx-4 {maxWidthClasses[
 				maxWidth
-			]} w-full rounded-2xl bg-off-white p-6 shadow-2xl transition-transform"
+			]} relative w-full rounded-2xl bg-off-white p-6 shadow-2xl transition-transform"
 			onfocusout={handleFocusTrap}
 		>
+			<!-- Close Button -->
+			<button
+				onclick={onClose}
+				aria-label="Close modal"
+				class="absolute top-4 right-4 border-none text-slate-400 transition-colors hover:text-slate-600"
+			>
+				<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"
+					/>
+				</svg>
+			</button>
 			{#if icon}
 				<div class="mb-4 flex justify-center">
 					<img src={icon} alt="" class="h-12 w-12" />

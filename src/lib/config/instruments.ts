@@ -23,6 +23,7 @@ export interface InstrumentConfig {
 	bottomNote: string; // lowest written note
 	topNote: string; // highest written note
 	detectionConfig: DetectionConfig;
+	strings?: string[]; // open string tuning from lowest to highest
 	adsrConfig?: {
 		attack: number;
 		decay: number;
@@ -51,6 +52,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'G3',
 		topNote: 'G5',
+		strings: ['G3', 'D4', 'A4', 'E5'],
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.3
@@ -70,6 +72,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: -12, // sounds an octave lower than written
 		bottomNote: 'E3',
 		topNote: 'E5',
+		strings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.5
@@ -89,6 +92,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C3',
 		topNote: 'D5',
+		strings: ['C3', 'G3', 'D4', 'A4'],
 		detectionConfig: {
 			...genericDetectionConfig,
 			endRelativeDropRatio: 0.3
@@ -108,6 +112,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		transpositionSemitones: 0,
 		bottomNote: 'C2',
 		topNote: 'G4',
+		strings: ['C2', 'G2', 'D3', 'A3'],
 		detectionConfig: genericDetectionConfig,
 		adsrConfig: {
 			attack: 0.06, // Slightly slower bow attack for deeper tone

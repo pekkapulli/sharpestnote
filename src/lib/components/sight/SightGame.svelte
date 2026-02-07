@@ -13,6 +13,8 @@
 	import AmplitudeBar from '$lib/components/ui/AmplitudeBar.svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import { vexFlowToDisplay } from '$lib/util/noteConverter';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import TunerPanel from '$lib/components/tuner/TunerPanel.svelte';
 
 	interface Props {
 		instrument: InstrumentId;
@@ -46,6 +48,7 @@
 
 	// Track microphone state
 	let micStarted = $state(false);
+	let showTunerModal = $state(false);
 
 	// Responsive sizing state
 	let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -97,6 +100,14 @@
 	function handleDeviceChange(deviceId: string) {
 		game.tuner.state.selectedDeviceId = deviceId;
 		startListening();
+	}
+
+	function handleTunerClose() {
+		showTunerModal = false;
+	}
+
+	export function openTunerModal() {
+		showTunerModal = true;
 	}
 </script>
 
@@ -150,6 +161,16 @@
 					{barLength}
 					greatIntonationIndices={game.greatIntonationIndices()}
 				/>
+			</div>
+
+			<div class="mt-3 flex flex-wrap items-center justify-center gap-3">
+				<button
+					onclick={() => (showTunerModal = true)}
+					class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow"
+					type="button"
+				>
+					Tune your {instrument}
+				</button>
 			</div>
 
 			<!-- Synth toggle -->
@@ -237,3 +258,19 @@
 		{/if}
 	</div>
 </div>
+
+<Modal isOpen={showTunerModal} onClose={handleTunerClose} title="Tuner" maxWidth="lg">
+	{#snippet children()}
+		<TunerPanel
+			fullPage={false}
+			compact={true}
+			showHeader={false}
+			eyebrow={null}
+			description={null}
+			note={game.tuner.state.note}
+			frequency={game.tuner.state.frequency}
+			cents={game.tuner.state.cents}
+			{instrument}
+		/>
+	{/snippet}
+</Modal>

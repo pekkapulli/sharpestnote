@@ -109,6 +109,7 @@
 		// Create next melody after modal closes
 		setTimeout(() => createNextMelody(), 100);
 	}
+
 </script>
 
 <SharePreview data={sharePreviewData} />
