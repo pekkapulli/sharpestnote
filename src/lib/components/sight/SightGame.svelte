@@ -169,7 +169,7 @@
 					class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow"
 					type="button"
 				>
-					Tune your instrument
+					Tune your {instrument}
 				</button>
 			</div>
 
@@ -270,6 +270,7 @@
 			note={game.tuner.state.note}
 			frequency={game.tuner.state.frequency}
 			cents={game.tuner.state.cents}
+			{instrument}
 		/>
 	{/snippet}
 </Modal>
