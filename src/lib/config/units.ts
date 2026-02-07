@@ -910,7 +910,7 @@ export const units: Units = {
 					{ note: 'e/4', length: 4, finger: 1 },
 					{ note: 'f#/4', length: 4, finger: 2 },
 					{ note: 'g/4', length: 4, finger: 3 },
-					{ note: 'a/4', length: 4, finger: 0 },
+					{ note: 'a/4', length: 4, finger: 4 },
 					{ note: 'b/4', length: 4, finger: 1 },
 					{ note: 'c/5', length: 4, finger: 2 },
 					{ note: 'd/5', length: 4, finger: 3 }
@@ -934,7 +934,7 @@ export const units: Units = {
 						{ note: 'd/4', length: 1, finger: 0 },
 						{ note: 'e/4', length: 4, finger: 1 },
 						{ note: 'd/4', length: 4, finger: 0 },
-						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 4 },
 						{ note: 'g/4', length: 4, finger: 3 },
 						{ note: null, length: 8 }
 					],
