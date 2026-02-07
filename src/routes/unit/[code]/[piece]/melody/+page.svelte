@@ -90,13 +90,17 @@
 		// melodyIndex wraps to 0 when all melodies are done
 		if (melodyIndex === 0 && totalMelodies > 0) {
 			// All melodies completed! Increment completion count and save to localStorage
-			console.log('[Melody Page] All melodies completed! Showing modal.');
+			console.log('[Melody Page] All melodies completed!');
 			completionCount += 1;
 			const gameKey = `${pieceCode}_melody_completions`;
 			setUnitStorage(code, { [gameKey]: completionCount } as any);
 
-			// Show completion modal (don't create next melody yet)
-			showCompletionModal = true;
+			// TODO: Show completion modal (temporarily disabled to allow continuous practice)
+			// showCompletionModal = true;
+
+			// Continue to next melody instead
+			console.log('[Melody Page] Continuing to next melody in 400ms');
+			setTimeout(() => createNextMelody(), 400);
 		} else {
 			// Continue to next melody
 			console.log('[Melody Page] Continuing to next melody in 400ms');
@@ -109,7 +113,6 @@
 		// Create next melody after modal closes
 		setTimeout(() => createNextMelody(), 100);
 	}
-
 </script>
 
 <SharePreview data={sharePreviewData} />
