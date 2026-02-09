@@ -78,6 +78,11 @@ export function createTuner(options: TunerOptions = {}) {
 	let isPaused = false; // Track if tuner is paused
 	const amplitudeHistory: number[] = [];
 	const debug = options.debug ?? false; // Capture debug flag
+
+	// Onset buffering: require 3 consecutive frames to pass onset criteria
+	// (exception: Rule A pitch changes fire immediately)
+	const onsetFrameBuffer: Array<{ rule: string; frequency: number; amplitude: number }> = [];
+	const ONSET_BUFFER_FRAMES = 3;
 	const onOnsetCallback = options.onOnset; // Callback for onset events
 	const onsetMode = options.onsetMode ?? 'algorithmic'; // Default to algorithmic mode
 	const useAlgorithmicOnsets = onsetMode === 'algorithmic' || onsetMode === 'hybrid';
@@ -340,6 +345,7 @@ export function createTuner(options: TunerOptions = {}) {
 		// Reset onset detection state
 		peakAmplitudeSinceOnset = 0;
 		endCandidateStart = null;
+		onsetFrameBuffer.length = 0; // Clear onset buffer
 		resetOnsetAnalysis(onsetAnalysis);
 		resetLatencyTracking(latencyTracking);
 
@@ -953,44 +959,104 @@ export function createTuner(options: TunerOptions = {}) {
 
 		// Apply onset if detected
 		if (onsetDetected) {
-			const pendingStartedAt = onsetAnalysis.pendingOnsetTimestamp;
-			const hadPendingBeforeFire = pendingStartedAt !== null;
-			const pendingDuration = pendingStartedAt ? now - pendingStartedAt : 0;
+			// Rule A (pitch change) fires immediately without buffering
+			// All other rules require 3 consecutive frames to pass
+			const shouldFireImmediately = detectedRule === 'A';
 
-			recordOnset(latencyTracking, now);
-			performanceMetrics.lastOnsetTimestamp = now;
-			// Track time from first amplitude to onset
-			if (latencyTracking.firstAmplitudeTime !== null) {
-				performanceMetrics.timeSinceOnset = now - latencyTracking.firstAmplitudeTime;
+			if (shouldFireImmediately) {
+				// Clear buffer and fire immediately for pitch changes
+				onsetFrameBuffer.length = 0;
+
+				const pendingStartedAt = onsetAnalysis.pendingOnsetTimestamp;
+				const hadPendingBeforeFire = pendingStartedAt !== null;
+				const pendingDuration = pendingStartedAt ? now - pendingStartedAt : 0;
+
+				recordOnset(latencyTracking, now);
+				performanceMetrics.lastOnsetTimestamp = now;
+				// Track time from first amplitude to onset
+				if (latencyTracking.firstAmplitudeTime !== null) {
+					performanceMetrics.timeSinceOnset = now - latencyTracking.firstAmplitudeTime;
+				}
+				state.isNoteActive = true;
+				peakAmplitudeSinceOnset = amplitude;
+				// Only update stable pitch if confidence is high (after pitch change onset)
+				// Otherwise let it build naturally through the tracking above
+				if (pitchChangeDetected && hasPitch) {
+					onsetAnalysis.stablePitch = freq;
+				}
+				// If we had a pending onset that never verified, count it as overridden by this onset
+				if (hadPendingBeforeFire && !mlVerifiedRule) {
+					performanceMetrics.mlCancelledOverrideCount++;
+					performanceMetrics.mlLastPendingDurationMs = pendingDuration;
+				}
+				performanceMetrics.mlPendingActive = 0;
+				// Clear any pending ML verification once an onset fires to avoid double triggers
+				onsetAnalysis.pendingOnsetTimestamp = null;
+				onsetAnalysis.pendingOnsetFrequency = null;
+				onsetAnalysis.pendingOnsetRule = null;
+				state.lastOnsetRule = detectedRule;
+				// Trigger onset callback with current pitch and rule
+				if (onOnsetCallback) {
+					onOnsetCallback({
+						frequency: freq,
+						note: state.note,
+						rule: detectedRule,
+						amplitude,
+						timestamp: now
+					});
+				}
+			} else if (detectedRule) {
+				// Buffer other onset types and require ONSET_BUFFER_FRAMES consecutive frames
+				onsetFrameBuffer.push({ rule: detectedRule, frequency: freq, amplitude });
+
+				if (onsetFrameBuffer.length >= ONSET_BUFFER_FRAMES) {
+					// We have enough consecutive frames passing onset - fire the onset
+					const bufferedOnset = onsetFrameBuffer[0]; // Use first frame's data
+					onsetFrameBuffer.length = 0; // Clear buffer
+
+					const pendingStartedAt = onsetAnalysis.pendingOnsetTimestamp;
+					const hadPendingBeforeFire = pendingStartedAt !== null;
+					const pendingDuration = pendingStartedAt ? now - pendingStartedAt : 0;
+
+					recordOnset(latencyTracking, now);
+					performanceMetrics.lastOnsetTimestamp = now;
+					// Track time from first amplitude to onset
+					if (latencyTracking.firstAmplitudeTime !== null) {
+						performanceMetrics.timeSinceOnset = now - latencyTracking.firstAmplitudeTime;
+					}
+					state.isNoteActive = true;
+					peakAmplitudeSinceOnset = amplitude;
+					// Only update stable pitch if confidence is high (after pitch change onset)
+					// Otherwise let it build naturally through the tracking above
+					if (pitchChangeDetected && hasPitch) {
+						onsetAnalysis.stablePitch = freq;
+					}
+					// If we had a pending onset that never verified, count it as overridden by this onset
+					if (hadPendingBeforeFire && !mlVerifiedRule) {
+						performanceMetrics.mlCancelledOverrideCount++;
+						performanceMetrics.mlLastPendingDurationMs = pendingDuration;
+					}
+					performanceMetrics.mlPendingActive = 0;
+					// Clear any pending ML verification once an onset fires to avoid double triggers
+					onsetAnalysis.pendingOnsetTimestamp = null;
+					onsetAnalysis.pendingOnsetFrequency = null;
+					onsetAnalysis.pendingOnsetRule = null;
+					state.lastOnsetRule = detectedRule;
+					// Trigger onset callback with current pitch and rule
+					if (onOnsetCallback) {
+						onOnsetCallback({
+							frequency: bufferedOnset.frequency,
+							note: state.note,
+							rule: detectedRule,
+							amplitude: bufferedOnset.amplitude,
+							timestamp: now
+						});
+					}
+				}
 			}
-			state.isNoteActive = true;
-			peakAmplitudeSinceOnset = amplitude;
-			// Only update stable pitch if confidence is high (after pitch change onset)
-			// Otherwise let it build naturally through the tracking above
-			if (pitchChangeDetected && hasPitch) {
-				onsetAnalysis.stablePitch = freq;
-			}
-			// If we had a pending onset that never verified, count it as overridden by this onset
-			if (hadPendingBeforeFire && !mlVerifiedRule) {
-				performanceMetrics.mlCancelledOverrideCount++;
-				performanceMetrics.mlLastPendingDurationMs = pendingDuration;
-			}
-			performanceMetrics.mlPendingActive = 0;
-			// Clear any pending ML verification once an onset fires to avoid double triggers
-			onsetAnalysis.pendingOnsetTimestamp = null;
-			onsetAnalysis.pendingOnsetFrequency = null;
-			onsetAnalysis.pendingOnsetRule = null;
-			state.lastOnsetRule = detectedRule;
-			// Trigger onset callback with current pitch and rule
-			if (onOnsetCallback) {
-				onOnsetCallback({
-					frequency: freq,
-					note: state.note,
-					rule: detectedRule,
-					amplitude,
-					timestamp: now
-				});
-			}
+		} else {
+			// No onset detected this frame - break the streak
+			onsetFrameBuffer.length = 0;
 		}
 
 		performanceMetrics.onsetDecisionMs = performance.now() - stepStart;

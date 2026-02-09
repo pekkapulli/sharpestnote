@@ -31,7 +31,7 @@ interface SightGameConfig {
  * Uses note length * 0.8 to allow detection after most of the note has played.
  */
 function getNoteCooldownMs(noteLength: number, tempoBPM?: number): number {
-	const bpm = tempoBPM ?? 120; // Default to 120 BPM if not provided
+	const bpm = tempoBPM ?? 100; // Default to 100 BPM if not provided
 	const durationMs = lengthToMs(noteLength, bpm);
 	return durationMs * 0.8; // 80% of note length
 }
