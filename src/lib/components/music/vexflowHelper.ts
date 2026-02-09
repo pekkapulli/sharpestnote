@@ -266,15 +266,18 @@ export function renderVexFlowStaff(
 
 		// Extract note X and Y positions from rendered notes
 		for (const note of allNotes) {
-			const bounds = note.getBoundingBox();
-			noteXPositions.push(bounds.getX() + bounds.getW() / 2);
-
-			// Get the actual Y position from the note head
+			// Get the actual X and Y positions from the note head for precision
 			const noteHeads = note.noteHeads;
 			if (noteHeads && noteHeads.length > 0) {
-				noteYPositions.push(noteHeads[0].getY());
+				// Get precise center X from note head itself (not the bounding box which includes stem)
+				const noteHead = noteHeads[0];
+				const headBounds = noteHead.getBoundingBox();
+				noteXPositions.push(headBounds.getX() + headBounds.getW() / 2);
+				noteYPositions.push(noteHead.getY());
 			} else {
-				// For rests or if note heads not available, use the note's Y position
+				// For rests or if note heads not available, fall back to bounding box
+				const bounds = note.getBoundingBox();
+				noteXPositions.push(bounds.getX() + bounds.getW() / 2);
 				noteYPositions.push(bounds.getY() + bounds.getH() / 2);
 			}
 		}

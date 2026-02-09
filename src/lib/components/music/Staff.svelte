@@ -365,7 +365,7 @@
 		}
 		100% {
 			opacity: 0;
-			transform: scale(1);
+			transform: scale(0);
 		}
 	}
 </style>
