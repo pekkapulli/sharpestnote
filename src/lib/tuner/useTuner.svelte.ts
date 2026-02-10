@@ -79,10 +79,10 @@ export function createTuner(options: TunerOptions = {}) {
 	const amplitudeHistory: number[] = [];
 	const debug = options.debug ?? false; // Capture debug flag
 
-	// Onset buffering: require 3 consecutive frames to pass onset criteria
+	// Onset buffering: require 2 consecutive frames to pass onset criteria
 	// (exception: Rule A pitch changes fire immediately)
 	const onsetFrameBuffer: Array<{ rule: string; frequency: number; amplitude: number }> = [];
-	const ONSET_BUFFER_FRAMES = 3;
+	const ONSET_BUFFER_FRAMES = 2; // Number of consecutive frames required to confirm an onset (after the initial trigger frame)
 	const onOnsetCallback = options.onOnset; // Callback for onset events
 	const onsetMode = options.onsetMode ?? 'algorithmic'; // Default to algorithmic mode
 	const useAlgorithmicOnsets = onsetMode === 'algorithmic' || onsetMode === 'hybrid';
