@@ -24,6 +24,8 @@
 		barLength?: number;
 		melody: MelodyItem[];
 		onMelodyComplete?: () => void;
+		synthMode?: 'play' | 'mute';
+		showSynthToggle?: boolean;
 	}
 
 	let {
@@ -33,7 +35,9 @@
 		tempoBPM = 100,
 		barLength = 16,
 		melody,
-		onMelodyComplete
+		onMelodyComplete,
+		synthMode = 'play',
+		showSynthToggle = true
 	}: Props = $props();
 
 	// Create game logic during component initialization (required for $effect)
@@ -44,6 +48,10 @@
 		getTempoBPM: () => tempoBPM,
 		getMelody: () => melody,
 		getOnMelodyComplete: () => onMelodyComplete
+	});
+
+	$effect(() => {
+		game.setSynthEnabled(synthMode === 'play');
 	});
 
 	// Track microphone state
@@ -174,16 +182,18 @@
 			</div>
 
 			<!-- Synth toggle -->
-			<div class="flex justify-center">
-				<PillSelector
-					options={[
-						{ label: 'Play melodies', value: 'play' },
-						{ label: 'Mute', value: 'mute' }
-					]}
-					selected={game.synthEnabled() ? 'play' : 'mute'}
-					onSelect={(value) => game.setSynthEnabled(value === 'play')}
-				/>
-			</div>
+			{#if showSynthToggle}
+				<div class="flex justify-center">
+					<PillSelector
+						options={[
+							{ label: 'Play melodies', value: 'play' },
+							{ label: 'Mute', value: 'mute' }
+						]}
+						selected={game.synthEnabled() ? 'play' : 'mute'}
+						onSelect={(value) => game.setSynthEnabled(value === 'play')}
+					/>
+				</div>
+			{/if}
 
 			<!-- Note labels -->
 			<div class="flex justify-center">
