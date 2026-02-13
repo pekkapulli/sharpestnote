@@ -970,7 +970,7 @@ export const units: Units = {
 		instrument: 'violin',
 		title: 'Animalistic Third Finger Pieces for Violin',
 		description: 'Three musical pieces for beginner violinists practicing the third finger.',
-		gumroadUrl: 'https://sharpestnote.gumroad.com/l/animalistic-third-finger-pieces-violin',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/animalistic-third-finger-pieces-v',
 		pieces: [
 			{
 				code: 'simo-the-greedy-squirrel',
@@ -1058,6 +1058,104 @@ export const units: Units = {
 						{ note: 'a/4', length: 4, finger: 0 },
 						{ note: 'a/4', length: 4, finger: 0 },
 						{ note: 'd/4', length: 8, finger: 0 }
+					]
+				]
+			}
+		]
+	},
+	'4-animal-pieces-va': {
+		code: '4-animal-pieces-va',
+		instrument: 'viola',
+		title: 'Animalistic Third Finger Pieces for Viola',
+		description: 'Three musical pieces for beginner violists practicing the third finger.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/animalistic-third-finger-pieces-va',
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'G',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'g/3', length: 4, finger: 0 },
+					{ note: 'b/3', length: 4, finger: 2 },
+					{ note: 'c/4', length: 4, finger: 3 },
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'a/4', length: 4, finger: 0 }
+				],
+				melody: [
+					[
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'g/3', length: 8, finger: 0 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'g/3', length: 8, finger: 0 },
+						{ note: 'b/3', length: 4, finger: 2 },
+						{ note: 'c/4', length: 4, finger: 3 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'c/4', length: 4, finger: 3 }
+					],
+					[
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 2, finger: 0 },
+						{ note: 'c/4', length: 4, finger: 3 },
+						{ note: 'd/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'g/3', length: 8, finger: 0 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'b/3', length: 2, finger: 2 },
+						{ note: 'c/4', length: 2, finger: 3 },
+						{ note: 'g/3', length: 8, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'g/3', length: 8, finger: 0 }
 					]
 				]
 			}
