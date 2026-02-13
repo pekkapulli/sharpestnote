@@ -1,6 +1,5 @@
 export interface Unit {
 	code: string;
-	backendCode: string;
 	keyCode: string;
 }
 

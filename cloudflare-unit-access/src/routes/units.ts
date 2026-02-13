@@ -2,17 +2,17 @@ import type { IRequest } from 'itty-router';
 import type { Unit } from '../types';
 
 export const unitDatabase: Record<string, Unit> = {
-	'tw-v': { code: 'tw-v', keyCode: 'LHXQ', backendCode: 'unit_001' },
-	'tw-va': { code: 'tw-va', keyCode: 'QPRT', backendCode: 'unit_002' },
-	'tw-r': { code: 'tw-r', keyCode: 'AEIH', backendCode: 'unit_003' },
-	'tw-c': { code: 'tw-c', keyCode: 'AOEG', backendCode: 'unit_004' },
+	'tw-v': { code: 'tw-v', keyCode: 'LHXQ' },
+	'tw-va': { code: 'tw-va', keyCode: 'QPRT' },
+	'tw-r': { code: 'tw-r', keyCode: 'AEIH' },
+	'tw-c': { code: 'tw-c', keyCode: 'AOEG' },
 	'1st-finger-nature-va': {
 		code: '1st-finger-nature-va',
-		keyCode: 'ZKWD',
-		backendCode: 'unit_005'
+		keyCode: 'ZKWD'
 	},
-	'viljan-biisit-va': { code: 'viljan-biisit-va', keyCode: 'XYZA', backendCode: 'unit_006' },
-	'happy-bd-song': { code: 'happy-bd-song', keyCode: 'MBRA', backendCode: 'unit_007' }
+	'viljan-biisit-va': { code: 'viljan-biisit-va', keyCode: 'XYZA' },
+	'happy-bd-song': { code: 'happy-bd-song', keyCode: 'MBRA' },
+	'4-animal-pieces-v': { code: '4-animal-pieces-v', keyCode: 'UHBC' }
 };
 
 export const handleUnitRoutes = async (request: IRequest): Promise<Response> => {

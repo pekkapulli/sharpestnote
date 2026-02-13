@@ -964,6 +964,104 @@ export const units: Units = {
 				]
 			}
 		]
+	},
+	'4-animal-pieces-v': {
+		code: '4-animal-pieces-v',
+		instrument: 'violin',
+		title: 'Animalistic Third Finger Pieces for Violin',
+		description: 'Three musical pieces for beginner violinists practicing the third finger.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/animalistic-third-finger-pieces-violin',
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				scale: [
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'f#/4', length: 4, finger: 2 },
+					{ note: 'g/4', length: 4, finger: 3 },
+					{ note: 'a/4', length: 4, finger: 0 },
+					{ note: 'e/5', length: 4, finger: 0 }
+				],
+				melody: [
+					[
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 8, finger: 0 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 8, finger: 0 },
+						{ note: 'f#/4', length: 4, finger: 2 },
+						{ note: 'g/4', length: 4, finger: 3 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'g/4', length: 4, finger: 3 }
+					],
+					[
+						{ note: 'e/5', length: 4, finger: 0 },
+						{ note: 'e/5', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'e/5', length: 4, finger: 0 },
+						{ note: 'e/5', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'e/5', length: 4, finger: 0 },
+						{ note: 'e/5', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'a/4', length: 2, finger: 0 },
+						{ note: 'g/4', length: 4, finger: 3 },
+						{ note: 'a/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 8, finger: 0 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 }
+					],
+					[
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'f#/4', length: 2, finger: 2 },
+						{ note: 'g/4', length: 2, finger: 3 },
+						{ note: 'd/4', length: 8, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 8, finger: 0 }
+					]
+				]
+			}
+		]
 	}
 };
 
