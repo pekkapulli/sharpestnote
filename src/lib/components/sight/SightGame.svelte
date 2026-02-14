@@ -138,8 +138,14 @@
 			const tempo = availableTempi[mode] ?? defaultTempi[mode];
 			// Update the tempo in game logic
 			game.updateSynthTempo(tempo);
-			// Play melody with the new tempo
-			game.playMelodyWithSynth();
+			// Stop any currently playing melody and start over with new tempo
+			if (game.isPlayingMelody()) {
+				game.stopMelody();
+				// Wait a moment for the melody to stop before starting the new one
+				setTimeout(() => game.playMelodyWithSynth(), 200);
+			} else {
+				game.playMelodyWithSynth();
+			}
 		}
 	}
 </script>

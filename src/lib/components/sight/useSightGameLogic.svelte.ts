@@ -327,6 +327,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 		updateSynthTempo: (tempo: number) => {
 			currentTempoBPM = tempo;
 			sightSynth.updateTempo(tempo);
-		}
+		},
+		stopMelody: sightSynth.stopMelody
 	};
 }

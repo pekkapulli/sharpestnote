@@ -27,6 +27,7 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 	let isPlayingMelody = $state(false);
 	let playheadPosition = $state<number | null>(null);
 	let currentTempoBPM = $state<number | undefined>(getTempoBPM?.());
+	let abortPlayback = $state(false);
 
 	// Create synth for playback
 	const synth = createSynth({
@@ -51,6 +52,7 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 	async function playMelodyWithSynth(melody: MelodyItem[]) {
 		if (!melody || isPlayingMelody) return;
 
+		abortPlayback = false;
 		isPlayingMelody = true;
 		playheadPosition = 0;
 
@@ -61,6 +63,8 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 			const bpm = currentTempoBPM ?? getTempoBPM?.() ?? 80;
 
 			for (const item of melody) {
+				if (abortPlayback) break;
+
 				const noteLength = item.length;
 				const noteDurationMs = lengthToMs(noteLength, bpm);
 				const startTime = performance.now();
@@ -112,6 +116,9 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 		},
 		updateTempo: (tempo: number) => {
 			currentTempoBPM = tempo;
+		},
+		stopMelody: () => {
+			abortPlayback = true;
 		}
 	};
 }
