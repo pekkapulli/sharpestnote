@@ -16,7 +16,7 @@
 	let melodyIndex = $state(0);
 	let hasStarted = $state(false);
 	let hasCompletedOnce = $state(false);
-	const synthMode = $derived(stage === 'piece-playing-muted' ? 'mute' : 'play');
+	const synthMode = $derived(stage === 'piece-playing-muted' ? 'mute' : 'medium');
 
 	const melodyPool = $derived(piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? []);
 	const scaleSequence = $derived(piece.scale?.filter((s) => s.note != null) ?? []);
@@ -128,7 +128,7 @@
 					<p class="mt-2 text-sm text-slate-700">
 						We’ll start with the scale to set the key and finger patterns.
 					</p>
-					<p class="mt-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+					<p class="mt-2 text-xs font-semibold tracking-wide text-emerald-700 uppercase">
 						Keep playing — we’ll move on automatically.
 					</p>
 				</div>
@@ -140,7 +140,7 @@
 					<p class="mt-2 text-sm text-slate-700">
 						Nice! Now let’s go through the piece phrase by phrase.
 					</p>
-					<p class="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+					<p class="mt-2 text-xs font-semibold tracking-wide text-slate-600 uppercase">
 						We’ll guide you through each phrase.
 					</p>
 				</div>
@@ -152,7 +152,7 @@
 					<p class="mt-2 text-sm text-slate-700">
 						We’ve muted the guide so you can play the piece on your own.
 					</p>
-					<p class="mt-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+					<p class="mt-2 text-xs font-semibold tracking-wide text-emerald-700 uppercase">
 						Keep going — we’ll loop the phrases.
 					</p>
 				</div>
@@ -166,11 +166,10 @@
 					tempoBPM={piece.tracks?.fast?.tempo ?? 80}
 					barLength={piece.barLength}
 					melody={currentMelody}
-					onMelodyComplete={stage === 'scale-playing'
-						? handleScaleComplete
-						: handlePieceComplete}
-					synthMode={synthMode}
+					onMelodyComplete={stage === 'scale-playing' ? handleScaleComplete : handlePieceComplete}
+					{synthMode}
 					showSynthToggle={false}
+					practiceTempi={piece.practiceTempi}
 				/>
 			{/if}
 		</div>

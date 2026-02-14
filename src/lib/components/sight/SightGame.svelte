@@ -15,6 +15,10 @@
 	import { vexFlowToDisplay } from '$lib/util/noteConverter';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import TunerPanel from '$lib/components/tuner/TunerPanel.svelte';
+	import type { Speed } from '$lib/config/units';
+	import tempoSlowIcon from '$lib/assets/tempo-slow.svg';
+	import tempoMediumIcon from '$lib/assets/tempo-medium.svg';
+	import tempoFastIcon from '$lib/assets/tempo-fast.svg';
 
 	interface Props {
 		instrument: InstrumentId;
@@ -24,8 +28,9 @@
 		barLength?: number;
 		melody: MelodyItem[];
 		onMelodyComplete?: () => void;
-		synthMode?: 'play' | 'mute';
+		synthMode?: Speed | 'mute';
 		showSynthToggle?: boolean;
+		practiceTempi?: { [key in Speed]?: number };
 	}
 
 	let {
@@ -36,8 +41,9 @@
 		barLength = 16,
 		melody,
 		onMelodyComplete,
-		synthMode = 'play',
-		showSynthToggle = true
+		synthMode = 'medium',
+		showSynthToggle = true,
+		practiceTempi
 	}: Props = $props();
 
 	// Create game logic during component initialization (required for $effect)
@@ -51,12 +57,14 @@
 	});
 
 	$effect(() => {
-		game.setSynthEnabled(synthMode === 'play');
+		game.setSynthEnabled(synthMode !== 'mute');
 	});
 
 	// Track microphone state
 	let micStarted = $state(false);
 	let showTunerModal = $state(false);
+	// svelte-ignore state_referenced_locally
+	let selectedSynthMode = $state<Speed | 'mute'>(synthMode);
 
 	// Responsive sizing state
 	let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -116,6 +124,23 @@
 
 	export function openTunerModal() {
 		showTunerModal = true;
+	}
+
+	function setSynthMode(mode: Speed | 'mute') {
+		selectedSynthMode = mode;
+		if (mode === 'mute') {
+			game.setSynthEnabled(false);
+		} else {
+			game.setSynthEnabled(true);
+			// Get tempo from practiceTempi or use defaults
+			const defaultTempi: { [key in Speed]: number } = { slow: 60, medium: 80, fast: 100 };
+			const availableTempi = practiceTempi || defaultTempi;
+			const tempo = availableTempi[mode] ?? defaultTempi[mode];
+			// Update the tempo in game logic
+			game.updateSynthTempo(tempo);
+			// Play melody with the new tempo
+			game.playMelodyWithSynth();
+		}
 	}
 </script>
 
@@ -183,14 +208,18 @@
 
 			<!-- Synth toggle -->
 			{#if showSynthToggle}
-				<div class="flex justify-center">
+				<div class="flex flex-col items-center justify-center gap-0">
+					<p class="text-sm font-semibold text-dark-blue">Speed</p>
 					<PillSelector
 						options={[
-							{ label: 'Play melodies', value: 'play' },
-							{ label: 'Mute', value: 'mute' }
+							{ value: 'slow', label: `Slow`, icon: tempoSlowIcon },
+							{ value: 'medium', label: `Medium`, icon: tempoMediumIcon },
+							{ value: 'fast', label: `Fast`, icon: tempoFastIcon },
+							{ value: 'mute', label: `Mute` }
 						]}
-						selected={game.synthEnabled() ? 'play' : 'mute'}
-						onSelect={(value) => game.setSynthEnabled(value === 'play')}
+						selected={selectedSynthMode}
+						onSelect={(speed: Speed | 'mute') => setSynthMode(speed)}
+						iconOnly
 					/>
 				</div>
 			{/if}

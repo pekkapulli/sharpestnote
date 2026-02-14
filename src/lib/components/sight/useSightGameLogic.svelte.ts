@@ -48,6 +48,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 	let currentIndex = $state(0);
 	let streak = $state(0);
 	let showSuccess = $state(false);
+	let currentTempoBPM = $state<number | undefined>(getTempoBPM?.());
 	let currentNoteSuccess = $state(false);
 	let lastOnsetNoteIndex = $state<number>(-1);
 	let lastOnsetHeldSixteenths = $state<number>(0);
@@ -106,7 +107,8 @@ export function useSightGameLogic(config: SightGameConfig) {
 				lastOnsetNoteIndex = currentIndex;
 				markNoteAsSuccess();
 				// Cooldown based on note length and tempo to avoid accidental onsets
-				const cooldownMs = getNoteCooldownMs(melody[currentIndex].length, getTempoBPM?.());
+				const effectiveTempo = currentTempoBPM ?? getTempoBPM?.();
+				const cooldownMs = getNoteCooldownMs(melody[currentIndex].length, effectiveTempo);
 				ignoreInputUntil = performance.now() + cooldownMs;
 				return;
 			}
@@ -117,7 +119,8 @@ export function useSightGameLogic(config: SightGameConfig) {
 				currentNoteSuccess = false;
 			}
 			lastOnsetNoteIndex = currentIndex;
-			const cooldownMs = getNoteCooldownMs(melody[currentIndex].length, getTempoBPM?.());
+			const effectiveTempo = currentTempoBPM ?? getTempoBPM?.();
+			const cooldownMs = getNoteCooldownMs(melody[currentIndex].length, effectiveTempo);
 			ignoreInputUntil = performance.now() + cooldownMs;
 		}
 	});
@@ -320,6 +323,10 @@ export function useSightGameLogic(config: SightGameConfig) {
 
 		// Actions
 		playMelodyWithSynth: () => sightSynth.playMelodyWithSynth(melody),
-		setSynthEnabled: sightSynth.setSynthEnabled
+		setSynthEnabled: sightSynth.setSynthEnabled,
+		updateSynthTempo: (tempo: number) => {
+			currentTempoBPM = tempo;
+			sightSynth.updateTempo(tempo);
+		}
 	};
 }

@@ -12,6 +12,7 @@ export interface Piece {
 	label: string;
 	composer: string;
 	arranger: string;
+	practiceTempi?: { [key in Speed]?: number };
 	tracks?: Record<Speed, TrackVariant>;
 	mode: Mode;
 	key: NoteName;
@@ -60,6 +61,11 @@ export const units: Units = {
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.814,
+				practiceTempi: {
+					slow: 50,
+					medium: 70,
+					fast: 90
+				},
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -167,6 +173,11 @@ export const units: Units = {
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.814,
+				practiceTempi: {
+					slow: 50,
+					medium: 70,
+					fast: 90
+				},
 				tracks: {
 					slow: {
 						tempo: 60,
@@ -277,6 +288,11 @@ export const units: Units = {
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.814,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
 				tracks: {
 					slow: {
 						tempo: 80,
@@ -387,6 +403,11 @@ export const units: Units = {
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.118,
 				notationEndPercent: 0.814,
+				practiceTempi: {
+					slow: 50,
+					medium: 70,
+					fast: 90
+				},
 				tracks: {
 					slow: {
 						tempo: 50,
@@ -494,6 +515,11 @@ export const units: Units = {
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.18,
 				notationEndPercent: 0.9,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
 				tracks: {
 					slow: {
 						tempo: 90,
@@ -596,6 +622,11 @@ export const units: Units = {
 				arranger: 'Pekka Pulli',
 				notationStartPercent: 0.182,
 				notationEndPercent: 0.864,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
 				tracks: {
 					slow: {
 						tempo: 90,
@@ -905,6 +936,11 @@ export const units: Units = {
 				barLength: 12,
 				key: 'G',
 				mode: 'major',
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
 				scale: [
 					{ note: 'd/4', length: 4, finger: 0 },
 					{ note: 'e/4', length: 4, finger: 1 },
@@ -982,6 +1018,11 @@ export const units: Units = {
 				key: 'D',
 				mode: 'major',
 				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
 				scale: [
 					{ note: 'd/4', length: 4, finger: 0 },
 					{ note: 'f#/4', length: 4, finger: 2 },
@@ -1080,6 +1121,11 @@ export const units: Units = {
 				key: 'G',
 				mode: 'major',
 				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
 				scale: [
 					{ note: 'g/3', length: 4, finger: 0 },
 					{ note: 'b/3', length: 4, finger: 2 },

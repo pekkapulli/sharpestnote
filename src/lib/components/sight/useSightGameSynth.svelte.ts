@@ -26,6 +26,7 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 	let synthEnabled = $state(true);
 	let isPlayingMelody = $state(false);
 	let playheadPosition = $state<number | null>(null);
+	let currentTempoBPM = $state<number | undefined>(getTempoBPM?.());
 
 	// Create synth for playback
 	const synth = createSynth({
@@ -57,7 +58,7 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 
 		try {
 			let currentSixteenth = 0;
-			const bpm = getTempoBPM?.() ?? 80;
+			const bpm = currentTempoBPM ?? getTempoBPM?.() ?? 80;
 
 			for (const item of melody) {
 				const noteLength = item.length;
@@ -108,6 +109,9 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 		playMelodyWithSynth,
 		setSynthEnabled: (enabled: boolean) => {
 			synthEnabled = enabled;
+		},
+		updateTempo: (tempo: number) => {
+			currentTempoBPM = tempo;
 		}
 	};
 }

@@ -149,6 +149,7 @@
 				barLength={piece.barLength}
 				melody={currentMelody}
 				onMelodyComplete={handleMelodyComplete}
+				practiceTempi={piece.practiceTempi}
 			/>
 		</div>
 
