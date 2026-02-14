@@ -202,16 +202,6 @@
 				/>
 			</div>
 
-			<div class="mt-3 flex flex-wrap items-center justify-center gap-3">
-				<button
-					onclick={() => (showTunerModal = true)}
-					class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow"
-					type="button"
-				>
-					Tune your {instrument}
-				</button>
-			</div>
-
 			<!-- Synth toggle -->
 			{#if showSynthToggle}
 				<div class="flex flex-col items-center justify-center gap-0">
@@ -229,6 +219,16 @@
 					/>
 				</div>
 			{/if}
+
+			<div class="mt-3 flex flex-wrap items-center justify-center gap-3">
+				<button
+					onclick={() => (showTunerModal = true)}
+					class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-px hover:shadow"
+					type="button"
+				>
+					Tune your {instrument}
+				</button>
+			</div>
 
 			<!-- Note labels -->
 			<div class="flex justify-center">
