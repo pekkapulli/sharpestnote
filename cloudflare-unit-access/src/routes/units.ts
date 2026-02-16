@@ -12,8 +12,8 @@ export const unitDatabase: Record<string, Unit> = {
 	},
 	'viljan-biisit-va': { code: 'viljan-biisit-va', keyCode: 'XYZA' },
 	'happy-bd-song': { code: 'happy-bd-song', keyCode: 'MBRA' },
-	'4-animal-pieces-v': { code: '4-animal-pieces-v', keyCode: 'UHBC' },
-	'4-animal-pieces-va': { code: '4-animal-pieces-v', keyCode: 'LNEL' }
+	'u4-third-finger-tales-v': { code: 'u4-third-finger-tales-v', keyCode: 'UHBC' },
+	'u4-third-finger-tales-va': { code: 'u4-third-finger-tales-va', keyCode: 'LNEL' }
 };
 
 export const handleUnitRoutes = async (request: IRequest): Promise<Response> => {

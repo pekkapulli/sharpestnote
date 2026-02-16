@@ -39,6 +39,10 @@ export interface UnitMaterial {
 	gumroadUrl: string;
 	pieces: Piece[];
 	extraLinks?: { label: string; url: string }[];
+	photo?: {
+		url: string;
+		credit: string;
+	};
 }
 
 export const fileStore = 'https://f002.backblazeb2.com/file/sharpestnote/unit';
@@ -1001,12 +1005,16 @@ export const units: Units = {
 			}
 		]
 	},
-	'4-animal-pieces-v': {
-		code: '4-animal-pieces-v',
+	'u4-third-finger-tales-v': {
+		code: 'u4-third-finger-tales-v',
 		instrument: 'violin',
-		title: 'Animalistic Third Finger Pieces for Violin',
-		description: 'Three musical pieces for beginner violinists practicing the third finger.',
-		gumroadUrl: 'https://sharpestnote.gumroad.com/l/animalistic-third-finger-pieces-v',
+		title: 'Third-Finger Tales for Violin',
+		description: 'Three animal-themed pieces for beginner violinists practicing the third finger.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u4-third-finger-tales-violin',
+		photo: {
+			url: 'https://unsplash.com/@vincentvanzalinge',
+			credit: 'Vincent van Zalinge'
+		},
 		pieces: [
 			{
 				code: 'simo-the-greedy-squirrel',
@@ -1104,12 +1112,16 @@ export const units: Units = {
 			}
 		]
 	},
-	'4-animal-pieces-va': {
-		code: '4-animal-pieces-va',
+	'u4-third-finger-tales-va': {
+		code: 'u4-third-finger-tales-va',
 		instrument: 'viola',
-		title: 'Animalistic Third Finger Pieces for Viola',
-		description: 'Three musical pieces for beginner violists practicing the third finger.',
-		gumroadUrl: 'https://sharpestnote.gumroad.com/l/animalistic-third-finger-pieces-va',
+		title: 'Third-Finger Tales for Viola',
+		description: 'Three animal-themed pieces for beginner violists practicing the third finger.',
+		photo: {
+			url: 'https://unsplash.com/@vincentvanzalinge',
+			credit: 'Vincent van Zalinge'
+		},
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u4-third-finger-tales-viola',
 		pieces: [
 			{
 				code: 'simo-the-greedy-squirrel',

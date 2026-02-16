@@ -90,7 +90,7 @@
 			<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
 		{/if}
 
-		<section class="mt-8">
+		<section class="mt-8 mb-8">
 			<h3 class="text-sm font-semibold text-slate-800">Play the Pieces</h3>
 			<div class="piece-grid">
 				{#each unit.pieces as piece (piece.code)}
@@ -122,7 +122,12 @@
 				</ul>
 			</section>
 		{/if}
-
+		{#if unit.photo}
+			<p class="mt-16 text-sm text-slate-600">
+				Photo by <a href={unit.photo.url} target="_blank" rel="noreferrer">{unit.photo.credit}</a>
+				on <a href="https://unsplash.com" target="_blank" rel="noreferrer">Unsplash</a>.
+			</p>
+		{/if}
 		<section
 			class="mt-10 flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"
 		>
