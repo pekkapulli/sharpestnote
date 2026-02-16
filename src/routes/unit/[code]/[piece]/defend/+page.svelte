@@ -107,8 +107,32 @@
 		return noteToY;
 	}
 
+	// Calculate the min and max note positions for the scale
+	function calculateScalePositionRange(scaleNotes: MelodyItem[]) {
+		let minPos = Infinity;
+		let maxPos = -Infinity;
+
+		for (const item of scaleNotes) {
+			if (item.note) {
+				const rendered = renderNote(item.note, keySignature, clef);
+				if (rendered) {
+					minPos = Math.min(minPos, rendered.position);
+					maxPos = Math.max(maxPos, rendered.position);
+				}
+			}
+		}
+
+		return {
+			minPosition: minPos === Infinity ? undefined : minPos,
+			maxPosition: maxPos === -Infinity ? undefined : maxPos
+		};
+	}
+
 	const scaleNotes = $derived(piece.scale.filter((s) => s.note != null));
 	const noteToY = $derived(generateNoteToYMapping(scaleNotes));
+	const { minPosition: scaleMinPosition, maxPosition: scaleMaxPosition } = $derived(
+		calculateScalePositionRange(scaleNotes)
+	);
 
 	const sharePreviewData = $derived({
 		title: `Defend - ${piece.label} - ${unit.title}`,
@@ -382,6 +406,8 @@
 							{monsters}
 							{bullets}
 							{gameActive}
+							{scaleMinPosition}
+							{scaleMaxPosition}
 						/>
 					</div>
 

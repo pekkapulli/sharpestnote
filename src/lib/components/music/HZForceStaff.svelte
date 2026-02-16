@@ -27,6 +27,8 @@
 		monsters: Monster[];
 		bullets: Bullet[];
 		gameActive: boolean;
+		scaleMinPosition?: number;
+		scaleMaxPosition?: number;
 	}
 
 	const HEIGHT = 150;
@@ -39,12 +41,17 @@
 		spaceshipY,
 		monsters,
 		bullets,
-		gameActive
+		gameActive,
+		scaleMinPosition,
+		scaleMaxPosition
 	}: Props = $props();
 
 	const layout = $derived(staffLayouts[clef] ?? staffLayouts.treble);
 	const staffLines = $derived(layout.staffLines);
 	const lineSpacing = $derived(height / 12);
+
+	// Use same centerY calculation as the pages using this component
+	// to ensure coordinates match
 	const centerY = $derived(height / 2);
 
 	// Extended ledger lines for full visual range
@@ -58,6 +65,10 @@
 	<svg {width} {height} class="block">
 		<!-- Staff lines -->
 		{#each staffLines as line (line.position)}
+			{@const isInRange =
+				scaleMinPosition !== undefined && scaleMaxPosition !== undefined
+					? line.position >= scaleMinPosition && line.position <= scaleMaxPosition
+					: true}
 			<line
 				x1="0"
 				y1={centerY - line.position * lineSpacing}
@@ -65,20 +76,27 @@
 				y2={centerY - line.position * lineSpacing}
 				stroke="#333"
 				stroke-width="1.5"
+				opacity={isInRange ? '1' : '0.5'}
 			/>
 		{/each}
 
 		<!-- Ledger lines (extended range) -->
 		{#each ledgerLinePositions as pos}
-			<line
-				x1="90"
-				y1={centerY - pos * lineSpacing}
-				x2={width - 10}
-				y2={centerY - pos * lineSpacing}
-				stroke="#999"
-				stroke-width="1"
-				opacity="0.4"
-			/>
+			{@const showLedgerLine =
+				scaleMinPosition === undefined ||
+				scaleMaxPosition === undefined ||
+				(pos >= scaleMinPosition && pos <= scaleMaxPosition)}
+			{#if showLedgerLine}
+				<line
+					x1="90"
+					y1={centerY - pos * lineSpacing}
+					x2={width - 10}
+					y2={centerY - pos * lineSpacing}
+					stroke="#999"
+					stroke-width="1"
+					opacity="0.4"
+				/>
+			{/if}
 		{/each}
 
 		<!-- Key signature -->

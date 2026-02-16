@@ -79,7 +79,38 @@
 		return noteToY;
 	}
 
+	// Calculate the min and max note positions for the instrument range
+	function calculateInstrumentPositionRange(bottomNote: string, topNote: string) {
+		const keySignature = {
+			note: 'C',
+			mode: 'major' as const,
+			preferredAccidental: 'sharp' as const,
+			sharps: [],
+			flats: []
+		};
+
+		// Parse bottom and top notes
+		const bottomMatch = /^([A-G])([#b]?)(\d)$/.exec(bottomNote);
+		const topMatch = /^([A-G])([#b]?)(\d)$/.exec(topNote);
+		if (!bottomMatch || !topMatch) return { minPosition: undefined, maxPosition: undefined };
+
+		const bottomRendered = renderNote(bottomNote, keySignature, clef);
+		const topRendered = renderNote(topNote, keySignature, clef);
+
+		if (!bottomRendered || !topRendered) {
+			return { minPosition: undefined, maxPosition: undefined };
+		}
+
+		return {
+			minPosition: Math.min(bottomRendered.position, topRendered.position),
+			maxPosition: Math.max(bottomRendered.position, topRendered.position)
+		};
+	}
+
 	const noteToY = $derived(generateNoteToYMapping(instrument.bottomNote, instrument.topNote));
+	const { minPosition: scaleMinPosition, maxPosition: scaleMaxPosition } = $derived(
+		calculateInstrumentPositionRange(instrument.bottomNote, instrument.topNote)
+	);
 
 	onMount(() => {
 		tuner.checkSupport();
@@ -259,6 +290,8 @@
 			{monsters}
 			{bullets}
 			{gameActive}
+			{scaleMinPosition}
+			{scaleMaxPosition}
 		/>
 
 		{#if tuner.state.error}
