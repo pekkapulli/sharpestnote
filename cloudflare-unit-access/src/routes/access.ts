@@ -1,6 +1,5 @@
 import type { IRequest } from 'itty-router';
 import type { AccessStatus } from '../types';
-import { createKeyCode } from '../types';
 import { unitDatabase } from './units';
 
 // Simple in-memory rate limit tracking (IP -> { count, resetTime })
@@ -51,7 +50,7 @@ export const handleAccessRoutes = async (request: IRequest): Promise<Response> =
 	}
 
 	// Direct lookup by keyCode (O(1) instead of searching by unitCode)
-	const normalizedKey = createKeyCode(keyCode.trim().toUpperCase());
+	const normalizedKey = keyCode.trim().toUpperCase();
 	const unit = unitDatabase[normalizedKey];
 
 	if (!unit) {
@@ -117,8 +116,7 @@ export const handleAccessLookup = async (request: IRequest): Promise<Response> =
 	const trimmedKey = keyCode.trim().toUpperCase();
 
 	// Direct lookup by keyCode (O(1) because unitDatabase is keyed by keyCode)
-	const normalizedKey = createKeyCode(trimmedKey);
-	const unit = unitDatabase[normalizedKey];
+	const unit = unitDatabase[trimmedKey];
 
 	if (!unit) {
 		return new Response(JSON.stringify({ error: 'Key code not found' }), {
