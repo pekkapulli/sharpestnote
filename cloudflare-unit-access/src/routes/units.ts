@@ -12,8 +12,14 @@ export const unitDatabase: Record<string, Unit> = {
 	},
 	'viljan-biisit-va': { code: 'viljan-biisit-va', keyCode: 'XYZA' },
 	'happy-bd-song': { code: 'happy-bd-song', keyCode: 'MBRA' },
+	'u3-playful-second-finger-v': { code: 'u3-playful-second-finger-v', keyCode: 'JNEK' },
+	'u3-playful-second-finger-va': { code: 'u3-playful-second-finger-va', keyCode: 'MIXT' },
 	'u4-third-finger-tales-v': { code: 'u4-third-finger-tales-v', keyCode: 'UHBC' },
-	'u4-third-finger-tales-va': { code: 'u4-third-finger-tales-va', keyCode: 'LNEL' }
+	'u4-third-finger-tales-va': { code: 'u4-third-finger-tales-va', keyCode: 'LNEL' },
+	'u5-third-finger-hobby-songs-v': { code: 'u5-third-finger-hobby-songs-v', keyCode: 'PIKI' },
+	'u5-third-finger-hobby-songs-va': { code: 'u5-third-finger-hobby-songs-va', keyCode: 'AJNE' },
+	'u6-four-finger-spooks-v': { code: 'u6-four-finger-spooks-v', keyCode: 'AGEM' },
+	'u6-four-finger-spooks-va': { code: 'u6-four-finger-spooks-va', keyCode: 'YQWE' }
 };
 
 export const handleUnitRoutes = async (request: IRequest): Promise<Response> => {

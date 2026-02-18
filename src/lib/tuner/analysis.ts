@@ -1,6 +1,8 @@
 import type { DetectionConfig, InstrumentConfig } from '$lib/config/instruments';
 import { frequencyFromNoteNumber } from './tune';
 import { noteNameToMidi } from '$lib/util/noteNames';
+import type { FFTResult } from './fftAnalysis';
+import { hasSignificantEnergyAtLowerOctave } from './spectralAnalysis';
 
 /**
  * Calculate RMS amplitude of time-domain signal
@@ -110,4 +112,65 @@ export function calculateDynamicThreshold(
 	// Threshold = median * multiplier
 	// Add small floor to prevent triggering on complete silence
 	return Math.max(0.01, median * multiplier);
+}
+
+/**
+ * Detect and correct octave errors in detected frequency.
+ *
+ * Autocorrelation-based pitch detection can sometimes lock onto a harmonic (typically
+ * the 2nd harmonic, double the fundamental). This function checks if the lower octave
+ * has significant spectral energy or was recently detected as stable, indicating the
+ * detected frequency is likely a harmonic and should be halved.
+ *
+ * @param freq Detected fundamental frequency (Hz)
+ * @param fftResult Current FFT result (for spectral energy analysis)
+ * @param instrument Instrument configuration (for range validation)
+ * @param sampleRate Audio sample rate (Hz)
+ * @param frequencyHistory Recent frequency detections for secondary validation
+ * @param a4 A4 reference frequency (default 442 Hz)
+ * @returns Corrected frequency (either original or halved if octave error detected)
+ */
+export function correctOctaveErrors(
+	freq: number,
+	fftResult: FFTResult,
+	instrument: InstrumentConfig,
+	sampleRate: number,
+	frequencyHistory: number[],
+	a4: number = 442
+): number {
+	if (freq <= 0 || frequencyHistory.length < 5) {
+		return freq;
+	}
+
+	const halfFreq = freq / 2;
+	const halfInRange = isFrequencyInInstrumentRange(halfFreq, instrument, a4);
+
+	// Only consider octave correction if the lower octave is also in the instrument's range
+	if (!halfInRange) {
+		return freq;
+	}
+
+	// Primary check: Look for significant energy at the lower octave in the FFT
+	// Use a lower threshold (0.2 = lower octave must have >= 20% of upper octave energy)
+	// This catches cases where the harmonic is bright and the fundamental is weaker
+	const hasLowerOctaveEnergy = hasSignificantEnergyAtLowerOctave(
+		fftResult,
+		freq,
+		sampleRate,
+		0.2, // energy threshold
+		50, // 50 cents search window
+		2.0 // energy floor factor
+	);
+
+	// Secondary check: Was half frequency recently detected as stable?
+	const wasHalfFreqStable = frequencyHistory
+		.slice(-5)
+		.some((f) => f > 0 && Math.abs(f - halfFreq) / halfFreq < 0.02);
+
+	// Correct to lower octave if either spectral energy or history indicates it
+	if (hasLowerOctaveEnergy || wasHalfFreqStable) {
+		return halfFreq;
+	}
+
+	return freq;
 }

@@ -30,7 +30,7 @@ export interface TrackVariant {
 }
 
 export interface UnitMaterial {
-	published?: boolean;
+	published: boolean;
 	demo?: string;
 	code: string;
 	instrument: InstrumentId;
@@ -169,6 +169,7 @@ export const units: Units = {
 		title: 'Twinkle Twinkle Little Star for Viola',
 		description: 'See how the Sharpest Note materials work with a classic tune.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/twinkle-viola',
+		published: false,
 		pieces: [
 			{
 				code: 'twinkle-twinkle-little-star',
@@ -511,6 +512,7 @@ export const units: Units = {
 		title: 'First-finger Nature Pieces for Viola',
 		description: 'Musical pieces for first-finger performance.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/first-finger-nature-viola',
+		published: false,
 		pieces: [
 			{
 				code: 'in-the-wind',
@@ -721,6 +723,7 @@ export const units: Units = {
 		title: 'Testing testing',
 		description: 'Just a test unit.',
 		gumroadUrl: '',
+		published: false,
 		pieces: [
 			{
 				code: 'test-1',
@@ -794,6 +797,7 @@ export const units: Units = {
 		title: 'Viljan Biisit',
 		description: 'Viljan biisit!',
 		gumroadUrl: '',
+		published: false,
 		pieces: [
 			{
 				code: 'ostakaa',
@@ -929,6 +933,7 @@ export const units: Units = {
 		title: 'Happy Birthday Song',
 		description:
 			'A musical, playable way for violin students to practice Happy Birthday — phrase by phrase, by ear, and with real accompaniment. Free demo from The Sharpest Note.',
+		published: false,
 		pieces: [
 			{
 				code: 'happy-birthday',
@@ -1005,6 +1010,82 @@ export const units: Units = {
 			}
 		]
 	},
+	'u3-playful-second-finger-v': {
+		code: 'u3-playful-second-finger-v',
+		instrument: 'violin',
+		title: 'The Playful Second Finger for Violin',
+		description: 'Three play-themed pieces for beginner violinists practicing the second finger.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u3-playful-second-finger-violin',
+		photo: {
+			url: 'https://unsplash.com/@jctm26',
+			credit: 'J Murdoch'
+		},
+		published: false,
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
+				scale: [
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'f#/4', length: 4, finger: 2 },
+					{ note: 'g/4', length: 4, finger: 3 },
+					{ note: 'a/4', length: 4, finger: 0 },
+					{ note: 'e/5', length: 4, finger: 0 }
+				],
+				melody: []
+			}
+		]
+	},
+	'u3-playful-second-finger-va': {
+		code: 'u3-playful-second-finger-va',
+		instrument: 'viola',
+		title: 'The Playful Second Finger for Viola',
+		description: 'Three play-themed pieces for beginner violists practicing the second finger.',
+		photo: {
+			url: 'https://unsplash.com/@jctm26',
+			credit: 'J Murdoch'
+		},
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u3-playful-second-finger-viola',
+		published: false,
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'G',
+				mode: 'major',
+				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
+				scale: [
+					{ note: 'g/3', length: 4, finger: 0 },
+					{ note: 'b/3', length: 4, finger: 2 },
+					{ note: 'c/4', length: 4, finger: 3 },
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'a/4', length: 4, finger: 0 }
+				],
+				melody: []
+			}
+		]
+	},
 	'u4-third-finger-tales-v': {
 		code: 'u4-third-finger-tales-v',
 		instrument: 'violin',
@@ -1015,6 +1096,7 @@ export const units: Units = {
 			url: 'https://unsplash.com/@vincentvanzalinge',
 			credit: 'Vincent van Zalinge'
 		},
+		published: false,
 		pieces: [
 			{
 				code: 'simo-the-greedy-squirrel',
@@ -1122,6 +1204,7 @@ export const units: Units = {
 			credit: 'Vincent van Zalinge'
 		},
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u4-third-finger-tales-viola',
+		published: false,
 		pieces: [
 			{
 				code: 'simo-the-greedy-squirrel',
@@ -1216,6 +1299,159 @@ export const units: Units = {
 						{ note: 'g/3', length: 8, finger: 0 }
 					]
 				]
+			}
+		]
+	},
+	'u5-third-finger-hobby-songs-v': {
+		code: 'u5-third-finger-hobby-songs-v',
+		instrument: 'violin',
+		title: 'Third-Finger Hobby Songs for Violin',
+		description: 'Three animal-themed pieces for beginner violinists practicing the third finger.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u5-third-finger-hobby-songs-violin',
+		photo: {
+			url: 'https://unsplash.com/@rifqialiridho',
+			credit: 'Rifqi Ali Ridho'
+		},
+		published: false,
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
+				scale: [
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'f#/4', length: 4, finger: 2 },
+					{ note: 'g/4', length: 4, finger: 3 },
+					{ note: 'a/4', length: 4, finger: 0 },
+					{ note: 'e/5', length: 4, finger: 0 }
+				],
+				melody: []
+			}
+		]
+	},
+	'u5-third-finger-hobby-songs-va': {
+		code: 'u5-third-finger-hobby-songs-va',
+		instrument: 'viola',
+		title: 'Third-Finger Hobby Songs for Viola',
+		description:
+			'Three hobby-themed pieces for beginner violists practicing the third finger (two strings).',
+		photo: {
+			url: 'https://unsplash.com/@rifqialiridho',
+			credit: 'Rifqi Ali Ridho'
+		},
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u5-third-finger-hobby-songs-viola',
+		published: false,
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'G',
+				mode: 'major',
+				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
+				scale: [
+					{ note: 'g/3', length: 4, finger: 0 },
+					{ note: 'b/3', length: 4, finger: 2 },
+					{ note: 'c/4', length: 4, finger: 3 },
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'a/4', length: 4, finger: 0 }
+				],
+				melody: []
+			}
+		]
+	},
+	'u6-four-finger-spooks-v': {
+		code: 'u6-four-finger-spooks-v',
+		instrument: 'violin',
+		title: 'Four-Finger Spooks for Violin',
+		description: 'Three spooky-themed pieces for beginner violinists practicing the fourth finger.',
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u6-four-finger-spooks-violin',
+		photo: {
+			url: 'https://unsplash.com/@cnbrightskies',
+			credit: 'Carlos Nunez'
+		},
+		published: false,
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
+				scale: [
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'f#/4', length: 4, finger: 2 },
+					{ note: 'g/4', length: 4, finger: 3 },
+					{ note: 'a/4', length: 4, finger: 0 },
+					{ note: 'e/5', length: 4, finger: 0 }
+				],
+				melody: []
+			}
+		]
+	},
+	'u6-four-finger-spooks-va': {
+		code: 'u6-four-finger-spooks-va',
+		instrument: 'viola',
+		title: 'Four-Finger Spooks for Viola',
+		description: 'Three spooky-themed pieces for beginner violists practicing the fourth finger.',
+		photo: {
+			url: 'https://unsplash.com/@cnbrightskies',
+			credit: 'Carlos Nunez'
+		},
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u6-four-finger-spooks-viola',
+		published: false,
+		pieces: [
+			{
+				code: 'simo-the-greedy-squirrel',
+				label: 'Simo the Greedy Squirrel',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				notationStartPercent: 0.18,
+				notationEndPercent: 0.9,
+				key: 'G',
+				mode: 'major',
+				barLength: 16,
+				practiceTempi: {
+					slow: 60,
+					medium: 80,
+					fast: 100
+				},
+				scale: [
+					{ note: 'g/3', length: 4, finger: 0 },
+					{ note: 'b/3', length: 4, finger: 2 },
+					{ note: 'c/4', length: 4, finger: 3 },
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'a/4', length: 4, finger: 0 }
+				],
+				melody: []
 			}
 		]
 	}

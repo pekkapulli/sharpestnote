@@ -12,7 +12,8 @@ import {
 	calculateAmplitude,
 	getDetectionConfig,
 	isFrequencyStable,
-	isFrequencyInInstrumentRange
+	isFrequencyInInstrumentRange,
+	correctOctaveErrors
 } from './analysis';
 import { performFFT } from './fftAnalysis';
 import {
@@ -465,27 +466,24 @@ export function createTuner(options: TunerOptions = {}) {
 		const currentA4 = untrack(() => a4.value);
 
 		let inRange = true;
+		let correctedFreq = freq;
 		if (currentInstrument) {
 			inRange = isFrequencyInInstrumentRange(freq, currentInstrument, currentA4);
 
-			// Additional octave error check: only reject if there's evidence the lower octave
-			// is the actual fundamental (check if it was recently stable or has strong energy)
+			// Correct octave errors using FFT spectral energy + historical stability checks
 			if (inRange && freq > 0 && onsetAnalysis.frequencyHistory.length > 5) {
-				const halfFreq = freq / 2;
-				const halfInRange = isFrequencyInInstrumentRange(halfFreq, currentInstrument, currentA4);
+				correctedFreq = correctOctaveErrors(
+					freq,
+					fftResult,
+					currentInstrument,
+					audioContext.sampleRate,
+					onsetAnalysis.frequencyHistory,
+					currentA4
+				);
 
-				// Only reject if the half frequency was recently detected as stable
-				// (meaning it's likely the real fundamental and current freq is a harmonic)
-				if (halfInRange) {
-					const recentFrequencies = onsetAnalysis.frequencyHistory.slice(-5);
-					const wasHalfFreqStable = recentFrequencies.some(
-						(f) => f > 0 && Math.abs(f - halfFreq) / halfFreq < 0.02
-					);
-
-					if (wasHalfFreqStable) {
-						// The lower octave was stable recently, so this is likely an octave error
-						inRange = false;
-					}
+				// If correction was made (freq halved), validate the corrected frequency
+				if (correctedFreq !== freq) {
+					inRange = isFrequencyInInstrumentRange(correctedFreq, currentInstrument, currentA4);
 				}
 			}
 		}
@@ -518,12 +516,12 @@ export function createTuner(options: TunerOptions = {}) {
 		// 1.3b: Harmonic-focused flux (tracks bursts on harmonic stack)
 		// If pitch is not locked, fall back to high-frequency burst detector
 		const harmonicFluxCue = hasPitch
-			? calculateHarmonicFlux(fftResult, onsetAnalysis.previousFFT, freq, 2, 10, 2)
+			? calculateHarmonicFlux(fftResult, onsetAnalysis.previousFFT, correctedFreq, 2, 10, 2)
 			: calculateHighFrequencyBurst(fftResult, onsetAnalysis.previousFFT, 0.35);
 
 		// 1.4: Compute phase disruption cue
 		// Measure phase deviation (predicts phase advance, measures deviation)
-		const phaseCueFundamental = hasPitch ? freq : null;
+		const phaseCueFundamental = hasPitch ? correctedFreq : null;
 		const rawPhaseCueAbs = calculatePhaseDeviationFocused(
 			fftResult,
 			onsetAnalysis.previousFFT,
@@ -552,9 +550,11 @@ export function createTuner(options: TunerOptions = {}) {
 		if (hasPitch) {
 			if (onsetAnalysis.previousPitch === null) {
 				onsetAnalysis.pitchConfidence = 0.3; // Initial confidence
-				onsetAnalysis.stablePitch = freq;
+				onsetAnalysis.stablePitch = correctedFreq;
 			} else {
-				const pitchDiffCents = Math.abs(1200 * Math.log2(freq / onsetAnalysis.previousPitch));
+				const pitchDiffCents = Math.abs(
+					1200 * Math.log2(correctedFreq / onsetAnalysis.previousPitch)
+				);
 				if (pitchDiffCents < onsetDetectionConfig.pitchStabilityThresholdCents) {
 					// Stable: increase confidence
 					onsetAnalysis.pitchConfidence = Math.min(
@@ -563,8 +563,8 @@ export function createTuner(options: TunerOptions = {}) {
 					);
 					// Update stable pitch with smoothing
 					onsetAnalysis.stablePitch = onsetAnalysis.stablePitch
-						? onsetAnalysis.stablePitch * 0.7 + freq * 0.3
-						: freq;
+						? onsetAnalysis.stablePitch * 0.7 + correctedFreq * 0.3
+						: correctedFreq;
 				} else {
 					// Unstable: reduce confidence
 					onsetAnalysis.pitchConfidence = Math.max(
@@ -573,7 +573,7 @@ export function createTuner(options: TunerOptions = {}) {
 					);
 				}
 			}
-			onsetAnalysis.previousPitch = freq;
+			onsetAnalysis.previousPitch = correctedFreq;
 		} else {
 			onsetAnalysis.pitchConfidence = Math.max(0, onsetAnalysis.pitchConfidence - 0.1);
 			onsetAnalysis.previousPitch = null;
@@ -639,7 +639,9 @@ export function createTuner(options: TunerOptions = {}) {
 			onsetAnalysis.stablePitch &&
 			onsetAnalysis.pitchConfidence > onsetDetectionConfig.minPitchConfidenceForChange
 		) {
-			const pitchChangeCents = Math.abs(1200 * Math.log2(freq / onsetAnalysis.stablePitch));
+			const pitchChangeCents = Math.abs(
+				1200 * Math.log2(correctedFreq / onsetAnalysis.stablePitch)
+			);
 			// Pitch change threshold from config
 			if (pitchChangeCents > onsetDetectionConfig.pitchChangeThresholdCents) {
 				pitchChangeDetected = true;
@@ -684,8 +686,8 @@ export function createTuner(options: TunerOptions = {}) {
 		// Allow ±20 cents deviation from stable pitch for repeat note detection (stricter)
 		const frequencyCoherent =
 			onsetAnalysis.stablePitch &&
-			freq > 0 &&
-			Math.abs(1200 * Math.log2(freq / onsetAnalysis.stablePitch)) < 20; // Within ±20 cents
+			correctedFreq > 0 &&
+			Math.abs(1200 * Math.log2(correctedFreq / onsetAnalysis.stablePitch)) < 20; // Within ±20 cents
 
 		const markOnset = (rule: string) => {
 			onsetDetected = true;
@@ -806,7 +808,7 @@ export function createTuner(options: TunerOptions = {}) {
 				// Very strong phase with pitch lock
 				markOnset('D');
 				debugLog(
-					`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ freq=${freq.toFixed(1)}Hz`
+					`✓ Onset: Rule D (soft-attack) - phase=${normalizedPhase.toFixed(1)}σ freq=${correctedFreq.toFixed(1)}Hz`
 				);
 			}
 		}
@@ -820,12 +822,12 @@ export function createTuner(options: TunerOptions = {}) {
 				// Store as pending onset - requires stable pitch verification
 				if (onsetAnalysis.pendingOnsetTimestamp === null) {
 					onsetAnalysis.pendingOnsetTimestamp = now;
-					onsetAnalysis.pendingOnsetFrequency = freq;
+					onsetAnalysis.pendingOnsetFrequency = correctedFreq;
 					onsetAnalysis.pendingOnsetRule = 'A';
 					performanceMetrics.mlPendingCount++;
 					performanceMetrics.mlPendingActive = 1;
 					debugLog(
-						`⏳ Pending onset: Rule A (pitch change) - ${freq.toFixed(1)}Hz, awaiting stable pitch`
+						`⏳ Pending onset: Rule A (pitch change) - ${correctedFreq.toFixed(1)}Hz, awaiting stable pitch`
 					);
 				}
 			}
@@ -840,7 +842,7 @@ export function createTuner(options: TunerOptions = {}) {
 					state.highFrequencyEnergy,
 					hasPitch,
 					onsetDetected,
-					state.frequency
+					correctedFreq
 				);
 				if (prediction) {
 					state.mlOnsetDetected = prediction.isOnset;
@@ -857,7 +859,7 @@ export function createTuner(options: TunerOptions = {}) {
 					) {
 						markOnset('ML');
 						debugLog(
-							`✓ Onset: ML detection (immediate) - ${freq.toFixed(1)}Hz prob=${prediction.probability.toFixed(3)}`
+							`✓ Onset: ML detection (immediate) - ${correctedFreq.toFixed(1)}Hz prob=${prediction.probability.toFixed(3)}`
 						);
 					}
 				}
@@ -875,8 +877,8 @@ export function createTuner(options: TunerOptions = {}) {
 
 				// Check if pitch is still stable within threshold
 				const pitchDriftCents =
-					hasPitch && freq > 0
-						? Math.abs(1200 * Math.log2(freq / onsetAnalysis.pendingOnsetFrequency))
+					hasPitch && correctedFreq > 0
+						? Math.abs(1200 * Math.log2(correctedFreq / onsetAnalysis.pendingOnsetFrequency))
 						: 999;
 
 				const pitchStable = pitchDriftCents < onsetDetectionConfig.stablePitchThresholdCents;
@@ -888,7 +890,7 @@ export function createTuner(options: TunerOptions = {}) {
 						performanceMetrics.mlVerifiedCount++;
 						performanceMetrics.mlLastPendingDurationMs = timeSincePending;
 						debugLog(
-							`✓ Onset: Rule A (verified after ${timeSincePending.toFixed(0)}ms) - ${freq.toFixed(1)}Hz`
+							`✓ Onset: Rule A (verified after ${timeSincePending.toFixed(0)}ms) - ${correctedFreq.toFixed(1)}Hz`
 						);
 					} else {
 						// Pitch not stable - cancel pending Rule A onset
@@ -1129,14 +1131,14 @@ export function createTuner(options: TunerOptions = {}) {
 		// PITCH TRACKING & NOTE OUTPUT
 		// ========================================================================
 
-		if (freq > 0 && state.isNoteActive) {
+		if (correctedFreq > 0 && state.isNoteActive) {
 			const currentA4 = untrack(() => a4.value);
 			const currentAccidental = untrack(() => accidental.value);
 
-			const midi = noteFromPitch(freq, currentA4);
+			const midi = noteFromPitch(correctedFreq, currentA4);
 			const target = frequencyFromNoteNumber(midi, currentA4);
-			state.frequency = freq;
-			state.cents = centsOff(freq, target);
+			state.frequency = correctedFreq;
+			state.cents = centsOff(correctedFreq, target);
 			const detectedNote = noteNameFromMidi(midi, currentAccidental);
 
 			// Debounce note changes to smooth transient noise

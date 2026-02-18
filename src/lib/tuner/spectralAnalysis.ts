@@ -518,3 +518,73 @@ export function computeAdaptiveThreshold(
 	const localMean = count > 0 ? sum / count : 0;
 	return localMean * delta;
 }
+
+/**
+ * Check if there is significant energy at the octave below a detected frequency.
+ *
+ * This helps detect octave errors where autocorrelation has locked onto a harmonic
+ * instead of the fundamental. If the lower octave has comparable energy to the detected
+ * frequency, it's likely the true fundamental.
+ *
+ * @param fftResult Current FFT result with magnitudes
+ * @param detectedFreq Detected fundamental frequency (Hz)
+ * @param sampleRate Audio sample rate (Hz)
+ * @param energyThreshold Energy ratio threshold (0-1, default 0.5 means lower octave must have >= 50% of upper energy)
+ * @param bandwidthCents Width of search window around target frequencies in cents (default 50 cents = half semitone)
+ * @param energyFloorFactor Minimum multiple of average spectrum energy required in the lower octave window
+ * @returns True if the lower octave has significant energy, indicating a likely octave error
+ */
+export function hasSignificantEnergyAtLowerOctave(
+	fftResult: FFTResult,
+	detectedFreq: number,
+	sampleRate: number,
+	energyThreshold: number = 0.5,
+	bandwidthCents: number = 50,
+	energyFloorFactor: number = 2.5
+): boolean {
+	if (detectedFreq <= 0) return false;
+
+	const fftSize = fftResult.magnitudes.length * 2;
+	const freqToBin = (freq: number) => Math.round((freq * fftSize) / sampleRate);
+
+	// Convert cents to frequency ratio: 2^(cents/1200)
+	const freqRatio = Math.pow(2, bandwidthCents / 1200);
+
+	// Estimate noise floor using average magnitude
+	let avgMag = 0;
+	for (let i = 0; i < fftResult.magnitudes.length; i++) {
+		avgMag += fftResult.magnitudes[i];
+	}
+	avgMag = fftResult.magnitudes.length > 0 ? avgMag / fftResult.magnitudes.length : 0;
+
+	// Calculate energy around detected frequency
+	const detectedBinLow = Math.max(0, freqToBin(detectedFreq / freqRatio));
+	const detectedBinHigh = Math.min(
+		fftResult.magnitudes.length - 1,
+		freqToBin(detectedFreq * freqRatio)
+	);
+
+	let detectedEnergy = 0;
+	for (let i = detectedBinLow; i <= detectedBinHigh; i++) {
+		detectedEnergy += fftResult.magnitudes[i];
+	}
+
+	// Calculate energy around lower octave
+	const lowerOctaveFreq = detectedFreq / 2;
+	const lowerOctaveBinLow = Math.max(0, freqToBin(lowerOctaveFreq / freqRatio));
+	const lowerOctaveBinHigh = Math.min(
+		fftResult.magnitudes.length - 1,
+		freqToBin(lowerOctaveFreq * freqRatio)
+	);
+
+	let lowerOctaveEnergy = 0;
+	for (let i = lowerOctaveBinLow; i <= lowerOctaveBinHigh; i++) {
+		lowerOctaveEnergy += fftResult.magnitudes[i];
+	}
+
+	// If lower octave energy is above threshold relative to detected frequency, flag as octave error
+	const energyRatio = detectedEnergy > 0 ? lowerOctaveEnergy / detectedEnergy : 0;
+	const lowerBins = lowerOctaveBinHigh - lowerOctaveBinLow + 1;
+	const lowerEnergyFloor = avgMag * Math.max(1, lowerBins) * energyFloorFactor;
+	return energyRatio >= energyThreshold && lowerOctaveEnergy >= lowerEnergyFloor;
+}
