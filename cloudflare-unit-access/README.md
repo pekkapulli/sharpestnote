@@ -8,7 +8,6 @@ This project implements a mini backend using Cloudflare Workers to manage unit c
 - **src/routes/units.ts**: Handles routes related to unit codes, including retrieval and matching.
 - **src/routes/access.ts**: Manages access-related routes, checking user access to units.
 - **src/types/index.ts**: Contains TypeScript interfaces and types used throughout the application.
-- **schema.sql**: SQL schema for the database, defining tables and relationships for unit codes and user access.
 - **wrangler.toml**: Configuration file for Cloudflare Workers, specifying project settings.
 - **package.json**: npm configuration file listing dependencies and scripts.
 - **tsconfig.json**: TypeScript configuration file specifying compiler options.
@@ -16,23 +15,22 @@ This project implements a mini backend using Cloudflare Workers to manage unit c
 ## Setup Instructions
 
 1. **Clone the repository**:
+
    ```
    git clone <repository-url>
    cd cloudflare-unit-access
    ```
 
 2. **Install dependencies**:
+
    ```
    npm install
    ```
 
-3. **Set up the database**:
-   - Run the SQL commands in `schema.sql` to create the necessary tables.
-
-4. **Configure Cloudflare Workers**:
+3. **Configure Cloudflare Workers**:
    - Update `wrangler.toml` with your Cloudflare account details.
 
-5. **Deploy the application**:
+4. **Deploy the application**:
    ```
    npx wrangler publish
    ```

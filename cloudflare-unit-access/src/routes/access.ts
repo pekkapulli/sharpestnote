@@ -1,5 +1,6 @@
 import type { IRequest } from 'itty-router';
 import type { AccessStatus } from '../types';
+import { createKeyCode } from '../types';
 import { unitDatabase } from './units';
 
 // Simple in-memory rate limit tracking (IP -> { count, resetTime })
@@ -49,11 +50,16 @@ export const handleAccessRoutes = async (request: IRequest): Promise<Response> =
 		);
 	}
 
-	const unit = unitDatabase[unitCode];
+	// Direct lookup by keyCode (O(1) instead of searching by unitCode)
+	const normalizedKey = createKeyCode(keyCode.trim().toUpperCase());
+	const unit = unitDatabase[normalizedKey];
 
 	if (!unit) {
 		return new Response(
-			JSON.stringify({ error: 'Unit not found', message: 'The requested unit does not exist' }),
+			JSON.stringify({
+				error: 'Invalid key code',
+				message: 'The provided key code does not exist'
+			}),
 			{
 				status: 404,
 				headers: { 'Content-Type': 'application/json' }
@@ -61,12 +67,13 @@ export const handleAccessRoutes = async (request: IRequest): Promise<Response> =
 		);
 	}
 
-	const hasAccess = keyCode.trim().toUpperCase() === unit.keyCode.trim().toUpperCase();
+	// Verify the keyCode matches the requested unitCode
+	const hasAccess = unit.code === unitCode;
 
 	const response: AccessStatus = {
 		unitCode,
 		hasAccess,
-		message: hasAccess ? 'Access granted' : 'Invalid key code'
+		message: hasAccess ? 'Access granted' : 'Invalid unit code for this key code'
 	};
 
 	return new Response(JSON.stringify(response), {
@@ -109,10 +116,9 @@ export const handleAccessLookup = async (request: IRequest): Promise<Response> =
 
 	const trimmedKey = keyCode.trim().toUpperCase();
 
-	// Find unit by key code
-	const unit = Object.values(unitDatabase).find(
-		(u) => u.keyCode.trim().toUpperCase() === trimmedKey
-	);
+	// Direct lookup by keyCode (O(1) because unitDatabase is keyed by keyCode)
+	const normalizedKey = createKeyCode(trimmedKey);
+	const unit = unitDatabase[normalizedKey];
 
 	if (!unit) {
 		return new Response(JSON.stringify({ error: 'Key code not found' }), {
