@@ -176,7 +176,11 @@
 		margin-top: 0.75rem;
 	}
 	.piece-card {
-		display: block;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
 		border-radius: 0.75rem;
 		background: white;
 		border: 1px solid rgb(226 232 240);
