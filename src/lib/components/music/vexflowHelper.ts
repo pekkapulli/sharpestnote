@@ -1,4 +1,4 @@
-import { Factory, Dot, Beam, Voice, type Stave } from 'vexflow';
+import { Factory, Dot, Beam, Voice, Curve, type Stave } from 'vexflow';
 import type { KeySignature } from '$lib/config/keys';
 import type { Clef } from '$lib/config/types';
 import type { MelodyItem } from '$lib/config/melody';
@@ -263,6 +263,38 @@ export function renderVexFlowStaff(
 
 		// Draw beams
 		beams.forEach((beam) => beam.setContext(context).draw());
+
+		// Draw slurs/curves
+		const curves: Curve[] = [];
+		let slurStartIndex = -1;
+		noteIndex = 0;
+
+		for (const bar of bars) {
+			for (const item of bar) {
+				if (item.slurStart) {
+					slurStartIndex = noteIndex;
+				}
+				if (item.slurEnd && slurStartIndex >= 0 && slurStartIndex < noteIndex) {
+					// Create a curve from slurStartIndex to noteIndex
+					const fromNote = allNotes[slurStartIndex];
+					const toNote = allNotes[noteIndex];
+					if (fromNote && toNote) {
+						const curve = new Curve(fromNote, toNote, {
+							cps: [
+								{ x: 0, y: 10 },
+								{ x: 0, y: 10 }
+							]
+						});
+						curves.push(curve);
+					}
+					slurStartIndex = -1;
+				}
+				noteIndex++;
+			}
+		}
+
+		// Draw all curves
+		curves.forEach((curve) => curve.setContext(context).draw());
 
 		// Extract note X and Y positions from rendered notes
 		for (const note of allNotes) {

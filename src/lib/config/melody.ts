@@ -2,7 +2,7 @@
 
 // 1 = sixteenth, 2 = eighth, 4 = quarter, 8 = half, 16 = whole
 export type SixteenthCount = number;
-export type NoteLength = 1 | 2 | 3 | 4 | 6 | 8 | 16;
+export type NoteLength = 1 | 2 | 3 | 4 | 6 | 8 | 12 | 16;
 export type RhythmTemplate = SixteenthCount[];
 export type ColourstringsString = 'Elephant' | 'Bear' | 'Dad' | 'Mom' | 'Bird';
 export interface MelodyItem {
@@ -11,6 +11,8 @@ export interface MelodyItem {
 	finger?: number; // optional fingering
 	string?: ColourstringsString; // optional string
 	position?: number; // optional position
+	slurStart?: boolean; // marks the start of a slur/legato
+	slurEnd?: boolean; // marks the end of a slur/legato
 }
 
 // Color map for Colorstrings

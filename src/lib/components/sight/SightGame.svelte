@@ -5,7 +5,7 @@
 	 */
 	import { onMount } from 'svelte';
 	import { type Mode } from '$lib/config/keys';
-	import type { InstrumentId } from '$lib/config/types';
+	import type { InstrumentId, Speed } from '$lib/config/types';
 	import type { MelodyItem } from '$lib/config/melody';
 	import { useSightGameLogic } from './useSightGameLogic.svelte';
 	import Staff from '$lib/components/music/Staff.svelte';
@@ -15,7 +15,6 @@
 	import { vexFlowToDisplay } from '$lib/util/noteConverter';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import TunerPanel from '$lib/components/tuner/TunerPanel.svelte';
-	import type { Speed } from '$lib/config/units';
 	import tempoSlowIcon from '$lib/assets/tempo-slow.svg';
 	import tempoMediumIcon from '$lib/assets/tempo-medium.svg';
 	import tempoFastIcon from '$lib/assets/tempo-fast.svg';
@@ -58,6 +57,15 @@
 
 	$effect(() => {
 		game.setSynthEnabled(synthMode !== 'mute');
+	});
+
+	// Initialize tempo from practiceTempi on mount
+	$effect(() => {
+		if (synthMode !== 'mute' && practiceTempi) {
+			const defaultTempi: { [key in Speed]: number } = { slow: 60, medium: 80, fast: 100 };
+			const tempo = practiceTempi[synthMode as Speed] ?? defaultTempi[synthMode as Speed];
+			game.updateSynthTempo(tempo);
+		}
 	});
 
 	// Track microphone state

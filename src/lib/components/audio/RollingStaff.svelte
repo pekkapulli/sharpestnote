@@ -1,6 +1,5 @@
 <script lang="ts">
-	import type { Piece, Speed } from '$lib/config/units';
-	import type { InstrumentId } from '$lib/config/types';
+	import type { InstrumentId, Piece, Speed } from '$lib/config/types';
 	import Staff from '$lib/components/music/Staff.svelte';
 	import { getKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
@@ -20,7 +19,7 @@
 	const clef = $derived(instrumentConfig?.clef ?? 'treble');
 
 	// Get the current track's tempo
-	const currentTempo = $derived(piece.tracks[selectedSpeed].tempo);
+	const currentTempo = $derived(piece.tracks?.[selectedSpeed].tempo ?? 100);
 
 	// Calculate transition duration based on tempo
 	// One sixteenth note = (60 / BPM) / 4 seconds

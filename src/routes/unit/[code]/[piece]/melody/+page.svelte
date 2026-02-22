@@ -45,6 +45,10 @@
 		completionCount = (storage as any)[gameKey] || 0;
 	});
 
+	function hasOnlyNullNotes(phrase: MelodyItem[]): boolean {
+		return phrase.every((item) => item.note === null);
+	}
+
 	function createNextMelody() {
 		const pool = piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? [];
 		if (pool.length === 0) {
@@ -53,8 +57,22 @@
 		}
 
 		console.log('[Melody Page] Creating melody at index:', melodyIndex);
-		// Get the current melody and advance to the next one
-		const phrase = pool[melodyIndex] ?? [];
+
+		// Find the next phrase with at least one non-null note
+		let phrase = pool[melodyIndex] ?? [];
+		let startIndex = melodyIndex;
+
+		while (hasOnlyNullNotes(phrase)) {
+			melodyIndex = (melodyIndex + 1) % pool.length;
+			phrase = pool[melodyIndex] ?? [];
+
+			// Prevent infinite loop if all phrases have only null notes
+			if (melodyIndex === startIndex) {
+				currentMelody = [];
+				return;
+			}
+		}
+
 		melodyIndex = (melodyIndex + 1) % pool.length;
 
 		// Deep copy to ensure reactivity when the same phrase repeats

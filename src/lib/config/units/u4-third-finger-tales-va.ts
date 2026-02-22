@@ -5,7 +5,8 @@ export default {
 		code: 'u4-third-finger-tales-va',
 		instrument: 'viola',
 		title: 'Third-Finger Tales for Viola',
-		description: 'Three animal-themed pieces for beginner violists practicing the third finger.',
+		description:
+			'Three animal-themed pieces for beginner violists practicing the third finger on the G string.',
 		photo: {
 			url: 'https://unsplash.com/@vincentvanzalinge',
 			credit: 'Vincent van Zalinge'

@@ -5,7 +5,8 @@ export default {
 		code: 'u4-third-finger-tales-v',
 		instrument: 'violin',
 		title: 'Third-Finger Tales for Violin',
-		description: 'Three animal-themed pieces for beginner violinists practicing the third finger.',
+		description:
+			'Three animal-themed pieces for beginner violinists practicing the third finger on the D string.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u4-third-finger-tales-violin',
 		photo: {
 			url: 'https://unsplash.com/@vincentvanzalinge',
