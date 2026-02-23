@@ -243,11 +243,56 @@ export function renderVexFlowStaff(
 		voice.setMode(Voice.Mode.SOFT);
 		voice.addTickables(allNotes);
 
-		// Automatically beam eighth notes and shorter
-		const beams = Beam.generateBeams(allNotes, {
-			flatBeams: false,
-			stemDirection: undefined // Auto-detect stem direction
-		});
+		// Create beams based on manual beam markers or auto-generate
+		const beams: Beam[] = [];
+		let hasManualBeams = false;
+
+		// Check if any notes have manual beam markers
+		const flatSequenceWithBeams = bars.flat();
+		for (const item of flatSequenceWithBeams) {
+			if (item.beamStart || item.beamEnd) {
+				hasManualBeams = true;
+				break;
+			}
+		}
+
+		if (hasManualBeams) {
+			// Use manual beaming
+			let beamStartIndex = -1;
+			noteIndex = 0;
+
+			for (const bar of bars) {
+				for (const item of bar) {
+					if (item.beamStart && item.note !== null) {
+						beamStartIndex = noteIndex;
+					}
+					if (
+						item.beamEnd &&
+						beamStartIndex >= 0 &&
+						beamStartIndex <= noteIndex &&
+						item.note !== null
+					) {
+						// Create a beam from beamStartIndex to noteIndex (inclusive)
+						const beamNotes = allNotes
+							.slice(beamStartIndex, noteIndex + 1)
+							.filter((n) => !n.isRest());
+						if (beamNotes.length > 1) {
+							beams.push(new Beam(beamNotes));
+						}
+						beamStartIndex = -1;
+					}
+					noteIndex++;
+				}
+			}
+		} else {
+			// Automatically beam eighth notes and shorter
+			beams.push(
+				...Beam.generateBeams(allNotes, {
+					flatBeams: false,
+					stemDirection: undefined // Auto-detect stem direction
+				})
+			);
+		}
 
 		// Format and draw with proportional spacing
 		const formatter = vf.Formatter();

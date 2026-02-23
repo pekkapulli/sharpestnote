@@ -46,6 +46,7 @@ export type MusicXmlParseResult = {
 	key: NoteName;
 	mode: Mode;
 	barLength: number;
+	tempo: number | null;
 	melody: MelodyItem[][];
 	scale: MelodyItem[];
 	warnings: string[];
@@ -93,8 +94,18 @@ export function parseMusicXmlToMelody(xmlText: string): MusicXmlParseResult {
 
 	let inferredKey: NoteName = 'C';
 	let inferredMode: Mode = 'major';
+	let inferredTempo: number | null = null;
 
 	const melody: MelodyItem[][] = [];
+
+	// Try to extract tempo from the first sound element with a tempo attribute
+	const soundElements = Array.from(doc.querySelectorAll('sound[tempo]'));
+	if (soundElements.length > 0) {
+		const tempoValue = Number(soundElements[0].getAttribute('tempo'));
+		if (Number.isFinite(tempoValue) && tempoValue > 0) {
+			inferredTempo = Math.round(tempoValue);
+		}
+	}
 
 	for (const measure of measures) {
 		const attributes = measure.querySelector('attributes');
@@ -159,6 +170,16 @@ export function parseMusicXmlToMelody(xmlText: string): MusicXmlParseResult {
 				else if (type === 'stop') slurEnd = true;
 			}
 
+			// Extract beam information (beam number="1" for primary beam)
+			const beams = Array.from(note.querySelectorAll('beam[number="1"]'));
+			let beamStart = false;
+			let beamEnd = false;
+			for (const beam of beams) {
+				const beamType = beam.textContent?.trim();
+				if (beamType === 'begin') beamStart = true;
+				else if (beamType === 'end') beamEnd = true;
+			}
+
 			const tieTypes = Array.from(note.querySelectorAll('tie'))
 				.map((tie) => tie.getAttribute('type'))
 				.filter((type): type is string => Boolean(type));
@@ -167,13 +188,21 @@ export function parseMusicXmlToMelody(xmlText: string): MusicXmlParseResult {
 			if (isTieStop && measureItems.length > 0) {
 				const last = measureItems.pop();
 				if (last && last.note === pitchNote) {
-					pushSplitNotes(measureItems, pitchNote, last.length + length, slurStart, slurEnd);
+					pushSplitNotes(
+						measureItems,
+						pitchNote,
+						last.length + length,
+						slurStart,
+						slurEnd,
+						beamStart,
+						beamEnd
+					);
 					continue;
 				}
 				if (last) measureItems.push(last);
 			}
 
-			pushSplitNotes(measureItems, pitchNote, length, slurStart, slurEnd);
+			pushSplitNotes(measureItems, pitchNote, length, slurStart, slurEnd, beamStart, beamEnd);
 		}
 
 		melody.push(measureItems);
@@ -203,6 +232,7 @@ export function parseMusicXmlToMelody(xmlText: string): MusicXmlParseResult {
 		arranger,
 		key: inferredKey,
 		mode: inferredMode,
+		tempo: inferredTempo,
 		barLength: Number.isFinite(barLength) && barLength > 0 ? barLength : 16,
 		melody: groupedMelody,
 		scale,
@@ -265,7 +295,9 @@ function pushSplitNotes(
 	note: string | null,
 	length: number,
 	slurStart = false,
-	slurEnd = false
+	slurEnd = false,
+	beamStart = false,
+	beamEnd = false
 ): void {
 	let remaining = length;
 	const noteItems: MelodyItem[] = [];
@@ -287,6 +319,8 @@ function pushSplitNotes(
 	if (noteItems.length > 0) {
 		if (slurStart) noteItems[0].slurStart = true;
 		if (slurEnd) noteItems[noteItems.length - 1].slurEnd = true;
+		if (beamStart) noteItems[0].beamStart = true;
+		if (beamEnd) noteItems[noteItems.length - 1].beamEnd = true;
 	}
 
 	target.push(...noteItems);

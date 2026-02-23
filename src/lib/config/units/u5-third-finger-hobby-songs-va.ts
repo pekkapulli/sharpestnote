@@ -20,8 +20,8 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 45,
-					medium: 60,
+					slow: 40,
+					medium: 50,
 					fast: 70
 				},
 				key: 'G',
@@ -32,6 +32,7 @@ export default {
 						{
 							note: 'b/3',
 							length: 2,
+							beamStart: true,
 							finger: 2
 						},
 						{
@@ -57,6 +58,7 @@ export default {
 						{
 							note: 'c/4',
 							length: 2,
+							beamEnd: true,
 							finger: 3
 						},
 						{
@@ -86,6 +88,7 @@ export default {
 						{
 							note: 'f#/4',
 							length: 2,
+							beamStart: true,
 							finger: 2
 						},
 						{
@@ -111,6 +114,7 @@ export default {
 						{
 							note: 'g/4',
 							length: 2,
+							beamEnd: true,
 							finger: 3
 						},
 						{
@@ -145,6 +149,7 @@ export default {
 						{
 							note: 'b/3',
 							length: 2,
+							beamStart: true,
 							finger: 2
 						},
 						{
@@ -170,6 +175,7 @@ export default {
 						{
 							note: 'c/4',
 							length: 2,
+							beamEnd: true,
 							finger: 3
 						},
 						{
@@ -192,6 +198,7 @@ export default {
 						{
 							note: 'f#/4',
 							length: 2,
+							beamStart: true,
 							finger: 2
 						},
 						{
@@ -217,6 +224,7 @@ export default {
 						{
 							note: 'g/4',
 							length: 2,
+							beamEnd: true,
 							finger: 3
 						},
 						{
@@ -316,11 +324,11 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 60,
+					slow: 50,
 					medium: 80,
 					fast: 100
 				},
-				key: 'G',
+				key: 'D',
 				mode: 'major',
 				barLength: 12,
 				melody: [
@@ -577,7 +585,7 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 60,
+					slow: 50,
 					medium: 80,
 					fast: 100
 				},

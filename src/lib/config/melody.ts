@@ -13,6 +13,8 @@ export interface MelodyItem {
 	position?: number; // optional position
 	slurStart?: boolean; // marks the start of a slur/legato
 	slurEnd?: boolean; // marks the end of a slur/legato
+	beamStart?: boolean; // marks the start of a manual beam group
+	beamEnd?: boolean; // marks the end of a manual beam group
 }
 
 // Color map for Colorstrings

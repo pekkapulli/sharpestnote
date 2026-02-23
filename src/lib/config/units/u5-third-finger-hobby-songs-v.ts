@@ -19,94 +19,315 @@ export default {
 				label: 'Happy Swinging',
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
-				notationStartPercent: 0.18,
-				notationEndPercent: 0.9,
-
-				key: 'D',
-				mode: 'major',
 				practiceTempi: {
-					slow: 50,
-					medium: 60,
+					slow: 40,
+					medium: 50,
 					fast: 70
 				},
-				scale: [
-					{ note: 'd/4', length: 4, finger: 0 },
-					{ note: 'f#/4', length: 4, finger: 2 },
-					{ note: 'g/4', length: 4, finger: 3 },
-					{ note: 'a/4', length: 4, finger: 0 },
-					{ note: 'c#/5', length: 4, finger: 2 },
-					{ note: 'd/5', length: 4, finger: 3 },
-					{ note: 'e/5', length: 4, finger: 0 }
-				],
+				key: 'D',
+				mode: 'major',
 				barLength: 12,
 				melody: [
 					[
-						{ note: 'f#/4', length: 2, finger: 2 },
-						{ note: 'g/4', length: 2, finger: 3 },
-						{ note: 'f#/4', length: 2, finger: 2 },
-						{ note: 'g/4', length: 2, finger: 3 },
-						{ note: 'f#/4', length: 2, finger: 2 },
-						{ note: 'g/4', length: 2, finger: 3 },
-						{ note: 'f#/4', length: 8, finger: 2 },
-						{ note: 'g/4', length: 4, finger: 3 }
+						{
+							note: 'f#/4',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						}
 					],
 					[
-						{ note: 'a/4', length: 12, finger: 0 },
-						{ note: 'a/4', length: 12, finger: 0 }
+						{
+							note: 'a/4',
+							length: 12,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 12,
+							finger: 0
+						}
 					],
 					[
-						{ note: 'c#/5', length: 2, finger: 2 },
-						{ note: 'd/5', length: 2, finger: 3 },
-						{ note: 'c#/5', length: 2, finger: 2 },
-						{ note: 'd/5', length: 2, finger: 3 },
-						{ note: 'c#/5', length: 2, finger: 2 },
-						{ note: 'd/5', length: 2, finger: 3 },
-						{ note: 'e/5', length: 4, finger: 0 },
-						{ note: 'd/5', length: 4, finger: 3 },
-						{ note: 'c#/5', length: 4, finger: 2 }
+						{
+							note: 'c#/5',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'c#/5',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'c#/5',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
+							note: 'e/5',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'd/5',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'c#/5',
+							length: 4,
+							finger: 2
+						}
 					],
 					[
-						{ note: 'a/4', length: 12, finger: 0 },
-						{ note: 'g/4', length: 12, finger: 3 }
+						{
+							note: 'a/4',
+							length: 12,
+							finger: 0
+						},
+						{
+							note: 'g/4',
+							length: 12,
+							finger: 3
+						}
 					],
 					[
-						{ note: 'f#/4', length: 2, finger: 2 },
-						{ note: 'g/4', length: 2, finger: 3 },
-						{ note: 'f#/4', length: 2, finger: 2 },
-						{ note: 'g/4', length: 2, finger: 3 },
-						{ note: 'f#/4', length: 2, finger: 2 },
-						{ note: 'a/4', length: 4, finger: 0 },
-						{ note: 'c#/5', length: 4, finger: 2 },
-						{ note: 'd/5', length: 4, finger: 3 }
+						{
+							note: 'f#/4',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'c#/5',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 4,
+							finger: 3
+						}
 					],
 					[
-						{ note: 'c#/5', length: 2, finger: 2 },
-						{ note: 'd/5', length: 2, finger: 3 },
-						{ note: 'c#/5', length: 2, finger: 2 },
-						{ note: 'd/5', length: 2, finger: 3 },
-						{ note: 'c#/5', length: 2, finger: 2 },
-						{ note: 'd/5', length: 2, finger: 3 },
-						{ note: 'e/5', length: 12, finger: 0 }
+						{
+							note: 'c#/5',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'c#/5',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 2,
+							finger: 3
+						},
+						{
+							note: 'c#/5',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'd/5',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
+							note: 'e/5',
+							length: 12,
+							finger: 0
+						}
 					],
 					[
-						{ note: 'd/5', length: 4, finger: 3 },
-						{ note: 'c#/5', length: 4, finger: 2 },
-						{ note: 'a/4', length: 4, finger: 0 },
-						{ note: 'g/4', length: 4, finger: 3 },
-						{ note: 'f#/4', length: 4, finger: 2 },
-						{ note: 'g/4', length: 4, finger: 3 }
+						{
+							note: 'd/5',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'c#/5',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						}
 					],
 					[
-						{ note: 'f#/4', length: 12, finger: 2 },
-						{ note: 'd/4', length: 12, finger: 0 }
+						{
+							note: 'f#/4',
+							length: 12,
+							finger: 2
+						},
+						{
+							note: 'd/4',
+							length: 12,
+							finger: 0
+						}
 					]
-				]
+				],
+				scale: [
+					{
+						note: 'd/4',
+						length: 4,
+						finger: 0
+					},
+					{
+						note: 'f#/4',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'g/4',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'a/4',
+						length: 4,
+						finger: 0
+					},
+					{
+						note: 'c#/5',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'd/5',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'e/5',
+						length: 4,
+						finger: 0
+					}
+				],
+				notationStartPercent: 0,
+				notationEndPercent: 1
 			},
 			{
 				code: 'painters',
 				label: 'Painters',
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
+				practiceTempi: {
+					slow: 50,
+					medium: 80,
+					fast: 100
+				},
 				key: 'D',
 				mode: 'major',
 				barLength: 12,
@@ -364,7 +585,7 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 60,
+					slow: 50,
 					medium: 80,
 					fast: 100
 				},
@@ -376,31 +597,37 @@ export default {
 						{
 							note: 'f#/4',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'a/4',
 							length: 6,
+							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'f#/4',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -413,31 +640,37 @@ export default {
 						{
 							note: 'f#/4',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'a/4',
 							length: 4,
+							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'g/4',
 							length: 4,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'f#/4',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/4',
 							length: 2,
+							slurEnd: true,
 							finger: 0
 						},
 						{
@@ -454,31 +687,37 @@ export default {
 						{
 							note: 'c#/5',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/5',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'e/5',
 							length: 6,
+							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'd/5',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'c#/5',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/5',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -491,21 +730,25 @@ export default {
 						{
 							note: 'c#/5',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/5',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'e/5',
 							length: 6,
+							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'd/5',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -523,41 +766,49 @@ export default {
 						{
 							note: 'f#/4',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'a/4',
 							length: 6,
+							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'f#/4',
 							length: 6,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
+							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'f#/4',
 							length: 4,
+							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 4,
+							slurEnd: true,
 							finger: 3
 						}
 					],
