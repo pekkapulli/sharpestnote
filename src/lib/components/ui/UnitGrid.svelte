@@ -38,7 +38,7 @@
 			<div class="mt-4 flex flex-wrap gap-2">
 				{#if unit.demo}
 					<LinkButton href={`${fileStore}/${unit.code}/${unit.demo}`} color="green" target="_blank">
-						Download demo PDF
+						Download Sheet Music
 					</LinkButton>
 					<LinkButton href={`/unit/${unit.code}`}>Play unit</LinkButton>
 				{:else if hasUnitAccess(unit)}
@@ -49,7 +49,7 @@
 				{/if}
 			</div>
 			{#if unit.demo}
-				<p class="mt-2 text-sm text-slate-600">No checkout needed.</p>
+				<p class="mt-2 text-sm text-slate-600">Free demo!</p>
 			{/if}
 		</article>
 	{/each}
