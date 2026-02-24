@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { requestPlay, clearCurrent } from '$lib/audio/globalAudioController';
-	import { fileStore, type Speed, type UnitMaterial } from '$lib/config/units';
+	import { fileStore } from '$lib/config/units';
+	import type { Speed, UnitMaterial } from '$lib/config/types';
 
 	interface Props {
 		unit: UnitMaterial;
@@ -18,21 +19,27 @@
 	};
 
 	const trackItems = $derived(
-		unit.pieces.map((piece) => {
+		unit.pieces.flatMap((piece) => {
+			if (!piece.tracks) return [];
+
 			const medium = piece.tracks.medium;
 			const [fallbackSpeed, fallbackTrack] =
 				(Object.entries(piece.tracks) as [Speed, { tempo: number; audioUrl: string }][])[0] ?? [];
 
 			const chosenTrack = medium ?? fallbackTrack;
+			if (!chosenTrack) return [];
+
 			const chosenSpeed: Speed = medium ? 'medium' : fallbackSpeed;
 
-			return {
-				id: `${piece.code}-${chosenSpeed}`,
-				pieceLabel: piece.label,
-				speed: chosenSpeed,
-				tempo: chosenTrack?.tempo ?? 0,
-				url: `${fileStore}/${unit.code}/${chosenTrack?.audioUrl ?? ''}`
-			};
+			return [
+				{
+					id: `${piece.code}-${chosenSpeed}`,
+					pieceLabel: piece.label,
+					speed: chosenSpeed,
+					tempo: chosenTrack.tempo,
+					url: `${fileStore}/${unit.code}/${chosenTrack.audioUrl}`
+				}
+			];
 		})
 	);
 

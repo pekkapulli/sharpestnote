@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fileStore, type UnitMaterial } from '$lib/config/units';
+	import type { UnitMaterial } from '$lib/config/types';
+	import { fileStore } from '$lib/config/units';
 	import { getImageUrl } from '$lib/util/getImageUrl';
 	import LinkButton from './LinkButton.svelte';
 	import UnitTrackList from './UnitTrackList.svelte';
@@ -39,7 +40,7 @@
 					<LinkButton href={`${fileStore}/${unit.code}/${unit.demo}`} color="green" target="_blank">
 						Download demo PDF
 					</LinkButton>
-					<LinkButton href={`/unit/${unit.code}`}>Open interactive preview</LinkButton>
+					<LinkButton href={`/unit/${unit.code}`}>Open preview</LinkButton>
 				{:else if hasUnitAccess(unit)}
 					<LinkButton href={`/unit/${unit.code}`} color="green">Play unit</LinkButton>
 				{:else}

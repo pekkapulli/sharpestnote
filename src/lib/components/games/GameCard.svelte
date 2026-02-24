@@ -6,6 +6,7 @@
 		description: string;
 		badgeText?: string | null;
 		ariaLabel?: string;
+		disabled?: boolean;
 	}
 
 	const {
@@ -14,20 +15,34 @@
 		title,
 		description,
 		badgeText = null,
-		ariaLabel = `${title} - ${description}`
+		ariaLabel = `${title} - ${description}`,
+		disabled = false
 	}: Props = $props();
 </script>
 
-<a class="game-card" {href} aria-label={ariaLabel}>
-	{#if badgeText}
-		<span class="game-card__badge">{badgeText}</span>
-	{/if}
-	<div class="game-card__content">
-		<img src={icon} alt="" class="game-card__icon" />
-		<span class="game-card__title">{title}</span>
-		<span class="game-card__description">{description}</span>
+{#if disabled}
+	<div class="game-card game-card--disabled" aria-label={ariaLabel} aria-disabled="true">
+		{#if badgeText}
+			<span class="game-card__badge">{badgeText}</span>
+		{/if}
+		<div class="game-card__content">
+			<img src={icon} alt="" class="game-card__icon" />
+			<span class="game-card__title">{title}</span>
+			<span class="game-card__description">{description}</span>
+		</div>
 	</div>
-</a>
+{:else}
+	<a class="game-card" {href} aria-label={ariaLabel}>
+		{#if badgeText}
+			<span class="game-card__badge">{badgeText}</span>
+		{/if}
+		<div class="game-card__content">
+			<img src={icon} alt="" class="game-card__icon" />
+			<span class="game-card__title">{title}</span>
+			<span class="game-card__description">{description}</span>
+		</div>
+	</a>
+{/if}
 
 <style>
 	.game-card {
@@ -54,6 +69,18 @@
 		transform: translateY(-2px);
 		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 		background: rgb(248 250 252);
+	}
+
+	.game-card--disabled {
+		opacity: 0.45;
+		filter: grayscale(0.35);
+		cursor: not-allowed;
+	}
+
+	.game-card--disabled:hover {
+		transform: none;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+		background: white;
 	}
 
 	.game-card__content {

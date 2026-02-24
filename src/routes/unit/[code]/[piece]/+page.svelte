@@ -1,4 +1,5 @@
 <script lang="ts">
+	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import melodyIcon from '$lib/assets/melody_icon.png';
@@ -18,6 +19,7 @@
 	let hasKeyAccess = $state(false);
 	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
 	let badgeTexts = $state<Record<string, string | undefined>>({});
+	let showSuccessMessage = $state(false);
 
 	const gameCards = [
 		{
@@ -32,7 +34,7 @@
 			title: 'Blocks',
 			description: 'Practice random phrases',
 			icon: blocksIcon,
-			requiresAccess: false
+			requiresAccess: true
 		},
 		{
 			slug: 'scales',
@@ -58,7 +60,12 @@
 	];
 
 	const visibleGameCards = $derived(
-		gameCards.filter((game) => (game.requiresAccess ? hasKeyAccess : true))
+		gameCards
+			.map((game) => ({
+				...game,
+				locked: game.requiresAccess && !hasKeyAccess
+			}))
+			.sort((a, b) => Number(a.locked) - Number(b.locked))
 	);
 
 	const sharePreviewData = $derived({
@@ -91,6 +98,11 @@
 			defend: highScore > 0 ? `${highScore} pts` : undefined
 		};
 	});
+
+	function handleKeySuccess() {
+		hasKeyAccess = true;
+		showSuccessMessage = true;
+	}
 </script>
 
 <SharePreview data={sharePreviewData} />
@@ -101,7 +113,20 @@
 			<h1 class="text-3xl font-semibold text-slate-900">{piece.label}</h1>
 			<p class="mb-8">From {unit.title}</p>
 
-			<section class="mb-8">
+			{#if showSuccessMessage}
+				<div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+					<p class="text-sm font-semibold text-emerald-800">✓ Access unlocked!</p>
+					<p class="mt-1 text-sm text-emerald-700">
+						You can now access all the content for this unit.
+					</p>
+				</div>
+			{/if}
+
+			{#if !hasKeyAccess}
+				<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
+			{/if}
+
+			<section class="mt-16 mb-8">
 				<div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-8 shadow-sm">
 					<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 						<div class="space-y-3">
@@ -154,15 +179,6 @@
 				{/if}
 			</nav>
 
-			{#if !hasKeyAccess}
-				<section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-					<p class="text-sm text-slate-700">Get the full pack to unlock more games and features.</p>
-					<div class="mt-3">
-						<LinkButton href={sheetMusicCta} size="small">Buy the sheet music</LinkButton>
-					</div>
-				</section>
-			{/if}
-
 			<section class="mt-8">
 				<h3 class="text-sm font-semibold text-slate-800">Learn through games</h3>
 				<GameCardGrid>
@@ -173,6 +189,7 @@
 							title={game.title}
 							description={game.description}
 							badgeText={badgeTexts[game.slug]}
+							disabled={game.locked}
 						/>
 					{/each}
 				</GameCardGrid>

@@ -84,6 +84,6 @@
 		pack.
 	</p>
 	<div>
-		<LinkButton size="medium" href={purchaseUrl} color="green">Get the sheet music pack</LinkButton>
+		<LinkButton size="medium" href={purchaseUrl} color="green">Get the sheet music</LinkButton>
 	</div>
 </section>
