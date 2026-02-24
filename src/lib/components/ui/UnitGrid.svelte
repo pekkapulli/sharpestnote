@@ -40,7 +40,7 @@
 					<LinkButton href={`${fileStore}/${unit.code}/${unit.demo}`} color="green" target="_blank">
 						Download demo PDF
 					</LinkButton>
-					<LinkButton href={`/unit/${unit.code}`}>Open preview</LinkButton>
+					<LinkButton href={`/unit/${unit.code}`}>Play unit</LinkButton>
 				{:else if hasUnitAccess(unit)}
 					<LinkButton href={`/unit/${unit.code}`} color="green">Play unit</LinkButton>
 				{:else}
