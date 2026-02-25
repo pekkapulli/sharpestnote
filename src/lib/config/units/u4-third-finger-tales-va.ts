@@ -24,6 +24,23 @@ export default {
 					medium: 50,
 					fast: 70
 				},
+				tracks: {
+					slow: {
+						tempo: 60,
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle-Viola-60BPM-Backing+track.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle-Viola-60BPM-Full+track.mp3'
+					},
+					medium: {
+						tempo: 75,
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle-Viola-75BPM-Backing+track.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle-Viola-75BPM-Full+track.mp3'
+					},
+					fast: {
+						tempo: 90,
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle-Viola-90BPM-Backing+track.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle-Viola-90BPM-Full+track.mp3'
+					}
+				},
 				key: 'G',
 				mode: 'major',
 				barLength: 16,
