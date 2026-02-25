@@ -281,289 +281,6 @@ export default {
 				]
 			},
 			{
-				code: 'fluffy',
-				label: 'Fluffy',
-				composer: 'Tarmo Anttila',
-				arranger: 'Tarmo Anttila',
-				practiceTempi: {
-					slow: 40,
-					medium: 50,
-					fast: 70
-				},
-				key: 'D',
-				mode: 'major',
-				barLength: 16,
-				melody: [
-					[
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'd/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						}
-					],
-					[
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 8,
-							finger: 2
-						}
-					],
-					[
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'd/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						}
-					],
-					[
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 8,
-							finger: 2
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						}
-					],
-					[
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 8,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
-						}
-					],
-					[
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						}
-					],
-					[
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 8,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
-						}
-					],
-					[
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						}
-					],
-					[
-						{
-							note: 'g/4',
-							length: 16,
-							finger: 3
-						}
-					]
-				],
-				scale: [
-					{
-						note: 'd/4',
-						length: 4,
-						finger: 0
-					},
-					{
-						note: 'f#/4',
-						length: 4,
-						finger: 2
-					},
-					{
-						note: 'g/4',
-						length: 4,
-						finger: 3
-					},
-					{
-						note: 'a/4',
-						length: 4,
-						finger: 0
-					}
-				],
-				notationStartPercent: 0,
-				notationEndPercent: 1
-			},
-			{
 				code: 'simo-the-greedy-squirrel',
 				label: 'Simo the Greedy Squirrel',
 				composer: 'Tarmo Anttila',
@@ -572,6 +289,23 @@ export default {
 					slow: 40,
 					medium: 50,
 					fast: 70
+				},
+				tracks: {
+					slow: {
+						tempo: 40,
+						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel-Violin-40BPM-Backing+track.mp3',
+						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel-Violin-40BPM-Full+track.mp3'
+					},
+					medium: {
+						tempo: 55,
+						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel-Violin-55BPM-Backing+track.mp3',
+						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel-Violin-55BPM-Full+track.mp3'
+					},
+					fast: {
+						tempo: 70,
+						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel-Violin-70BPM-Backing+track.mp3',
+						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel-Violin-70BPM-Full+track.mp3'
+					}
 				},
 				key: 'D',
 				mode: 'major',
@@ -916,8 +650,291 @@ export default {
 						finger: 0
 					}
 				],
-				notationStartPercent: 0.09,
-				notationEndPercent: 0.86
+				notationStartPercent: 0.115,
+				notationEndPercent: 0.85
+			},
+			{
+				code: 'fluffy',
+				label: 'Fluffy',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				practiceTempi: {
+					slow: 40,
+					medium: 50,
+					fast: 70
+				},
+				key: 'D',
+				mode: 'major',
+				barLength: 16,
+				melody: [
+					[
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						}
+					],
+					[
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'g/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'g/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 8,
+							finger: 2
+						}
+					],
+					[
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						}
+					],
+					[
+						{
+							note: 'g/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						}
+					],
+					[
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 8,
+							finger: 3
+						}
+					],
+					[
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						}
+					],
+					[
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 8,
+							finger: 3
+						}
+					],
+					[
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						}
+					],
+					[
+						{
+							note: 'g/4',
+							length: 16,
+							finger: 3
+						}
+					]
+				],
+				scale: [
+					{
+						note: 'd/4',
+						length: 4,
+						finger: 0
+					},
+					{
+						note: 'f#/4',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'g/4',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'a/4',
+						length: 4,
+						finger: 0
+					}
+				],
+				notationStartPercent: 0,
+				notationEndPercent: 1
 			}
 		]
 	}
