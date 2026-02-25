@@ -41,6 +41,8 @@ export default {
 						audioUrl: 'U4-1-The-Lazy-Turtle-Viola-90BPM-Full+track.mp3'
 					}
 				},
+				notationStartPercent: 0.09,
+				notationEndPercent: 0.905,
 				key: 'G',
 				mode: 'major',
 				barLength: 16,
@@ -276,9 +278,7 @@ export default {
 						length: 4,
 						finger: 0
 					}
-				],
-				notationStartPercent: 0,
-				notationEndPercent: 1
+				]
 			},
 			{
 				code: 'simo-the-greedy-squirrel',
