@@ -20,9 +20,9 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 40,
-					medium: 50,
-					fast: 70
+					slow: 60,
+					medium: 75,
+					fast: 90
 				},
 				tracks: {
 					slow: {
