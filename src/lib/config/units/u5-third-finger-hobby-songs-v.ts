@@ -21,8 +21,8 @@ export default {
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
 					slow: 40,
-					medium: 50,
-					fast: 70
+					medium: 60,
+					fast: 80
 				},
 				key: 'D',
 				mode: 'major',
@@ -118,9 +118,9 @@ export default {
 							finger: 3
 						},
 						{
-							note: 'e/5',
+							note: 'c#/5',
 							length: 4,
-							finger: 0
+							finger: 2
 						},
 						{
 							note: 'd/5',
@@ -140,9 +140,9 @@ export default {
 							finger: 0
 						},
 						{
-							note: 'g/4',
+							note: 'a/4',
 							length: 12,
-							finger: 3
+							finger: 0
 						}
 					],
 					[
@@ -228,9 +228,9 @@ export default {
 							finger: 3
 						},
 						{
-							note: 'e/5',
+							note: 'c#/5',
 							length: 12,
-							finger: 0
+							finger: 2
 						}
 					],
 					[
@@ -245,9 +245,9 @@ export default {
 							finger: 2
 						},
 						{
-							note: 'a/4',
+							note: 'd/5',
 							length: 4,
-							finger: 0
+							finger: 3
 						},
 						{
 							note: 'g/4',
@@ -267,9 +267,9 @@ export default {
 					],
 					[
 						{
-							note: 'f#/4',
+							note: 'd/4',
 							length: 12,
-							finger: 2
+							finger: 0
 						},
 						{
 							note: 'd/4',
@@ -308,11 +308,6 @@ export default {
 						note: 'd/5',
 						length: 4,
 						finger: 3
-					},
-					{
-						note: 'e/5',
-						length: 4,
-						finger: 0
 					}
 				],
 				notationStartPercent: 0,
@@ -507,13 +502,8 @@ export default {
 						},
 						{
 							note: 'a/4',
-							length: 4,
+							length: 8,
 							finger: 0
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							finger: 3
 						},
 						{
 							note: 'a/4',
@@ -523,24 +513,14 @@ export default {
 					],
 					[
 						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'd/5',
+							note: 'd/4',
 							length: 12,
-							finger: 3
+							finger: 0
+						},
+						{
+							note: 'd/4',
+							length: 12,
+							finger: 0
 						}
 					]
 				],
@@ -597,25 +577,21 @@ export default {
 						{
 							note: 'f#/4',
 							length: 6,
-							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'a/4',
 							length: 6,
-							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'g/4',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -640,37 +616,31 @@ export default {
 						{
 							note: 'f#/4',
 							length: 6,
-							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'a/4',
 							length: 4,
-							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'g/4',
 							length: 4,
-							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'f#/4',
 							length: 6,
-							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/4',
 							length: 2,
-							slurEnd: true,
 							finger: 0
 						},
 						{
@@ -687,25 +657,21 @@ export default {
 						{
 							note: 'c#/5',
 							length: 6,
-							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/5',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'e/5',
 							length: 6,
-							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'd/5',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -730,25 +696,21 @@ export default {
 						{
 							note: 'c#/5',
 							length: 6,
-							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'd/5',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'e/5',
 							length: 6,
-							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'd/5',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -766,25 +728,21 @@ export default {
 						{
 							note: 'f#/4',
 							length: 6,
-							slurStart: true,
 							finger: 2
 						},
 						{
 							note: 'g/4',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
 							note: 'a/4',
 							length: 6,
-							slurStart: true,
 							finger: 0
 						},
 						{
 							note: 'g/4',
 							length: 2,
-							slurEnd: true,
 							finger: 3
 						},
 						{
@@ -801,15 +759,8 @@ export default {
 						},
 						{
 							note: 'f#/4',
-							length: 4,
-							slurStart: true,
+							length: 8,
 							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 4,
-							slurEnd: true,
-							finger: 3
 						}
 					],
 					[
