@@ -7,15 +7,25 @@
 		size?: 'small' | 'medium' | 'large';
 		color?: 'blue' | 'green';
 		target?: string;
+		fullWidth?: boolean;
 	}
 
-	const { href, children, size = 'small', color = 'blue', target }: Props = $props();
+	const {
+		href,
+		children,
+		size = 'small',
+		color = 'blue',
+		target,
+		fullWidth = false
+	}: Props = $props();
 </script>
 
 <a
 	{href}
 	{target}
-	class="{size} {color} inline-block rounded-lg px-3 text-sm font-semibold text-off-white transition hover:-translate-y-px hover:shadow"
+	class="{size} {color} {fullWidth
+		? 'block'
+		: 'inline-block'} rounded-lg px-3 text-sm font-semibold text-off-white transition hover:-translate-y-px hover:shadow"
 >
 	{@render children()}
 </a>
@@ -24,6 +34,11 @@
 	a {
 		text-decoration: none;
 		color: var(--color-off-white);
+	}
+
+	a.block {
+		width: 100%;
+		text-align: center;
 	}
 
 	a.large {

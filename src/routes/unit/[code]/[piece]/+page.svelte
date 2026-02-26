@@ -133,7 +133,7 @@
 							<p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
 								Guided practice
 							</p>
-							<h2 class="text-2xl font-semibold text-slate-900">Teach me this piece</h2>
+							<h2 class="text-2xl font-semibold text-slate-900">Teach me {piece.label}</h2>
 							<p class="text-sm text-slate-700">
 								Start with the scale, then move into the piece with short, guided steps.
 							</p>

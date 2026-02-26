@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AudioTrackPlayer from '$lib/components/ui/AudioTrackPlayer.svelte';
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import { fileStore } from '$lib/config/units';
@@ -94,11 +95,25 @@
 			<h3 class="text-sm font-semibold text-slate-800">Play the Pieces</h3>
 			<div class="piece-grid">
 				{#each unit.pieces as piece (piece.code)}
-					<a href={`/unit/${code}/${piece.code}`} class="piece-card">
-						<div class="piece-card__content">
-							<span class="text-xl font-semibold text-slate-900">{piece.label}</span>
+					<div class="piece-card">
+						<span class="text-xl font-semibold text-slate-900">{piece.label}</span>
+						<div class="piece-card__actions">
+							{#if piece.tracks?.fast}
+								<AudioTrackPlayer
+									id={`${piece.code}-fast`}
+									label="Preview"
+									url={`${fileStore}/${unit.code}/${piece.tracks.fast.audioUrl}`}
+									class="piece-card__player"
+								/>
+							{/if}
+							<LinkButton
+								href={`/unit/${code}/${piece.code}`}
+								color="green"
+								size="large"
+								fullWidth={true}>Learn this</LinkButton
+							>
 						</div>
-					</a>
+					</div>
 				{/each}
 			</div>
 		</section>
@@ -179,14 +194,14 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
+		justify-content: space-between;
 		text-align: center;
 		border-radius: 0.75rem;
 		background: white;
 		border: 1px solid rgb(226 232 240);
 		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-		padding: 1rem 2rem;
-		text-decoration: none;
+		padding: 1rem 1.25rem;
+		gap: 0.75rem;
 		transition:
 			transform 150ms ease,
 			box-shadow 150ms ease,
@@ -197,11 +212,11 @@
 		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 		background: rgb(248 250 252);
 	}
-	.piece-card__content {
+	.piece-card__actions {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		text-align: center;
+		gap: 0.5rem;
+		width: 100%;
 	}
 </style>

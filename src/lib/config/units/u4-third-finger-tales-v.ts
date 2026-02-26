@@ -42,7 +42,7 @@ export default {
 					}
 				},
 				notationStartPercent: 0.125,
-				notationEndPercent: 0.855,
+				notationEndPercent: 0.815,
 				key: 'D',
 				mode: 'major',
 				barLength: 16,
@@ -568,8 +568,8 @@ export default {
 						finger: 0
 					}
 				],
-				notationStartPercent: 0.115,
-				notationEndPercent: 0.85
+				notationStartPercent: 0.12,
+				notationEndPercent: 0.875
 			},
 			{
 				code: 'fluffy',
