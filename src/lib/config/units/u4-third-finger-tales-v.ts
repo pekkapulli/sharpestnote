@@ -868,8 +868,8 @@ export default {
 						finger: 0
 					}
 				],
-				notationStartPercent: 0,
-				notationEndPercent: 1
+				notationStartPercent: 0.1,
+				notationEndPercent: 0.95
 			}
 		]
 	}
