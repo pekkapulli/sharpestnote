@@ -27,18 +27,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 60,
-						backingTrackUrl: 'U4-1-The-Lazy-Turtle-Violin-60BPM-Backing+track.mp3',
-						audioUrl: 'U4-1-The-Lazy-Turtle-Violin-60BPM-Full+track.mp3'
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle+60BPM+Violin+Backing+track.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle+60BPM+Violin+Full+track.mp3'
 					},
 					medium: {
 						tempo: 75,
-						backingTrackUrl: 'U4-1-The-Lazy-Turtle-Violin-75BPM-Backing+track.mp3',
-						audioUrl: 'U4-1-The-Lazy-Turtle-Violin-75BPM-Full+track.mp3'
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle+75BPM+Violin+Backing+track.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle+75BPM+Violin+Full+track.mp3'
 					},
 					fast: {
 						tempo: 90,
-						backingTrackUrl: 'U4-1-The-Lazy-Turtle-Violin-90BPM-Backing+track.mp3',
-						audioUrl: 'U4-1-The-Lazy-Turtle-Violin-90BPM-Full+track.mp3'
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle+90BPM+Violin+Backing+track.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle+90BPM+Violin+Full+track.mp3'
 					}
 				},
 				notationStartPercent: 0.125,
