@@ -41,8 +41,8 @@ export default {
 						audioUrl: 'U4-1-The-Lazy-Turtle-Viola-90BPM-Full+track.mp3'
 					}
 				},
-				notationStartPercent: 0.09,
-				notationEndPercent: 0.905,
+				notationStartPercent: 0.125,
+				notationEndPercent: 0.855,
 				key: 'G',
 				mode: 'major',
 				barLength: 16,
@@ -143,76 +143,6 @@ export default {
 						},
 						{
 							note: 'b/3',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'b/3',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: null,
-							length: 8
-						}
-					],
-					[
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'b/3',
-							length: 8,
-							finger: 2
-						},
-						{
-							note: 'b/3',
-							length: 8,
-							finger: 2
-						}
-					],
-					[
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'b/3',
-							length: 8,
-							finger: 2
-						},
-						{
-							note: 'b/3',
-							length: 8,
-							finger: 2
-						}
-					],
-					[
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
-						{
-							note: 'b/3',
 							length: 8,
 							finger: 2
 						},
@@ -223,16 +153,6 @@ export default {
 						}
 					],
 					[
-						{
-							note: 'b/3',
-							length: 8,
-							finger: 2
-						},
-						{
-							note: 'c/4',
-							length: 8,
-							finger: 3
-						},
 						{
 							note: 'd/4',
 							length: 8,
@@ -242,9 +162,7 @@ export default {
 							note: 'a/4',
 							length: 8,
 							finger: 0
-						}
-					],
-					[
+						},
 						{
 							note: 'a/4',
 							length: 16,
