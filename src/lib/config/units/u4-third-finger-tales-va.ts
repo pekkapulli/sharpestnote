@@ -584,18 +584,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 40,
-						backingTrackUrl: 'U4-3-Fluffy-Viola-40BPM+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy-Viola-40BPM+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+40BPM+Viola+Backing+track.mp3',
+						audioUrl: 'U4-3-Fluffy+40BPM+Viola+Full+track.mp3'
 					},
 					medium: {
 						tempo: 55,
-						backingTrackUrl: 'U4-3-Fluffy-Viola-55BPM+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy-Viola-55BPM+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+55BPM+Viola+Backing+track.mp3',
+						audioUrl: 'U4-3-Fluffy+55BPM+Viola+Full+track.mp3'
 					},
 					fast: {
 						tempo: 70,
-						backingTrackUrl: 'U4-3-Fluffy-Viola-70BPM+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy-Viola-70BPM+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+70BPM+Viola+Backing+track.mp3',
+						audioUrl: 'U4-3-Fluffy+70BPM+Viola+Full+track.mp3'
 					}
 				},
 				key: 'G',

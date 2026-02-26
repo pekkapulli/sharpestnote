@@ -584,18 +584,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 40,
-						backingTrackUrl: 'U4-3-Fluffy-Violin-40BPM+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy-Violin-40BPM+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+40BPM+Violin+Backing+track.mp3',
+						audioUrl: 'U4-3-Fluffy+40BPM+Violin+Full+track.mp3'
 					},
 					medium: {
 						tempo: 55,
-						backingTrackUrl: 'U4-3-Fluffy-Violin-55BPM+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy-Violin-55BPM+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+55BPM+Violin+Backing+track.mp3',
+						audioUrl: 'U4-3-Fluffy+55BPM+Violin+Full+track.mp3'
 					},
 					fast: {
 						tempo: 70,
-						backingTrackUrl: 'U4-3-Fluffy-Violin-70BPM+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy-Violin-70BPM+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+70BPM+Violin+Backing+track.mp3',
+						audioUrl: 'U4-3-Fluffy+70BPM+Violin+Full+track.mp3'
 					}
 				},
 				key: 'D',
