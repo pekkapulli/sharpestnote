@@ -22,14 +22,14 @@
 		unit.pieces.flatMap((piece) => {
 			if (!piece.tracks) return [];
 
-			const medium = piece.tracks.medium;
+			const fast = piece.tracks.fast;
 			const [fallbackSpeed, fallbackTrack] =
 				(Object.entries(piece.tracks) as [Speed, { tempo: number; audioUrl: string }][])[0] ?? [];
 
-			const chosenTrack = medium ?? fallbackTrack;
+			const chosenTrack = fast ?? fallbackTrack;
 			if (!chosenTrack) return [];
 
-			const chosenSpeed: Speed = medium ? 'medium' : fallbackSpeed;
+			const chosenSpeed: Speed = fast ? 'fast' : fallbackSpeed;
 
 			return [
 				{
