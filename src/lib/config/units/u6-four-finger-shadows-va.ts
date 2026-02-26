@@ -1,16 +1,16 @@
 import type { Units } from '../types';
 
 export default {
-	'u6-four-finger-spooks-v': {
-		code: 'u6-four-finger-spooks-v',
-		instrument: 'violin',
-		title: 'Four-Finger Spooks for Violin',
-		description: 'Three spooky-themed pieces for beginner violinists practicing the fourth finger.',
-		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u6-four-finger-spooks-violin',
+	'u6-four-finger-shadows-va': {
+		code: 'u6-four-finger-shadows-va',
+		instrument: 'viola',
+		title: 'Four-Finger Shadows for Viola',
+		description: 'Three spooky-themed pieces for beginner violists practicing the fourth finger.',
 		photo: {
 			url: 'https://unsplash.com/@cnbrightskies',
 			credit: 'Carlos Nunez'
 		},
+		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u6-four-finger-shadows-viola',
 		published: false,
 		pieces: [
 			{
@@ -23,55 +23,55 @@ export default {
 					medium: 90,
 					fast: 120
 				},
-				key: 'G',
+				key: 'C',
 				mode: 'major',
 				barLength: 16,
 				melody: [
 					[
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 4,
 							slurStart: true,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 4,
 							slurStart: true,
 							finger: 3
 						},
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 4,
 							slurEnd: true,
 							finger: 0
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 4,
 							slurStart: true,
 							finger: 3
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 4,
 							slurStart: true,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
@@ -79,17 +79,17 @@ export default {
 					],
 					[
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 8,
 							finger: 2
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
@@ -100,49 +100,49 @@ export default {
 					],
 					[
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 4,
 							slurStart: true,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 4,
 							slurStart: true,
 							finger: 3
 						},
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 4,
 							slurEnd: true,
 							finger: 0
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 4,
 							slurStart: true,
 							finger: 3
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 4,
 							slurStart: true,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
@@ -150,17 +150,17 @@ export default {
 					],
 					[
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 8,
 							finger: 2
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
@@ -181,49 +181,49 @@ export default {
 					],
 					[
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 4,
 							slurStart: true,
 							finger: 0
 						},
 						{
-							note: 'b/4',
+							note: 'e/4',
 							length: 4,
 							slurEnd: true,
 							finger: 1
 						},
 						{
-							note: 'c#/5',
+							note: 'gb/4',
 							length: 4,
 							slurStart: true,
 							finger: 2
 						},
 						{
-							note: 'd/5',
+							note: 'g/4',
 							length: 4,
 							slurEnd: true,
 							finger: 3
 						},
 						{
-							note: 'c#/5',
+							note: 'gb/4',
 							length: 4,
 							slurStart: true,
 							finger: 2
 						},
 						{
-							note: 'b/4',
+							note: 'e/4',
 							length: 4,
 							slurEnd: true,
 							finger: 1
 						},
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 4,
 							slurStart: true,
 							finger: 0
 						},
 						{
-							note: 'b/4',
+							note: 'e/4',
 							length: 4,
 							slurEnd: true,
 							finger: 1
@@ -231,17 +231,17 @@ export default {
 					],
 					[
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 8,
 							finger: 0
 						},
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 8,
 							finger: 0
 						},
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 8,
 							finger: 0
 						},
@@ -252,49 +252,49 @@ export default {
 					],
 					[
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 4,
 							slurStart: true,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 4,
 							slurStart: true,
 							finger: 3
 						},
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 4,
 							slurEnd: true,
 							finger: 0
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 4,
 							slurStart: true,
 							finger: 3
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 4,
 							slurStart: true,
 							finger: 1
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 4,
 							slurEnd: true,
 							finger: 2
@@ -302,17 +302,17 @@ export default {
 					],
 					[
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 8,
 							finger: 1
 						},
@@ -324,37 +324,37 @@ export default {
 				],
 				scale: [
 					{
+						note: 'a/3',
+						length: 4,
+						finger: 1
+					},
+					{
+						note: 'b/3',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'c/4',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'd/4',
+						length: 4,
+						finger: 0
+					},
+					{
 						note: 'e/4',
 						length: 4,
 						finger: 1
 					},
 					{
-						note: 'f#/4',
+						note: 'gb/4',
 						length: 4,
 						finger: 2
 					},
 					{
 						note: 'g/4',
-						length: 4,
-						finger: 3
-					},
-					{
-						note: 'a/4',
-						length: 4,
-						finger: 0
-					},
-					{
-						note: 'b/4',
-						length: 4,
-						finger: 1
-					},
-					{
-						note: 'c#/5',
-						length: 4,
-						finger: 2
-					},
-					{
-						note: 'd/5',
 						length: 4,
 						finger: 3
 					}
@@ -372,20 +372,42 @@ export default {
 					medium: 50,
 					fast: 70
 				},
-				key: 'D',
+				key: 'G',
 				mode: 'major',
 				barLength: 16,
 				melody: [
 					[
 						{
-							note: 'd/4',
+							note: 'g/3',
 							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/3',
+							length: 2,
+							beamStart: true,
+							finger: 1
+						},
+						{
+							note: 'b/3',
+							length: 2,
+							beamEnd: true,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 2,
+							beamStart: true,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 2,
 							finger: 0
 						},
 						{
 							note: 'e/4',
 							length: 2,
-							beamStart: true,
 							finger: 1
 						},
 						{
@@ -395,46 +417,109 @@ export default {
 							finger: 2
 						},
 						{
+							note: 'f#/4',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
 							note: 'g/4',
 							length: 2,
-							beamStart: true,
-							finger: 3
-						},
-						{
-							note: 'a/4',
-							length: 2,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 2,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
-							length: 2,
-							beamEnd: true,
-							finger: 2
-						},
-						{
-							note: 'c#/5',
-							length: 2,
-							beamStart: true,
-							finger: 2
-						},
-						{
-							note: 'd/5',
-							length: 2,
 							beamEnd: true,
 							finger: 3
 						},
 						{
-							note: 'b/4',
+							note: 'e/4',
 							length: 8,
 							finger: 1
 						},
 						{
-							note: 'c#/5',
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						}
+					],
+					[
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'g/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'c/4',
+							length: 8,
+							finger: 3
+						}
+					],
+					[
+						{
+							note: 'g/3',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/3',
+							length: 2,
+							beamStart: true,
+							finger: 1
+						},
+						{
+							note: 'b/3',
+							length: 2,
+							beamEnd: true,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 2,
+							beamStart: true,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 2,
+							finger: 0
+						},
+						{
+							note: 'e/4',
+							length: 2,
+							finger: 1
+						},
+						{
+							note: 'f#/4',
+							length: 2,
+							beamEnd: true,
+							finger: 2
+						},
+						{
+							note: 'f#/4',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
+							note: 'e/4',
+							length: 8,
+							finger: 1
+						},
+						{
+							note: 'f#/4',
 							length: 4,
 							finger: 2
 						}
@@ -446,189 +531,24 @@ export default {
 							finger: 0
 						},
 						{
-							note: 'd/5',
-							length: 8,
-							finger: 3
+							note: 'f#/4',
+							length: 4,
+							finger: 2
 						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
-						}
-					],
-					[
 						{
 							note: 'd/4',
 							length: 4,
 							finger: 0
 						},
 						{
-							note: 'e/4',
-							length: 2,
-							beamStart: true,
-							finger: 1
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamEnd: true,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 2,
-							beamStart: true,
-							finger: 3
-						},
-						{
-							note: 'a/4',
-							length: 2,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 2,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
-							length: 2,
-							beamEnd: true,
-							finger: 2
-						},
-						{
-							note: 'c#/5',
-							length: 2,
-							beamStart: true,
-							finger: 2
-						},
-						{
-							note: 'd/5',
-							length: 2,
-							beamEnd: true,
-							finger: 3
-						},
-						{
-							note: 'b/4',
-							length: 8,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						}
-					],
-					[
-						{
-							note: 'e/5',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 8,
-							finger: 1
-						}
-					],
-					[
-						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'b/4',
-							length: 2,
-							beamStart: true,
-							finger: 1
-						},
-						{
-							note: 'g/4',
-							length: 2,
-							beamEnd: true,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamStart: true,
-							finger: 2
-						},
-						{
-							note: 'e/4',
-							length: 2,
-							finger: 1
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 2,
-							beamEnd: true,
-							finger: 3
-						},
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'g/4',
-							length: 2,
-							beamStart: true,
-							finger: 3
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamEnd: true,
-							finger: 2
-						},
-						{
-							note: 'e/4',
-							length: 2,
-							beamStart: true,
-							finger: 1
-						},
-						{
 							note: 'd/4',
-							length: 2,
+							length: 8,
 							finger: 0
 						},
 						{
 							note: 'e/4',
-							length: 2,
+							length: 8,
 							finger: 1
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamEnd: true,
-							finger: 2
 						}
 					],
 					[
@@ -638,52 +558,152 @@ export default {
 							finger: 3
 						},
 						{
-							note: 'a/4',
+							note: 'e/4',
 							length: 2,
 							beamStart: true,
-							finger: 0
+							finger: 1
 						},
 						{
-							note: 'g/4',
+							note: 'c/4',
 							length: 2,
 							beamEnd: true,
 							finger: 3
 						},
 						{
-							note: 'f#/4',
+							note: 'b/3',
 							length: 2,
 							beamStart: true,
 							finger: 2
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
 							length: 2,
 							finger: 1
 						},
 						{
+							note: 'b/3',
+							length: 2,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
 							note: 'd/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'c/4',
+							length: 2,
+							beamStart: true,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 2,
+							beamEnd: true,
+							finger: 2
+						},
+						{
+							note: 'a/3',
+							length: 2,
+							beamStart: true,
+							finger: 1
+						},
+						{
+							note: 'g/3',
 							length: 2,
 							finger: 0
 						},
 						{
-							note: 'e/4',
+							note: 'a/3',
+							length: 2,
+							finger: 1
+						},
+						{
+							note: 'b/3',
+							length: 2,
+							beamEnd: true,
+							finger: 2
+						}
+					],
+					[
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 2,
+							beamStart: true,
+							finger: 0
+						},
+						{
+							note: 'c/4',
+							length: 2,
+							beamEnd: true,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 2,
+							beamStart: true,
+							finger: 2
+						},
+						{
+							note: 'a/3',
+							length: 2,
+							finger: 1
+						},
+						{
+							note: 'g/3',
+							length: 2,
+							finger: 0
+						},
+						{
+							note: 'a/3',
 							length: 2,
 							beamEnd: true,
 							finger: 1
 						},
 						{
-							note: 'd/4',
+							note: 'g/3',
 							length: 8,
 							finger: 0
 						},
 						{
-							note: 'd/4',
+							note: 'g/3',
 							length: 8,
 							finger: 0
 						}
 					]
 				],
 				scale: [
+					{
+						note: 'g/3',
+						length: 4,
+						finger: 0
+					},
+					{
+						note: 'a/3',
+						length: 4,
+						finger: 1
+					},
+					{
+						note: 'b/3',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'c/4',
+						length: 4,
+						finger: 3
+					},
 					{
 						note: 'd/4',
 						length: 4,
@@ -708,26 +728,6 @@ export default {
 						note: 'a/4',
 						length: 4,
 						finger: 0
-					},
-					{
-						note: 'b/4',
-						length: 4,
-						finger: 1
-					},
-					{
-						note: 'c#/5',
-						length: 4,
-						finger: 2
-					},
-					{
-						note: 'd/5',
-						length: 4,
-						finger: 3
-					},
-					{
-						note: 'e/5',
-						length: 4,
-						finger: 0
 					}
 				],
 				notationStartPercent: 0,
@@ -743,200 +743,93 @@ export default {
 					medium: 60,
 					fast: 80
 				},
-				key: 'A',
+				key: 'D',
 				mode: 'major',
 				barLength: 12,
 				melody: [
 					[
 						{
-							note: 'a/4',
+							note: 'd/4',
 							length: 4,
 							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						}
-					],
-					[
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						},
-						{
-							note: 'e/4',
-							length: 8,
-							finger: 1
-						},
-						{
-							note: null,
-							length: 4
-						}
-					],
-					[
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						}
-					],
-					[
-						{
-							note: 'e/5',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'e/5',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'e/5',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: null,
-							length: 4
-						}
-					],
-					[
-						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'd/5',
-							length: 4,
-							finger: 3
-						},
-						{
-							note: 'c#/5',
-							length: 4,
-							finger: 2
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						}
-					],
-					[
-						{
-							note: 'a/4',
-							length: 8,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						},
-						{
-							note: 'e/4',
-							length: 8,
-							finger: 1
 						},
 						{
 							note: 'e/4',
 							length: 4,
 							finger: 1
-						}
-					],
-					[
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
 						{
 							note: 'g/4',
 							length: 4,
 							finger: 3
 						},
 						{
-							note: 'a/4',
-							length: 4,
-							finger: 0
-						},
-						{
-							note: 'b/4',
-							length: 4,
-							finger: 1
-						},
-						{
-							note: 'c#/5',
+							note: 'f#/4',
 							length: 4,
 							finger: 2
 						},
 						{
-							note: 'b/4',
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						}
+					],
+					[
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'e/4',
 							length: 4,
 							finger: 1
 						},
 						{
-							note: 'a/4',
+							note: 'a/3',
+							length: 8,
+							finger: 1
+						},
+						{
+							note: null,
+							length: 4
+						}
+					],
+					[
+						{
+							note: 'd/4',
 							length: 4,
 							finger: 0
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
 						}
 					],
 					[
@@ -946,12 +839,119 @@ export default {
 							finger: 0
 						},
 						{
-							note: 'b/4',
+							note: 'a/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: null,
+							length: 4
+						}
+					],
+					[
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'e/4',
 							length: 4,
 							finger: 1
 						},
 						{
-							note: 'a/4',
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						}
+					],
+					[
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'a/3',
+							length: 8,
+							finger: 1
+						},
+						{
+							note: 'a/3',
+							length: 4,
+							finger: 1
+						}
+					],
+					[
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 0
+						}
+					],
+					[
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'd/4',
 							length: 8,
 							finger: 0
 						},
@@ -963,9 +963,29 @@ export default {
 				],
 				scale: [
 					{
+						note: 'a/3',
+						length: 4,
+						finger: 1
+					},
+					{
+						note: 'c/4',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'd/4',
+						length: 4,
+						finger: 0
+					},
+					{
 						note: 'e/4',
 						length: 4,
 						finger: 1
+					},
+					{
+						note: 'f#/4',
+						length: 4,
+						finger: 2
 					},
 					{
 						note: 'g/4',
@@ -974,26 +994,6 @@ export default {
 					},
 					{
 						note: 'a/4',
-						length: 4,
-						finger: 0
-					},
-					{
-						note: 'b/4',
-						length: 4,
-						finger: 1
-					},
-					{
-						note: 'c#/5',
-						length: 4,
-						finger: 2
-					},
-					{
-						note: 'd/5',
-						length: 4,
-						finger: 3
-					},
-					{
-						note: 'e/5',
 						length: 4,
 						finger: 0
 					}

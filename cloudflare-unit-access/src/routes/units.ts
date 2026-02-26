@@ -20,8 +20,8 @@ export const unitDatabase: Record<string, Unit> = {
 	AJNE: {
 		code: 'u5-third-finger-hobby-songs-va'
 	},
-	AGEM: { code: 'u6-four-finger-spooks-v' },
-	YQWE: { code: 'u6-four-finger-spooks-va' }
+	AGEM: { code: 'u6-four-finger-shadows-v' },
+	YQWE: { code: 'u6-four-finger-shadows-va' }
 };
 
 /** Helper to find a unit by its code (for backward compatibility) */
