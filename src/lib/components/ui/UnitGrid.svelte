@@ -30,7 +30,11 @@
 	{#each units as unit (unit.code)}
 		<article class="unit-card">
 			<div class="unit-card__header">
-				<img src={getImageUrl(unit.code)} alt={`${unit.title} cover art`} class="mb-2 w-full" />
+				<img
+					src={getImageUrl(unit.code, true)}
+					alt={`${unit.title} cover art`}
+					class="mb-2 w-full"
+				/>
 				<h2 class="unit-title font-semibold text-dark-blue">{unit.title}</h2>
 			</div>
 			<p class="mt-0 text-dark-blue">{unit.description}</p>

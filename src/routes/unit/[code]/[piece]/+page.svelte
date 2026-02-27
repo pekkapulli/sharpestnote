@@ -11,6 +11,7 @@
 	import GameCardGrid from '$lib/components/games/GameCardGrid.svelte';
 	import { getUnitStorage } from '$lib/util/unitStorage.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
+	import { getImageUrl } from '$lib/util/getImageUrl';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 
 	const { data } = $props();
@@ -110,11 +111,22 @@
 <div class="min-h-screen bg-off-white px-4 py-8">
 	<div class="mx-auto w-full max-w-3xl">
 		<article class="rounded-2xl bg-white p-8 shadow-md">
-			<h1 class="text-3xl font-semibold text-slate-900">{piece.label}</h1>
-			<p class="mb-8">From {unit.title}</p>
+			<div class="mb-8 flex flex-col gap-4 xs:flex-row xs:gap-6">
+				<img
+					src={getImageUrl(code, true)}
+					alt={`${unit.title} cover art`}
+					class="h-full w-full shrink-0 rounded-lg object-cover xs:h-16 xs:w-16"
+				/>
+				<div>
+					<h1 class="text-xl font-semibold text-slate-900 md:text-2xl">{piece.label}</h1>
+					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+						From {unit.title}
+					</p>
+				</div>
+			</div>
 
 			{#if showSuccessMessage}
-				<div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+				<div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
 					<p class="text-sm font-semibold text-emerald-800">✓ Access unlocked!</p>
 					<p class="mt-1 text-sm text-emerald-700">
 						You can now access all the content for this unit.
@@ -123,10 +135,12 @@
 			{/if}
 
 			{#if !hasKeyAccess}
-				<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
+				<div class="mt-6">
+					<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
+				</div>
 			{/if}
 
-			<section class="mt-16 mb-8">
+			<section class="mt-8 mb-8">
 				<div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-8 shadow-sm">
 					<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 						<div class="space-y-3">

@@ -1,6 +1,7 @@
 import { fileStore, normalizeUnitCode } from '$lib/config/units';
 
-export const getImageUrl = (code: string) => {
+export const getImageUrl = (code: string, thumb?: boolean) => {
 	const normalizedCode = normalizeUnitCode(code);
-	return `${fileStore}/${normalizedCode}/${normalizedCode}.jpg`;
+	const thumbPostfix = thumb ? '_thumb' : '';
+	return `${fileStore}/${normalizedCode}/${normalizedCode}${thumbPostfix}.jpg`;
 };

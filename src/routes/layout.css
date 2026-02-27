@@ -13,6 +13,7 @@
 	--color-brand-green: #1c7c54;
 	--color-brand-green-highlight: #239a67;
 	--color-yellow: #f6d868;
+	--breakpoint-xs: 24rem;
 }
 
 :root {
