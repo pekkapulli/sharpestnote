@@ -115,7 +115,7 @@
 				<img
 					src={getImageUrl(code, true)}
 					alt={`${unit.title} cover art`}
-					class="h-full w-full shrink-0 rounded-lg object-cover xs:h-16 xs:w-16"
+					class="h-full w-full shrink-0 rounded-lg object-cover xs:mt-2 xs:h-16 xs:w-16"
 				/>
 				<div>
 					<h1 class="text-xl font-semibold text-slate-900 md:text-2xl">{piece.label}</h1>
