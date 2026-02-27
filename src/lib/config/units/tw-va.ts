@@ -24,18 +24,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 60,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+60BPM+Backing+track_160k.mp3'
 					},
 					medium: {
 						tempo: 80,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+80BPM+Backing+track_160k.mp3'
 					},
 					fast: {
 						tempo: 100,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Violin+100BPM+Backing+track_160k.mp3'
 					}
 				},
 				key: 'D',

@@ -27,18 +27,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 60,
-						backingTrackUrl: 'U4-1-The-Lazy-Turtle+60BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-1-The-Lazy-Turtle+60BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle+60BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle+60BPM+Viola+Full+track_160k.mp3'
 					},
 					medium: {
 						tempo: 75,
-						backingTrackUrl: 'U4-1-The-Lazy-Turtle+75BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-1-The-Lazy-Turtle+75BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle+75BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle+75BPM+Viola+Full+track_160k.mp3'
 					},
 					fast: {
 						tempo: 90,
-						backingTrackUrl: 'U4-1-The-Lazy-Turtle+90BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-1-The-Lazy-Turtle+90BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-1-The-Lazy-Turtle+90BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-1-The-Lazy-Turtle+90BPM+Viola+Full+track_160k.mp3'
 					}
 				},
 				notationStartPercent: 0.125,
@@ -211,18 +211,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 40,
-						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel+40BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel+40BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel+40BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel+40BPM+Viola+Full+track_160k.mp3'
 					},
 					medium: {
 						tempo: 55,
-						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel+55BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel+55BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel+55BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel+55BPM+Viola+Full+track_160k.mp3'
 					},
 					fast: {
 						tempo: 70,
-						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel+70BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel+70BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-2-Simo-the-Greedy-Squirrel+70BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-2-Simo-the-Greedy-Squirrel+70BPM+Viola+Full+track_160k.mp3'
 					}
 				},
 				key: 'G',
@@ -584,18 +584,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 40,
-						backingTrackUrl: 'U4-3-Fluffy+40BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy+40BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+40BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-3-Fluffy+40BPM+Viola+Full+track_160k.mp3'
 					},
 					medium: {
 						tempo: 55,
-						backingTrackUrl: 'U4-3-Fluffy+55BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy+55BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+55BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-3-Fluffy+55BPM+Viola+Full+track_160k.mp3'
 					},
 					fast: {
 						tempo: 70,
-						backingTrackUrl: 'U4-3-Fluffy+70BPM+Viola+Backing+track.mp3',
-						audioUrl: 'U4-3-Fluffy+70BPM+Viola+Full+track.mp3'
+						backingTrackUrl: 'U4-3-Fluffy+70BPM+Viola+Backing+track_160k.mp3',
+						audioUrl: 'U4-3-Fluffy+70BPM+Viola+Full+track_160k.mp3'
 					}
 				},
 				key: 'G',

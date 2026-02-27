@@ -26,18 +26,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 80,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+80BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+80BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+80BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+80BPM+Backing+track_160k.mp3'
 					},
 					medium: {
 						tempo: 90,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+90BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+90BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+90BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+90BPM+Backing+track_160k.mp3'
 					},
 					fast: {
 						tempo: 100,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+100BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Recorder+100BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Recorder+100BPM+Backing+track_160k.mp3'
 					}
 				},
 				key: 'C',

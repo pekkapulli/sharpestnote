@@ -26,18 +26,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 50,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+50BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+50BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+50BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+50BPM+Backing+track_160k.mp3'
 					},
 					medium: {
 						tempo: 80,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+80BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+80BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+80BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+80BPM+Backing+track_160k.mp3'
 					},
 					fast: {
 						tempo: 100,
-						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+100BPM+Backing+track.mp3'
+						audioUrl: 'Twinkle+Twinkle+Little+Star+Cello+100BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Twinkle+Twinkle+Little+Star+Cello+100BPM+Backing+track_160k.mp3'
 					}
 				},
 				key: 'D',

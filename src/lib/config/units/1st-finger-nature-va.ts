@@ -24,18 +24,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 90,
-						audioUrl: 'In+the+Wind+Viola+90BPM+Full+track.mp3',
-						backingTrackUrl: 'In+the+Wind+Viola+90BPM+Backing+track.mp3'
+						audioUrl: 'In+the+Wind+Viola+90BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'In+the+Wind+Viola+90BPM+Backing+track_160k.mp3'
 					},
 					medium: {
 						tempo: 100,
-						audioUrl: 'In+the+Wind+Viola+100BPM+Full+track.mp3',
-						backingTrackUrl: 'In+the+Wind+Viola+100BPM+Backing+track.mp3'
+						audioUrl: 'In+the+Wind+Viola+100BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'In+the+Wind+Viola+100BPM+Backing+track_160k.mp3'
 					},
 					fast: {
 						tempo: 110,
-						audioUrl: 'In+the+Wind+Viola+110BPM+Full+track.mp3',
-						backingTrackUrl: 'In+the+Wind+Viola+110BPM+Backing+track.mp3'
+						audioUrl: 'In+the+Wind+Viola+110BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'In+the+Wind+Viola+110BPM+Backing+track_160k.mp3'
 					}
 				},
 				key: 'C',
@@ -131,18 +131,18 @@ export default {
 				tracks: {
 					slow: {
 						tempo: 90,
-						audioUrl: 'Raindrops+Viola+90BPM+Full+track.mp3',
-						backingTrackUrl: 'Raindrops+Viola+90BPM+Backing+track.mp3'
+						audioUrl: 'Raindrops+Viola+90BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Raindrops+Viola+90BPM+Backing+track_160k.mp3'
 					},
 					medium: {
 						tempo: 100,
-						audioUrl: 'Raindrops+Viola+100BPM+Full+track.mp3',
-						backingTrackUrl: 'Raindrops+Viola+100BPM+Backing+track.mp3'
+						audioUrl: 'Raindrops+Viola+100BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Raindrops+Viola+100BPM+Backing+track_160k.mp3'
 					},
 					fast: {
 						tempo: 110,
-						audioUrl: 'Raindrops+Viola+110BPM+Full+track.mp3',
-						backingTrackUrl: 'Raindrops+Viola+110BPM+Backing+track.mp3'
+						audioUrl: 'Raindrops+Viola+110BPM+Full+track_160k.mp3',
+						backingTrackUrl: 'Raindrops+Viola+110BPM+Backing+track_160k.mp3'
 					}
 				},
 				key: 'C',

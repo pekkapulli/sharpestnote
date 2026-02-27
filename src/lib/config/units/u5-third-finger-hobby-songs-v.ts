@@ -24,9 +24,28 @@ export default {
 					medium: 60,
 					fast: 80
 				},
+				tracks: {
+					slow: {
+						tempo: 40,
+						backingTrackUrl: 'U5-1-Happy-Swinging+40BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-1-Happy-Swinging+40BPM+Violin+Full+track_160k.mp3'
+					},
+					medium: {
+						tempo: 60,
+						backingTrackUrl: 'U5-1-Happy-Swinging+60BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-1-Happy-Swinging+60BPM+Violin+Full+track_160k.mp3'
+					},
+					fast: {
+						tempo: 80,
+						backingTrackUrl: 'U5-1-Happy-Swinging+80BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-1-Happy-Swinging+80BPM+Violin+Full+track_160k.mp3'
+					}
+				},
 				key: 'D',
 				mode: 'major',
 				barLength: 12,
+				notationStartPercent: 0.28,
+				notationEndPercent: 0.86,
 				melody: [
 					[
 						{
@@ -309,9 +328,7 @@ export default {
 						length: 4,
 						finger: 3
 					}
-				],
-				notationStartPercent: 0,
-				notationEndPercent: 1
+				]
 			},
 			{
 				code: 'painters',
@@ -319,13 +336,32 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 50,
+					slow: 60,
 					medium: 80,
 					fast: 100
+				},
+				tracks: {
+					slow: {
+						tempo: 60,
+						backingTrackUrl: 'U5-2-Painters+60BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-2-Painters+60BPM+Violin+Full+track_160k.mp3'
+					},
+					medium: {
+						tempo: 80,
+						backingTrackUrl: 'U5-2-Painters+80BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-2-Painters+80BPM+Violin+Full+track_160k.mp3'
+					},
+					fast: {
+						tempo: 100,
+						backingTrackUrl: 'U5-2-Painters+100BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-2-Painters+100BPM+Violin+Full+track_160k.mp3'
+					}
 				},
 				key: 'D',
 				mode: 'major',
 				barLength: 12,
+				notationStartPercent: 0.175,
+				notationEndPercent: 0.75,
 				melody: [
 					[
 						{
@@ -555,9 +591,7 @@ export default {
 						length: 4,
 						finger: 3
 					}
-				],
-				notationStartPercent: 0,
-				notationEndPercent: 1
+				]
 			},
 			{
 				code: 'knitting',
@@ -565,13 +599,32 @@ export default {
 				composer: 'Tarmo Anttila',
 				arranger: 'Tarmo Anttila',
 				practiceTempi: {
-					slow: 50,
-					medium: 80,
-					fast: 100
+					slow: 60,
+					medium: 72,
+					fast: 86
+				},
+				tracks: {
+					slow: {
+						tempo: 60,
+						backingTrackUrl: 'U5-3-Knitting+60BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-3-Knitting+60BPM+Violin+Full+track_160k.mp3'
+					},
+					medium: {
+						tempo: 72,
+						backingTrackUrl: 'U5-3-Knitting+72BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-3-Knitting+72BPM+Violin+Full+track_160k.mp3'
+					},
+					fast: {
+						tempo: 86,
+						backingTrackUrl: 'U5-3-Knitting+86BPM+Violin+Backing+track_160k.mp3',
+						audioUrl: 'U5-3-Knitting+86BPM+Violin+Full+track_160k.mp3'
+					}
 				},
 				key: 'D',
 				mode: 'major',
 				barLength: 16,
+				notationStartPercent: 0.125,
+				notationEndPercent: 0.87,
 				melody: [
 					[
 						{
@@ -842,9 +895,7 @@ export default {
 						length: 4,
 						finger: 0
 					}
-				],
-				notationStartPercent: 0,
-				notationEndPercent: 1
+				]
 			}
 		]
 	}
