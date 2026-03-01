@@ -15,6 +15,160 @@ export default {
 		published: false,
 		pieces: [
 			{
+				code: 'finger-practice',
+				label: 'Finger Practice',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				practice: true,
+				practiceTempi: {
+					slow: 60,
+					medium: 75,
+					fast: 90
+				},
+				key: 'G',
+				mode: 'major',
+				barLength: 16,
+				melody: [
+					[
+						{
+							note: 'c/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'c/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'b/3',
+							length: 8,
+							finger: 2
+						}
+					],
+					[
+						{
+							note: 'b/3',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'b/3',
+							length: 8,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'c/4',
+							length: 8,
+							finger: 3
+						}
+					],
+					[
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						}
+					],
+					[
+						{
+							note: 'g/3',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 8,
+							finger: 3
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/3',
+							length: 8,
+							finger: 0
+						}
+					]
+				],
+				scale: [
+					{
+						note: 'g/3',
+						length: 4,
+						finger: 0
+					},
+					{
+						note: 'b/3',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'c/4',
+						length: 4,
+						finger: 3
+					}
+				],
+				notationStartPercent: 0,
+				notationEndPercent: 1
+			},
+			{
 				code: 'the-lazy-turtle',
 				label: 'The Lazy Turtle',
 				composer: 'Tarmo Anttila',

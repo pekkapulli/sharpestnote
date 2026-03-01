@@ -62,6 +62,13 @@
 
 	const visibleGameCards = $derived(
 		gameCards
+			.filter((game) => {
+				// For practice pieces, only show melody and blocks
+				if (piece.practice) {
+					return game.slug === 'melody' || game.slug === 'blocks';
+				}
+				return true;
+			})
 			.map((game) => ({
 				...game,
 				locked: game.requiresAccess && !hasKeyAccess
@@ -140,32 +147,34 @@
 				</div>
 			{/if}
 
-			<section class="mt-8 mb-8">
-				<div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-8 shadow-sm">
-					<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-						<div class="space-y-3">
-							<p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
-								Guided practice
-							</p>
-							<h2 class="text-2xl font-semibold text-slate-900">Teach me {piece.label}</h2>
-							<p class="text-sm text-slate-700">
-								Start with the scale, then move into the piece with short, guided steps.
-							</p>
-						</div>
-						<div class="shrink-0 sm:pt-2">
-							{#if hasKeyAccess}
-								<LinkButton href={`/unit/${code}/${pieceCode}/teach`} size="medium" color="green">
-									Start guided practice
-								</LinkButton>
-							{:else}
-								<LinkButton href={sheetMusicCta} size="medium">
-									Get the sheet music to unlock
-								</LinkButton>
-							{/if}
+			{#if !piece.practice}
+				<section class="mt-8 mb-8">
+					<div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-8 shadow-sm">
+						<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+							<div class="space-y-3">
+								<p class="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+									Guided practice
+								</p>
+								<h2 class="text-2xl font-semibold text-slate-900">Teach me {piece.label}</h2>
+								<p class="text-sm text-slate-700">
+									Start with the scale, then move into the piece with short, guided steps.
+								</p>
+							</div>
+							<div class="shrink-0 sm:pt-2">
+								{#if hasKeyAccess}
+									<LinkButton href={`/unit/${code}/${pieceCode}/teach`} size="medium" color="green">
+										Start guided practice
+									</LinkButton>
+								{:else}
+									<LinkButton href={sheetMusicCta} size="medium">
+										Get the sheet music to unlock
+									</LinkButton>
+								{/if}
+							</div>
 						</div>
 					</div>
-				</div>
-			</section>
+				</section>
+			{/if}
 
 			{#if piece.tracks && Object.values(piece.tracks).length > 0}
 				<AudioPlayer {unit} {piece} />

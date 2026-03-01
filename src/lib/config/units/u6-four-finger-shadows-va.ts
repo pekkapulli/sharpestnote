@@ -14,6 +14,198 @@ export default {
 		published: false,
 		pieces: [
 			{
+				code: 'finger-practice',
+				label: 'Finger Practice',
+				composer: 'Tarmo Anttila',
+				arranger: 'Tarmo Anttila',
+				practice: true,
+				practiceTempi: {
+					slow: 60,
+					medium: 75,
+					fast: 90
+				},
+				key: 'G',
+				mode: 'major',
+				barLength: 16,
+				melody: [
+					[
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 4
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 4
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 4
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 4
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						}
+					],
+					[
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'a/4',
+							length: 4,
+							finger: 4
+						},
+						{
+							note: 'g/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'f#/4',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'e/4',
+							length: 4,
+							finger: 1
+						}
+					],
+					[
+						{
+							note: 'g/3',
+							length: 4,
+							finger: 0
+						},
+						{
+							note: 'a/3',
+							length: 4,
+							finger: 1
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'd/4',
+							length: 4,
+							finger: 4
+						},
+						{
+							note: 'c/4',
+							length: 4,
+							finger: 3
+						},
+						{
+							note: 'b/3',
+							length: 4,
+							finger: 2
+						},
+						{
+							note: 'a/3',
+							length: 4,
+							finger: 1
+						}
+					]
+				],
+				scale: [
+					{
+						note: 'g/3',
+						length: 4,
+						finger: 0
+					},
+					{
+						note: 'a/3',
+						length: 4,
+						finger: 1
+					},
+					{
+						note: 'b/3',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'c/4',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'd/4',
+						length: 4,
+						finger: 4
+					},
+					{
+						note: 'e/4',
+						length: 4,
+						finger: 1
+					},
+					{
+						note: 'f#/4',
+						length: 4,
+						finger: 2
+					},
+					{
+						note: 'g/4',
+						length: 4,
+						finger: 3
+					},
+					{
+						note: 'a/4',
+						length: 4,
+						finger: 4
+					}
+				],
+				notationStartPercent: 0,
+				notationEndPercent: 1
+			},
+			{
 				code: 'frozen-lake',
 				label: 'Frozen Lake',
 				composer: 'Tarmo Anttila',

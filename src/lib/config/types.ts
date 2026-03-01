@@ -26,6 +26,7 @@ export interface Piece {
 	composer: string;
 	arranger: string;
 	practiceTempi?: { [key in Speed]?: number };
+	practice?: boolean;
 	tracks?: Record<Speed, TrackVariant>;
 	mode: Mode;
 	key: NoteName;
