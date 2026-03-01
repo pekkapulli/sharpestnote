@@ -336,16 +336,14 @@ export default {
 							finger: 0
 						},
 						{
-							note: 'a/3',
-							length: 2,
-							beamStart: true,
-							finger: 1
+							note: 'b/3',
+							length: 4,
+							finger: 2
 						},
 						{
-							note: 'b/3',
-							length: 2,
-							beamEnd: true,
-							finger: 2
+							note: 'd/4',
+							length: 8,
+							finger: 4
 						},
 						{
 							note: 'c/4',
@@ -356,52 +354,30 @@ export default {
 						{
 							note: 'd/4',
 							length: 2,
+							beamEnd: true,
 							finger: 4
 						},
 						{
-							note: 'e/4',
-							length: 2,
-							finger: 1
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamEnd: true,
-							finger: 2
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamStart: true,
-							finger: 2
-						},
-						{
-							note: 'g/4',
-							length: 2,
-							beamEnd: true,
+							note: 'c/4',
+							length: 8,
 							finger: 3
 						},
 						{
-							note: 'e/4',
-							length: 8,
-							finger: 1
-						},
-						{
-							note: 'f#/4',
+							note: 'c/4',
 							length: 4,
-							finger: 2
+							finger: 3
 						}
 					],
 					[
 						{
+							note: 'b/3',
+							length: 8,
+							finger: 2
+						},
+						{
 							note: 'd/4',
 							length: 8,
 							finger: 4
-						},
-						{
-							note: 'g/4',
-							length: 8,
-							finger: 3
 						},
 						{
 							note: 'd/4',
@@ -421,38 +397,14 @@ export default {
 							finger: 0
 						},
 						{
-							note: 'a/3',
-							length: 2,
-							beamStart: true,
-							finger: 1
-						},
-						{
 							note: 'b/3',
-							length: 2,
-							beamEnd: true,
+							length: 4,
 							finger: 2
-						},
-						{
-							note: 'c/4',
-							length: 2,
-							beamStart: true,
-							finger: 3
 						},
 						{
 							note: 'd/4',
-							length: 2,
-							finger: 4
-						},
-						{
-							note: 'e/4',
-							length: 2,
-							finger: 1
-						},
-						{
-							note: 'f#/4',
-							length: 2,
-							beamEnd: true,
-							finger: 2
+							length: 8,
+							finger: 0
 						},
 						{
 							note: 'f#/4',
@@ -491,17 +443,17 @@ export default {
 						{
 							note: 'd/4',
 							length: 4,
-							finger: 4
-						},
-						{
-							note: 'd/4',
-							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'e/4',
 							length: 8,
 							finger: 1
+						},
+						{
+							note: 'd/4',
+							length: 8,
+							finger: 0
 						}
 					],
 					[
@@ -512,69 +464,28 @@ export default {
 						},
 						{
 							note: 'e/4',
-							length: 2,
-							beamStart: true,
+							length: 8,
 							finger: 1
 						},
 						{
-							note: 'c/4',
-							length: 2,
-							beamEnd: true,
-							finger: 3
-						},
-						{
-							note: 'b/3',
-							length: 2,
-							beamStart: true,
+							note: 'f#/4',
+							length: 4,
 							finger: 2
-						},
-						{
-							note: 'a/3',
-							length: 2,
-							finger: 1
-						},
-						{
-							note: 'b/3',
-							length: 2,
-							finger: 2
-						},
-						{
-							note: 'c/4',
-							length: 2,
-							beamEnd: true,
-							finger: 3
 						},
 						{
 							note: 'd/4',
-							length: 4,
+							length: 8,
 							finger: 4
 						},
 						{
-							note: 'c/4',
-							length: 2,
-							beamStart: true,
-							finger: 3
-						},
-						{
-							note: 'b/3',
-							length: 2,
-							beamEnd: true,
-							finger: 2
-						},
-						{
 							note: 'a/3',
-							length: 2,
-							beamStart: true,
+							length: 4,
 							finger: 1
 						},
 						{
-							note: 'g/3',
-							length: 2,
-							finger: 0
-						},
-						{
 							note: 'a/3',
 							length: 2,
+							beamStart: true,
 							finger: 1
 						},
 						{
