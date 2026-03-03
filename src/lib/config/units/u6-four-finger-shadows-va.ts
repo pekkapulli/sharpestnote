@@ -977,7 +977,7 @@ export default {
 							note: 'd/4',
 							length: 4,
 							slurStart: true,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'e/4',
@@ -1013,7 +1013,7 @@ export default {
 							note: 'd/4',
 							length: 4,
 							slurStart: true,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'e/4',
@@ -1026,17 +1026,17 @@ export default {
 						{
 							note: 'd/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'd/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'd/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: null,
