@@ -5,7 +5,8 @@ export default {
 		code: 'u6-four-finger-shadows-v',
 		instrument: 'violin',
 		title: 'Four-Finger Shadows for Violin',
-		description: 'Three spooky-themed pieces for beginner violinists practicing the fourth finger.',
+		description:
+			'Three spooky-themed pieces for beginner violinists practicing the fourth finger on the D and A strings.',
 		gumroadUrl: 'https://sharpestnote.gumroad.com/l/u6-four-finger-shadows-violin',
 		photo: {
 			url: 'https://unsplash.com/@cnbrightskies',

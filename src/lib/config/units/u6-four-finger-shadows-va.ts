@@ -1152,8 +1152,8 @@ export default {
 						finger: 3
 					}
 				],
-				notationStartPercent: 0.125,
-				notationEndPercent: 0.873
+				notationStartPercent: 0.2,
+				notationEndPercent: 0.921
 			}
 		]
 	}

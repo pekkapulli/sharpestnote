@@ -101,7 +101,7 @@
 							{#if piece.tracks?.fast}
 								<AudioTrackPlayer
 									id={`${piece.code}-fast`}
-									label="Preview"
+									label="Listen"
 									url={`${fileStore}/${unit.code}/${piece.tracks.fast.audioUrl}`}
 									class="piece-card__player"
 								/>
