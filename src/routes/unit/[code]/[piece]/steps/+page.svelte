@@ -57,7 +57,6 @@
 			return;
 		}
 
-		console.log('[Steps Page] Creating step');
 		// Pick a random interval and create a two-note melody
 		const randomInterval = intervals[Math.floor(Math.random() * intervals.length)];
 		const [note1, note2] = randomInterval.split('|');
@@ -68,27 +67,17 @@
 			{ note: note2, length: 4 }
 		];
 		stepVersion += 1; // Increment to force effect to re-run
-		console.log(
-			'[Steps Page] New step created, length:',
-			currentStep.length,
-			'version:',
-			stepVersion,
-			'interval:',
-			`${note1} → ${note2}`
-		);
 	}
 
 	// Initialize first step
 	$effect(() => {
 		if (!isInitialized && intervals.length > 0) {
-			console.log('[Steps Page] Initializing first step');
 			isInitialized = true;
 			createNextStep();
 		}
 	});
 
 	function handleStepComplete() {
-		console.log('[Steps Page] Step complete');
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_steps_completions`;

@@ -40,12 +40,6 @@ export function createMLState(basePath: string = '') {
 		state.mlModelLoadStarted = true;
 		state.mlModelLoadFailed = false;
 		const loadStart = performance.now();
-		const loadTimeout = window.setTimeout(() => {
-			if (!state.mlModelReady) {
-				debugLogForce('[ML] Model load still pending after 5s');
-			}
-		}, 5000);
-		debugLogForce(`[ML] Loading onset model from ${mlModelPath}`);
 		try {
 			const probe = await fetch(`${mlModelPath}/model.json`, { method: 'GET' });
 			if (!probe.ok) {
@@ -54,7 +48,6 @@ export function createMLState(basePath: string = '') {
 		} catch (err) {
 			state.mlModelLoadFailed = true;
 			state.mlModelLoadStarted = false;
-			window.clearTimeout(loadTimeout);
 			debugLogForce('[ML] Probe failed before loading model', err);
 			return;
 		}
@@ -72,9 +65,6 @@ export function createMLState(basePath: string = '') {
 				state.mlModelLoadFailed = true;
 				state.mlModelLoadStarted = false; // allow retry on next start
 				debugLogForce('[ML] Failed to load model', err);
-			})
-			.finally(() => {
-				window.clearTimeout(loadTimeout);
 			});
 	}
 

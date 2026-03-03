@@ -36,7 +36,6 @@
 			return;
 		}
 
-		console.log('[Blocks Page] Creating block');
 		// Pick a random phrase from the pool
 		const index = Math.floor(Math.random() * melodyPool.length);
 		const phrase = melodyPool[index] ?? [];
@@ -44,27 +43,17 @@
 		// Deep copy to ensure reactivity
 		currentBlock = phrase.map((i) => ({ ...i }));
 		blockVersion += 1; // Increment to force effect to re-run
-		console.log(
-			'[Blocks Page] New block created, length:',
-			currentBlock.length,
-			'version:',
-			blockVersion,
-			'pool index:',
-			index
-		);
 	}
 
 	// Initialize first block
 	$effect(() => {
 		if (!isInitialized && melodyPool.length > 0) {
-			console.log('[Blocks Page] Initializing first block');
 			isInitialized = true;
 			createNextBlock();
 		}
 	});
 
 	function handleBlockComplete() {
-		console.log('[Blocks Page] Block complete');
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_blocks_completions`;

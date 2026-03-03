@@ -71,25 +71,17 @@
 		// Deep copy to ensure reactivity
 		currentMelody = notes.map((n, i) => ({ note: n, length: lens[i] }));
 		melodyVersion += 1;
-		console.log(
-			'[Sight Game Page] New melody created, length:',
-			currentMelody.length,
-			'version:',
-			melodyVersion
-		);
 	}
 
 	// Initialize first melody
 	$effect(() => {
 		if (!isInitialized && availableNotes.length > 0) {
-			console.log('[Sight Game Page] Initializing first melody');
 			isInitialized = true;
 			createNextMelody();
 		}
 	});
 
 	function handleMelodyComplete() {
-		console.log('[Sight Game Page] Melody complete');
 		// Continue to next melody
 		setTimeout(() => createNextMelody(), 400);
 	}

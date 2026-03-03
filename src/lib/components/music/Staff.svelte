@@ -57,10 +57,6 @@
 		greatIntonationIndices = []
 	}: Props = $props();
 
-	$effect(() => {
-		console.log(barLength, sequence);
-	});
-
 	// Flatten bars into a single sequence for indexing
 	const sequence = $derived(bars.flat());
 	let lineSpacing = $state(10); // VexFlow's line spacing

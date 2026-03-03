@@ -143,7 +143,7 @@
 
 			{#if !hasKeyAccess}
 				<div class="mt-6">
-					<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
+					<KeyEntry unitCode={unit.code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
 				</div>
 			{/if}
 
@@ -177,7 +177,7 @@
 			{/if}
 
 			{#if piece.tracks && Object.values(piece.tracks).length > 0}
-				<AudioPlayer {unit} {piece} />
+				<AudioPlayer {unit} {piece} {hasKeyAccess} />
 			{/if}
 
 			<nav aria-label="Piece navigation" class="mt-8 flex justify-between">

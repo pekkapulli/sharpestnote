@@ -34,7 +34,6 @@
 			return;
 		}
 
-		console.log('[Scales Page] Creating scale');
 		// Alternate between ascending and descending for variety
 		const isAscending = Math.random() > 0.5;
 		const sequence = isAscending ? scale : [...scale].reverse();
@@ -42,27 +41,17 @@
 		// Deep copy to ensure reactivity
 		currentScale = sequence.map((i) => ({ ...i }));
 		scaleVersion += 1; // Increment to force effect to re-run
-		console.log(
-			'[Scales Page] New scale created, length:',
-			currentScale.length,
-			'version:',
-			scaleVersion,
-			'direction:',
-			isAscending ? 'ascending' : 'descending'
-		);
 	}
 
 	// Initialize first scale
 	$effect(() => {
 		if (!isInitialized && piece.scale && piece.scale.length > 0) {
-			console.log('[Scales Page] Initializing first scale');
 			isInitialized = true;
 			createNextScale();
 		}
 	});
 
 	function handleScaleComplete() {
-		console.log('[Scales Page] Scale complete');
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_scales_completions`;

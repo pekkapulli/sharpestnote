@@ -33,7 +33,6 @@
 	$effect(() => {
 		// Initialize key access from URL or localStorage
 		void initUnitKeyAccess(unit).then((access) => {
-			console.log('[Melody Page] Key access:', access);
 			hasKeyAccess = access;
 		});
 	});
@@ -56,8 +55,6 @@
 			return;
 		}
 
-		console.log('[Melody Page] Creating melody at index:', melodyIndex);
-
 		// Find the next phrase with at least one non-null note
 		let phrase = pool[melodyIndex] ?? [];
 		let startIndex = melodyIndex;
@@ -78,37 +75,21 @@
 		// Deep copy to ensure reactivity when the same phrase repeats
 		currentMelody = phrase.map((i) => ({ ...i }));
 		melodyVersion += 1; // Increment to force effect to re-run
-		console.log(
-			'[Melody Page] New melody created, length:',
-			currentMelody.length,
-			'version:',
-			melodyVersion,
-			'next index will be:',
-			melodyIndex
-		);
 	}
 
 	// Initialize first melody
 	$effect(() => {
 		if (hasKeyAccess && !isInitialized && melodyPool.length > 0) {
-			console.log('[Melody Page] Initializing first melody');
 			isInitialized = true;
 			createNextMelody();
 		}
 	});
 
 	function handleMelodyComplete() {
-		console.log(
-			'[Melody Page] Melody complete. Current melodyIndex:',
-			melodyIndex,
-			'totalMelodies:',
-			totalMelodies
-		);
 		// Check if all melodies in the piece have been completed
 		// melodyIndex wraps to 0 when all melodies are done
 		if (melodyIndex === 0 && totalMelodies > 0) {
 			// All melodies completed! Increment completion count and save to localStorage
-			console.log('[Melody Page] All melodies completed!');
 			completionCount += 1;
 			const gameKey = `${pieceCode}_melody_completions`;
 			setUnitStorage(code, { [gameKey]: completionCount } as any);
@@ -117,11 +98,9 @@
 			// showCompletionModal = true;
 
 			// Continue to next melody instead
-			console.log('[Melody Page] Continuing to next melody in 400ms');
 			setTimeout(() => createNextMelody(), 400);
 		} else {
 			// Continue to next melody
-			console.log('[Melody Page] Continuing to next melody in 400ms');
 			setTimeout(() => createNextMelody(), 400);
 		}
 	}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fileStore, type Piece, type Speed, type UnitMaterial } from '$lib/config/units';
+	import { fileStore } from '$lib/config/units';
 	import { onMount, onDestroy } from 'svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import RollingStaff from './RollingStaff.svelte';
@@ -11,13 +11,15 @@
 	import trackBackingNegativeIcon from '$lib/assets/track-backing-negative.svg';
 	import trackFullIcon from '$lib/assets/track-full.svg';
 	import trackFullNegativeIcon from '$lib/assets/track-full-negative.svg';
+	import type { Piece, Speed, UnitMaterial } from '$lib/config/types';
 
 	interface Props {
 		unit: UnitMaterial;
 		piece: Piece;
+		hasKeyAccess?: boolean;
 	}
 
-	let { unit, piece }: Props = $props();
+	let { unit, piece, hasKeyAccess: hasKeyAccessProp }: Props = $props();
 	let selectedSpeed: Speed = $state('medium');
 	let selectedTrack: 'full' | 'backing' = $state('backing');
 	let isPlaying: boolean = $state(false);
@@ -26,13 +28,18 @@
 	let currentTime: number = $state(0);
 	let displayTime: number = $state(0);
 	let duration: number = $state(0);
-	let hasKeyAccess = $state(false);
+	let localKeyAccess = $state(false);
 
+	// Use provided prop if available, otherwise derive from async check
+	const hasKeyAccess = $derived(hasKeyAccessProp !== undefined ? hasKeyAccessProp : localKeyAccess);
+
+	// Only do async check if prop not provided
 	$effect(() => {
-		// Initialize key access from URL or localStorage
-		void initUnitKeyAccess(unit).then((access) => {
-			hasKeyAccess = access;
-		});
+		if (hasKeyAccessProp === undefined) {
+			void initUnitKeyAccess(unit).then((access) => {
+				localKeyAccess = access;
+			});
+		}
 	});
 
 	let audioElement: HTMLAudioElement | null = null;
@@ -46,14 +53,7 @@
 	);
 
 	function setupAudioElement() {
-		console.log(
-			'[setupAudioElement] Called. audioElement exists:',
-			!!audioElement,
-			'currentUrl:',
-			currentUrl
-		);
 		if (!audioElement) {
-			console.log('[setupAudioElement] Creating new audio element');
 			audioElement = new Audio();
 			audioElement.crossOrigin = 'anonymous';
 			audioElement.preload = 'metadata';
@@ -61,7 +61,6 @@
 			audioElement.loop = isRepeat;
 
 			audioElement.addEventListener('loadedmetadata', () => {
-				console.log('[loadedmetadata] Duration:', audioElement!.duration);
 				duration = audioElement!.duration;
 			});
 
@@ -85,35 +84,16 @@
 			});
 
 			audioElement.src = currentUrl;
-			console.log('[setupAudioElement] Loading audio with src:', currentUrl);
 			audioElement.load();
 		} else if (audioElement.src !== currentUrl) {
 			// Only reload if the URL has actually changed
-			console.log(
-				'[setupAudioElement] URL changed from',
-				audioElement.src,
-				'to',
-				currentUrl,
-				'- reloading'
-			);
 			audioElement.src = currentUrl;
 			audioElement.load();
-		} else {
-			console.log('[setupAudioElement] Audio element already set up with correct URL');
 		}
 	}
 
 	async function togglePlay() {
-		console.log(
-			'[togglePlay] Called. isPlaying:',
-			isPlaying,
-			'currentTime:',
-			currentTime,
-			'audioElement exists:',
-			!!audioElement
-		);
 		if (!audioElement) {
-			console.log('[togglePlay] No audio element, calling setupAudioElement');
 			setupAudioElement();
 			// Wait for metadata to load before playing
 			if (audioElement!.readyState < 2) {
@@ -124,10 +104,8 @@
 		}
 
 		if (isPlaying) {
-			console.log('[togglePlay] Pausing at currentTime:', audioElement?.currentTime);
 			audioElement?.pause();
 		} else {
-			console.log('[togglePlay] Playing from currentTime:', audioElement?.currentTime);
 			isLoading = true;
 			await audioElement?.play();
 			isLoading = false;
@@ -135,16 +113,7 @@
 	}
 
 	function seek(time: number) {
-		console.log(
-			'[seek] Seeking to time:',
-			time,
-			'audioElement exists:',
-			!!audioElement,
-			'readyState:',
-			audioElement?.readyState
-		);
 		if (!audioElement) {
-			console.log('[seek] No audio element, calling setupAudioElement');
 			setupAudioElement();
 		}
 
@@ -152,13 +121,10 @@
 			// Ensure audio is loaded before seeking
 			if (audioElement.readyState >= 2) {
 				// HAVE_CURRENT_DATA or better
-				console.log('[seek] Setting currentTime to', time);
 				audioElement.currentTime = time;
 			} else {
-				console.log('[seek] Audio not ready, adding listener for loadedmetadata');
 				// If not ready yet, wait for metadata then seek
 				const handleSeek = () => {
-					console.log('[seek/handleSeek] Setting currentTime to', time);
 					audioElement!.currentTime = time;
 					audioElement!.removeEventListener('loadedmetadata', handleSeek);
 				};
@@ -273,31 +239,15 @@
 	$effect(() => {
 		// Track the currentUrl to trigger when piece or speed/track changes
 		const url = currentUrl;
-		console.log(
-			'[$effect] URL is:',
-			url,
-			'previousUrl:',
-			previousUrl,
-			'audioElement exists:',
-			!!audioElement
-		);
 
 		// Only reload if URL actually changed
 		if (audioElement && url !== previousUrl) {
-			console.log('[$effect] URL actually changed, reloading');
 			const wasPlaying = isPlaying;
-			console.log(
-				'[$effect] Pausing and reloading. wasPlaying:',
-				wasPlaying,
-				'currentTime before:',
-				audioElement.currentTime
-			);
 			audioElement.pause();
 			audioElement.src = url;
 			audioElement.load();
 
 			if (wasPlaying) {
-				console.log('[$effect] Resuming playback');
 				audioElement.play();
 			}
 			previousUrl = url;
@@ -315,7 +265,8 @@
 <div class="space-y-6">
 	<!-- Custom Audio Player -->
 	<div>
-		<h3 class="mb-3 text-sm font-semibold text-dark-blue">Listen and practice</h3>
+		<h3 class="text-sm font-semibold text-dark-blue">Listen and play along</h3>
+		<p class="mb-4 text-sm text-slate-600">(But practice with the games and sheet music first)</p>
 		<div class="player-box">
 			{#if hasKeyAccess}
 				<RollingStaff

@@ -3,6 +3,17 @@ import { page } from '$app/state';
 import { setUnitKeyCode, getUnitKeyCode } from './unitStorage.svelte';
 import type { UnitMaterial } from '$lib/config/units';
 
+async function validateAccess(unitCode: string, keyCode: string): Promise<boolean> {
+	const res = await fetch('/api/access', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ unitCode, keyCode })
+	});
+
+	const data = (await res.json()) as { hasAccess?: boolean };
+	return !!data.hasAccess;
+}
+
 export async function initUnitKeyAccess(unit: UnitMaterial): Promise<boolean> {
 	if (!browser) return false;
 
@@ -17,15 +28,7 @@ export async function initUnitKeyAccess(unit: UnitMaterial): Promise<boolean> {
 	if (urlKey) {
 		// Validate key against backend
 		try {
-			const res = await fetch('/api/access', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ unitCode: unit.code, keyCode: urlKey })
-			});
-
-			const data = (await res.json()) as { hasAccess?: boolean };
-
-			if (data.hasAccess) {
+			if (await validateAccess(unit.code, urlKey)) {
 				// Valid key - store it for future visits
 				setUnitKeyCode(unit.code, urlKey);
 				// Remove the key parameter from URL
@@ -43,16 +46,21 @@ export async function initUnitKeyAccess(unit: UnitMaterial): Promise<boolean> {
 	const storedKey = getUnitKeyCode(unit.code);
 	if (storedKey) {
 		try {
-			const res = await fetch('/api/access', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ unitCode: unit.code, keyCode: storedKey })
-			});
-
-			const data = (await res.json()) as { hasAccess?: boolean };
-			return !!data.hasAccess;
+			if (await validateAccess(unit.code, storedKey)) {
+				return true;
+			}
 		} catch (error) {
 			console.error('Failed to validate stored key:', error);
+		}
+	}
+
+	// If a key was entered while this async check was running, validate the latest one before failing.
+	const latestStoredKey = getUnitKeyCode(unit.code);
+	if (latestStoredKey && latestStoredKey !== storedKey) {
+		try {
+			return await validateAccess(unit.code, latestStoredKey);
+		} catch (error) {
+			console.error('Failed to validate latest stored key:', error);
 		}
 	}
 
