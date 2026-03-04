@@ -162,6 +162,10 @@ export function correctOctaveErrors(
 		recentAverage > 0 &&
 		centsDistance(freq, recentAverage * 2) < 45 &&
 		centsDistance(halfFreq, recentAverage) < 45;
+	const looksLikeDownwardOctaveJump =
+		recentAverage > 0 &&
+		centsDistance(freq, recentAverage / 2) < 45 &&
+		centsDistance(freq * 2, recentAverage) < 45;
 
 	const openStringFrequencies = (instrument.strings ?? [])
 		.map((note) => noteNameToMidi(note))
@@ -193,9 +197,14 @@ export function correctOctaveErrors(
 		(f) => Math.abs(f - halfFreq) / halfFreq < 0.02
 	).length;
 	const nearFreqCount = recentHistory.filter((f) => Math.abs(f - freq) / freq < 0.02).length;
+	const nearDoubleCount = recentHistory.filter(
+		(f) => Math.abs(f - freq * 2) / (freq * 2) < 0.02
+	).length;
 	const wasHalfFreqStable = nearHalfCount > 0;
 	const favorsLowerOctaveHistory = nearHalfCount >= 2 && nearHalfCount >= nearFreqCount;
-	const strongOctaveJumpContinuity = looksLikeUpwardOctaveJump && nearFreqCount <= 1;
+	const favorsUpperOctaveHistory = nearDoubleCount >= 2 && nearDoubleCount >= nearFreqCount;
+	const strongLowerOctaveJumpContinuity = looksLikeUpwardOctaveJump && nearFreqCount <= 1;
+	const strongUpperOctaveJumpContinuity = looksLikeDownwardOctaveJump && nearFreqCount <= 1;
 
 	const candidateFrequencies = [halfFreq, freq, freq * 2].filter((candidate) =>
 		isFrequencyInInstrumentRange(candidate, instrument, a4)
@@ -218,11 +227,27 @@ export function correctOctaveErrors(
 		for (const candidate of candidateFrequencies) {
 			const expectedPenalty = Math.min(120, centsFromExpected(candidate));
 			const continuityPenalty = recentAverage > 0 ? Math.min(90, centsFromRecent(candidate)) : 0;
+
 			const isHalf = Math.abs(candidate - halfFreq) < 1e-6;
-			const spectralBonus = isHalf && hasLowerOctaveEnergy ? 30 : 0;
-			const historyBonus = isHalf && favorsLowerOctaveHistory ? 20 : 0;
-			const jumpBonus = isHalf && strongOctaveJumpContinuity ? 20 : 0;
-			const score = spectralBonus + historyBonus + jumpBonus - expectedPenalty - continuityPenalty;
+			const isDouble = Math.abs(candidate - freq * 2) < 1e-6;
+
+			// Bonuses for lower octave (f → f/2)
+			const lowerSpectralBonus = isHalf && hasLowerOctaveEnergy ? 30 : 0;
+			const lowerHistoryBonus = isHalf && favorsLowerOctaveHistory ? 20 : 0;
+			const lowerJumpBonus = isHalf && strongLowerOctaveJumpContinuity ? 20 : 0;
+
+			// Bonuses for upper octave (f → 2f)
+			const upperHistoryBonus = isDouble && favorsUpperOctaveHistory ? 20 : 0;
+			const upperJumpBonus = isDouble && strongUpperOctaveJumpContinuity ? 20 : 0;
+
+			const score =
+				lowerSpectralBonus +
+				lowerHistoryBonus +
+				lowerJumpBonus +
+				upperHistoryBonus +
+				upperJumpBonus -
+				expectedPenalty -
+				continuityPenalty;
 
 			if (score > bestScore) {
 				bestScore = score;
@@ -238,12 +263,12 @@ export function correctOctaveErrors(
 		return expectedBiasedFreq;
 	}
 
-	// Correct to lower octave when spectral evidence exists,
+	// Fallback: correct to lower octave when spectral evidence exists,
 	// or when history strongly indicates we should stay in the lower octave
 	if (
 		hasLowerOctaveEnergy ||
 		(wasHalfFreqStable && favorsLowerOctaveHistory) ||
-		strongOctaveJumpContinuity
+		strongLowerOctaveJumpContinuity
 	) {
 		return halfFreq;
 	}
