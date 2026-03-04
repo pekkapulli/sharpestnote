@@ -538,9 +538,9 @@ export function hasSignificantEnergyAtLowerOctave(
 	fftResult: FFTResult,
 	detectedFreq: number,
 	sampleRate: number,
-	energyThreshold: number = 0.5,
-	bandwidthCents: number = 50,
-	energyFloorFactor: number = 2.5
+	energyThreshold: number,
+	bandwidthCents: number,
+	energyFloorFactor: number
 ): boolean {
 	if (detectedFreq <= 0) return false;
 

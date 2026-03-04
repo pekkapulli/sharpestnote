@@ -36,6 +36,7 @@ export interface TunerOptions {
 	amplitudeThreshold?: number;
 	instrument?: InstrumentKind;
 	tempoBPM?: number;
+	expectedMidi?: number | null;
 	gain?: number;
 	autoGain?: boolean;
 	targetAmplitude?: number;

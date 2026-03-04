@@ -14,6 +14,7 @@ import {
 	transposeForTransposition,
 	transposeDetectedNoteForDisplay as transposeDetectedForDisplay
 } from '$lib/util/noteNames';
+import { noteNameToMidi } from '$lib/util/noteNames';
 import type { MelodyItem } from '$lib/config/melody';
 import { lengthToMs } from '$lib/config/melody';
 
@@ -161,6 +162,30 @@ export function useSightGameLogic(config: SightGameConfig) {
 		if (tuner) {
 			tuner.instrument = getInstrument();
 		}
+	});
+
+	// Guide pitch detection with expected melody note (soft prior, not hard lock)
+	$effect(() => {
+		if (!tuner || !melody || !melody.length || currentIndex >= melody.length) {
+			tuner.expectedMidi = null;
+			return;
+		}
+
+		const target = melody[currentIndex].note;
+		if (!target) {
+			tuner.expectedMidi = null;
+			return;
+		}
+
+		const expectedNote = selectedInstrument
+			? transposeForTransposition(
+					target,
+					selectedInstrument.transpositionSemitones,
+					keySignature.preferredAccidental
+				)
+			: target;
+
+		tuner.expectedMidi = expectedNote ? noteNameToMidi(expectedNote) : null;
 	});
 
 	// Track heldSixteenths even during cooldown periods

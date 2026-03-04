@@ -136,7 +136,8 @@ export function correctOctaveErrors(
 	instrument: InstrumentConfig,
 	sampleRate: number,
 	frequencyHistory: number[],
-	a4: number = 442
+	a4: number = 442,
+	expectedMidi: number | null = null
 ): number {
 	if (freq <= 0 || frequencyHistory.length < 5) {
 		return freq;
@@ -150,25 +151,100 @@ export function correctOctaveErrors(
 		return freq;
 	}
 
+	const centsDistance = (a: number, b: number): number => 1200 * Math.abs(Math.log2(a / b));
+
+	const recentHistory = frequencyHistory.slice(-5).filter((f) => f > 0);
+	const recentAverage =
+		recentHistory.length > 0
+			? recentHistory.reduce((sum, value) => sum + value, 0) / recentHistory.length
+			: 0;
+	const looksLikeUpwardOctaveJump =
+		recentAverage > 0 &&
+		centsDistance(freq, recentAverage * 2) < 45 &&
+		centsDistance(halfFreq, recentAverage) < 45;
+
+	const openStringFrequencies = (instrument.strings ?? [])
+		.map((note) => noteNameToMidi(note))
+		.filter((midi): midi is number => midi !== null)
+		.map((midi) => frequencyFromNoteNumber(midi + instrument.transpositionSemitones, a4));
+
+	const halfNearOpenString = openStringFrequencies.some(
+		(openFreq) => centsDistance(halfFreq, openFreq) < 35
+	);
+
 	// Primary check: Look for significant energy at the lower octave in the FFT
-	// Use a lower threshold (0.2 = lower octave must have >= 20% of upper octave energy)
-	// This catches cases where the harmonic is bright and the fundamental is weaker
+	// Use adaptive thresholds for weak fundamentals and open-string regions on small instruments
+	const useRelaxedThresholds = halfFreq < 330 || halfNearOpenString || looksLikeUpwardOctaveJump;
+	const lowerOctaveEnergyThreshold = useRelaxedThresholds ? 0.12 : 0.2;
+	const lowerOctaveBandwidthCents = useRelaxedThresholds ? 90 : 50;
+	const lowerOctaveEnergyFloorFactor = useRelaxedThresholds ? 1.3 : 2.0;
+
 	const hasLowerOctaveEnergy = hasSignificantEnergyAtLowerOctave(
 		fftResult,
 		freq,
 		sampleRate,
-		0.2, // energy threshold
-		50, // 50 cents search window
-		2.0 // energy floor factor
+		lowerOctaveEnergyThreshold,
+		lowerOctaveBandwidthCents,
+		lowerOctaveEnergyFloorFactor
 	);
 
-	// Secondary check: Was half frequency recently detected as stable?
-	const wasHalfFreqStable = frequencyHistory
-		.slice(-5)
-		.some((f) => f > 0 && Math.abs(f - halfFreq) / halfFreq < 0.02);
+	// Secondary checks: prefer octave continuity from recent history
+	const nearHalfCount = recentHistory.filter(
+		(f) => Math.abs(f - halfFreq) / halfFreq < 0.02
+	).length;
+	const nearFreqCount = recentHistory.filter((f) => Math.abs(f - freq) / freq < 0.02).length;
+	const wasHalfFreqStable = nearHalfCount > 0;
+	const favorsLowerOctaveHistory = nearHalfCount >= 2 && nearHalfCount >= nearFreqCount;
+	const strongOctaveJumpContinuity = looksLikeUpwardOctaveJump && nearFreqCount <= 1;
 
-	// Correct to lower octave if either spectral energy or history indicates it
-	if (hasLowerOctaveEnergy || wasHalfFreqStable) {
+	const candidateFrequencies = [halfFreq, freq, freq * 2].filter((candidate) =>
+		isFrequencyInInstrumentRange(candidate, instrument, a4)
+	);
+
+	const chooseExpectedBiasedFrequency = (): number | null => {
+		if (expectedMidi === null || candidateFrequencies.length === 0) {
+			return null;
+		}
+
+		const expectedFreq = frequencyFromNoteNumber(expectedMidi, a4);
+		const centsFromExpected = (candidate: number) =>
+			1200 * Math.abs(Math.log2(candidate / expectedFreq));
+		const centsFromRecent = (candidate: number) =>
+			recentAverage > 0 ? 1200 * Math.abs(Math.log2(candidate / recentAverage)) : 0;
+
+		let bestCandidate = candidateFrequencies[0];
+		let bestScore = Number.NEGATIVE_INFINITY;
+
+		for (const candidate of candidateFrequencies) {
+			const expectedPenalty = Math.min(120, centsFromExpected(candidate));
+			const continuityPenalty = recentAverage > 0 ? Math.min(90, centsFromRecent(candidate)) : 0;
+			const isHalf = Math.abs(candidate - halfFreq) < 1e-6;
+			const spectralBonus = isHalf && hasLowerOctaveEnergy ? 30 : 0;
+			const historyBonus = isHalf && favorsLowerOctaveHistory ? 20 : 0;
+			const jumpBonus = isHalf && strongOctaveJumpContinuity ? 20 : 0;
+			const score = spectralBonus + historyBonus + jumpBonus - expectedPenalty - continuityPenalty;
+
+			if (score > bestScore) {
+				bestScore = score;
+				bestCandidate = candidate;
+			}
+		}
+
+		return bestScore > -90 ? bestCandidate : null;
+	};
+
+	const expectedBiasedFreq = chooseExpectedBiasedFrequency();
+	if (expectedBiasedFreq !== null) {
+		return expectedBiasedFreq;
+	}
+
+	// Correct to lower octave when spectral evidence exists,
+	// or when history strongly indicates we should stay in the lower octave
+	if (
+		hasLowerOctaveEnergy ||
+		(wasHalfFreqStable && favorsLowerOctaveHistory) ||
+		strongOctaveJumpContinuity
+	) {
 		return halfFreq;
 	}
 

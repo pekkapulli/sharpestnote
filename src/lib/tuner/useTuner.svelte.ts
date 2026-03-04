@@ -165,6 +165,7 @@ export function createTuner(options: TunerOptions = {}) {
 	const amplitudeThreshold = $state({ value: options.amplitudeThreshold ?? 0.02 });
 	const instrument = $state({ value: options.instrument ?? 'generic' });
 	const tempoBPM = $state({ value: options.tempoBPM ?? 120 });
+	const expectedMidi = $state<{ value: number | null }>({ value: options.expectedMidi ?? null });
 
 	// Create gain state wrappers for svelte reactivity
 	const gain = $state({ value: gainState.state.gain });
@@ -440,10 +441,9 @@ export function createTuner(options: TunerOptions = {}) {
 		performanceMetrics.whitteningMs = performance.now() - stepStart;
 
 		// 1.2: Estimate pitch (with confidence)
-		// Update history BEFORE stability check
+		// Keep history update after octave correction to avoid reinforcing wrong octave locks
 		stepStart = performance.now();
 		const freq = autoCorrelate(tempData, audioContext.sampleRate);
-		onsetAnalysis.frequencyHistory.push(freq);
 		amplitudeHistory.push(amplitude);
 
 		// Track amplitude slope for legato dip/rise detection
@@ -452,13 +452,9 @@ export function createTuner(options: TunerOptions = {}) {
 		const amplitudeDelta = amplitude - previousAmplitude;
 		onsetAnalysis.amplitudeDeltaHistory.push(amplitudeDelta);
 
-		if (onsetAnalysis.frequencyHistory.length > 10) onsetAnalysis.frequencyHistory.shift();
 		if (amplitudeHistory.length > 10) amplitudeHistory.shift();
 		if (onsetAnalysis.amplitudeDeltaHistory.length > 10)
 			onsetAnalysis.amplitudeDeltaHistory.shift();
-
-		// Check frequency stability first
-		const isStable = freq > 0 && isFrequencyStable(freq, onsetAnalysis.frequencyHistory);
 
 		// Then check if it's in the instrument's range (if instrument specified)
 		const currentInstrument =
@@ -478,7 +474,8 @@ export function createTuner(options: TunerOptions = {}) {
 					currentInstrument,
 					audioContext.sampleRate,
 					onsetAnalysis.frequencyHistory,
-					currentA4
+					currentA4,
+					untrack(() => expectedMidi.value)
 				);
 
 				// If correction was made (freq halved), validate the corrected frequency
@@ -487,6 +484,16 @@ export function createTuner(options: TunerOptions = {}) {
 				}
 			}
 		}
+
+		const finalFreq = correctedFreq > 0 ? correctedFreq : freq;
+
+		// Check frequency stability using corrected frequency and a temporary history view
+		const isStable =
+			finalFreq > 0 && isFrequencyStable(finalFreq, [...onsetAnalysis.frequencyHistory, finalFreq]);
+
+		// Update pitch history with corrected frequency to improve octave continuity
+		onsetAnalysis.frequencyHistory.push(finalFreq);
+		if (onsetAnalysis.frequencyHistory.length > 10) onsetAnalysis.frequencyHistory.shift();
 
 		const hasPitch = isStable && inRange;
 
@@ -1287,6 +1294,12 @@ export function createTuner(options: TunerOptions = {}) {
 		},
 		set tempoBPM(value: number) {
 			tempoBPM.value = value > 0 ? value : 1;
+		},
+		get expectedMidi() {
+			return expectedMidi.value;
+		},
+		set expectedMidi(value: number | null) {
+			expectedMidi.value = value;
 		},
 		get gain() {
 			return gain.value;
