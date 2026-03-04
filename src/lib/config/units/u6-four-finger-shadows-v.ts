@@ -241,7 +241,7 @@ export default {
 						{
 							note: 'a/4',
 							length: 4,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'b/4',
@@ -273,7 +273,7 @@ export default {
 						{
 							note: 'a/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'b/4',
@@ -294,7 +294,7 @@ export default {
 						{
 							note: 'a/4',
 							length: 4,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'b/4',
@@ -347,7 +347,7 @@ export default {
 						{
 							note: 'a/4',
 							length: 4,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'b/4',
@@ -379,7 +379,7 @@ export default {
 						{
 							note: 'a/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'b/4',
@@ -426,14 +426,14 @@ export default {
 						{
 							note: 'a/4',
 							length: 4,
-							finger: 4
+							finger: 0
 						}
 					],
 					[
 						{
 							note: 'a/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: 'b/4',
@@ -443,7 +443,7 @@ export default {
 						{
 							note: 'a/4',
 							length: 8,
-							finger: 4
+							finger: 0
 						},
 						{
 							note: null,
