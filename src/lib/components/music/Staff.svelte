@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { Clef } from '$lib/config/types';
-	import type { KeySignature, Mode } from '$lib/config/keys';
+	import type { KeySignature } from '$lib/config/keys';
 	import { renderNote } from '$lib/components/music/noteRenderer';
 	import GhostNote from './GhostNote.svelte';
 	import FingerMarking from './FingerMarking.svelte';
 	import { type MelodyItem } from '$lib/config/melody';
 	import { noteNameToMidi } from '$lib/util/noteNames';
 	import { renderVexFlowStaff, getNoteYPosition } from './vexflowHelper';
+	import { type Stave } from 'vexflow';
 
 	interface Props {
 		// Provide bars as an array of melody bars, where each bar is an array of { note, length }
@@ -15,13 +16,11 @@
 		currentIndex?: number;
 		// Index of the note currently being animated (for held sixteenths display)
 		animatingIndex?: number | null;
-		animationProgress?: number | null;
 		playheadPosition?: number | null; // Position in sixteenths for playback animation
 		ghostNote?: string | null;
 		cents?: number | null;
 		clef?: Clef;
 		keySignature: KeySignature;
-		mode?: Mode;
 		isCurrentNoteHit?: boolean;
 		isSequenceComplete?: boolean;
 		barLength?: number;
@@ -93,11 +92,10 @@
 		return null;
 	});
 
-	// Container size binding
+	// Container size binding - use $state for the binding target
 	let containerWidth = $state(400);
-	$effect(() => {
-		containerWidth = Math.max(containerWidth, minWidth);
-	});
+	// Use a derived to enforce minimum width constraint
+	const effectiveWidth = $derived(Math.max(containerWidth, minWidth));
 
 	// VexFlow rendering
 	let vexflowContainer: HTMLDivElement;
@@ -105,16 +103,16 @@
 	let noteYs = $state<number[]>([]);
 	let topLineY = $state(0);
 	let bottomLineY = $state(0);
-	let vexStave = $state<any>(null);
+	let vexStave = $state<Stave | null>(null);
 
 	// Track last render parameters to avoid infinite loops
 	let lastRenderKey = $state('');
 
 	// Render VexFlow staff when bars or dimensions change
 	$effect(() => {
-		if (vexflowContainer && bars.length > 0 && containerWidth > 0) {
+		if (vexflowContainer && bars.length > 0 && effectiveWidth > 0) {
 			// Create a key from the render parameters
-			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${containerWidth}-${noteColors.join(',')}-${barLength ?? 'none'}-${showTimeSignature}`;
+			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${effectiveWidth}-${noteColors.join(',')}-${barLength ?? 'none'}-${showTimeSignature}`;
 
 			// Only render if parameters have actually changed
 			if (renderKey === lastRenderKey) {
@@ -128,7 +126,7 @@
 					bars,
 					clef,
 					keySignature,
-					containerWidth,
+					effectiveWidth,
 					barLength,
 					showTimeSignature,
 					noteColors
@@ -218,14 +216,14 @@
 		<div bind:this={vexflowContainer} class="vexflow-container"></div>
 
 		<!-- Feedback overlay SVG layer -->
-		<svg class="feedback-overlay" width={containerWidth} height={HEIGHT}>
+		<svg class="feedback-overlay" width={effectiveWidth} height={HEIGHT}>
 			{#if barLineXPositions.length}
-				{#each barLineXPositions as barX}
+				{#each barLineXPositions as barX (barX)}
 					<line x1={barX} x2={barX} y1={topLineY} y2={bottomLineY} stroke="#333" stroke-width="1" />
 				{/each}
 			{/if}
 			{#if notes.length && noteXs.length}
-				{#each notes as n, i}
+				{#each notes as n, i (i)}
 					{@const x = noteXs[i] ?? 0}
 					{@const noteY = noteYs[i] ?? centerY}
 					{@const hasGreatIntonation = greatIntonationIndices.includes(i)}

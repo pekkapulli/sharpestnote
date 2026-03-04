@@ -1,9 +1,6 @@
 <script lang="ts">
 	import QAContainer from '$lib/components/ui/QAContainer.svelte';
 	import QASection from '$lib/components/ui/QASection.svelte';
-	import SharePreview from '$lib/components/SharePreview.svelte';
-
-	let { data } = $props();
 </script>
 
 <svelte:head>

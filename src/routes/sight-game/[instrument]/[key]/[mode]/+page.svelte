@@ -20,7 +20,6 @@
 
 	let currentMelody = $state<MelodyItem[]>([]);
 	let isInitialized = $state(false);
-	let melodyVersion = $state(0);
 
 	function createLengths(count: number): NoteLength[] {
 		if (count <= 1) return [16];
@@ -70,7 +69,6 @@
 
 		// Deep copy to ensure reactivity
 		currentMelody = notes.map((n, i) => ({ note: n, length: lens[i] }));
-		melodyVersion += 1;
 	}
 
 	// Initialize first melody

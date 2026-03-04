@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import type { ResolvedPathname } from '$app/types';
 	import homeIcon from '$lib/assets/The Sharpest Note Logo Square Bg.png';
 
 	type Breadcrumb = {
 		label: string;
-		href?: string;
+		to?: ResolvedPathname;
 		icon?: string;
 	};
 
@@ -19,6 +20,7 @@
 			try {
 				return decodeURIComponent(segment);
 			} catch (err) {
+				console.warn(`Failed to decode URI segment: ${segment}`, err);
 				return segment;
 			}
 		})();
@@ -40,10 +42,10 @@
 	const isHome = $derived(path === '/');
 	const dataBreadcrumbs = $derived((currentPage.data as BreadcrumbData | undefined)?.breadcrumbs);
 	const derivedBreadcrumbs = $derived([
-		{ label: 'Home', href: '/', icon: homeIcon },
+		{ label: 'Home', to: '/', icon: homeIcon },
 		...segments.reduce((crumbs, segment, index) => {
 			if (index === 0 && segment === 'unit') {
-				crumbs.push({ label: 'Units', href: '/units' });
+				crumbs.push({ label: 'Units', to: '/units' });
 				return crumbs;
 			}
 
@@ -55,14 +57,14 @@
 					? (currentPage.data.piece?.label ?? toTitleCase(segment))
 					: toTitleCase(segment);
 
-			const href = '/' + segments.slice(0, index + 1).join('/');
+			const to = '/' + segments.slice(0, index + 1).join('/');
 			crumbs.push({
 				label: segmentLabel,
-				href: index === segments.length - 1 ? undefined : href
+				to: index === segments.length - 1 ? undefined : (to as ResolvedPathname)
 			});
 			return crumbs;
 		}, [] as Breadcrumb[])
-	]);
+	] as Breadcrumb[]);
 	const fullBreadcrumbs = $derived<Breadcrumb[]>(
 		dataBreadcrumbs?.length ? dataBreadcrumbs : derivedBreadcrumbs
 	);
@@ -71,9 +73,9 @@
 		(() => {
 			if (!visibleBreadcrumbs.length) return [] as Breadcrumb[];
 			const first = visibleBreadcrumbs[0];
-			const hasHomeFirst = first.href === '/' || first.label.toLowerCase() === 'home';
+			const hasHomeFirst = first.to === '/' || first.label.toLowerCase() === 'home';
 			if (hasHomeFirst) return visibleBreadcrumbs;
-			return [{ label: 'Home', href: '/', icon: homeIcon }, ...visibleBreadcrumbs];
+			return [{ label: 'Home', to: '/', icon: homeIcon }, ...visibleBreadcrumbs];
 		})()
 	);
 	const showBreadcrumbs = $derived(!isHome && breadcrumbs.length > 0);
@@ -82,10 +84,10 @@
 {#if showBreadcrumbs}
 	<nav aria-label="Breadcrumb" class="breadcrumb">
 		<ol>
-			{#each breadcrumbs as crumb, index (crumb.href ?? `${crumb.label}-${index}`)}
+			{#each breadcrumbs as crumb, index (crumb.to ?? `${crumb.label}-${index}`)}
 				<li>
-					{#if crumb.href && index < breadcrumbs.length - 1}
-						<a href={crumb.href}>
+					{#if crumb.to !== undefined && index < breadcrumbs.length - 1}
+						<a href={crumb.to}>
 							{#if crumb.icon}
 								<img src={crumb.icon} alt="Home" class="crumb-icon" />
 							{/if}

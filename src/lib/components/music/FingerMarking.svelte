@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { COLORSTRINGS_MAP, type MelodyItem } from '$lib/config/melody';
+	import { type MelodyItem } from '$lib/config/melody';
 
 	interface Props {
 		item: MelodyItem;
@@ -12,10 +12,6 @@
 
 	const hasFinger = $derived(item.finger !== undefined);
 	const hasString = $derived(item.string !== undefined);
-	const stringColor = $derived(item.string ? COLORSTRINGS_MAP[item.string] : null);
-
-	const underlineY = $derived(y + lineSpacing * 0.3);
-	const underlineLength = $derived(lineSpacing * 1.5);
 </script>
 
 {#if hasFinger || hasString}

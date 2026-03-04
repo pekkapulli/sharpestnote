@@ -42,7 +42,7 @@
 				bind:value={selectedInstrument}
 				class="mx-auto block w-full max-w-sm rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 			>
-				{#each instrumentConfigs as instrument}
+				{#each instrumentConfigs as instrument (instrument.id)}
 					<option value={instrument.id}>{instrument.label}</option>
 				{/each}
 			</select>
@@ -56,7 +56,7 @@
 					bind:value={selectedKey}
 					class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 				>
-					{#each keyOptions as keyOption}
+					{#each keyOptions as keyOption (keyOption.value)}
 						<option value={keyOption.value}>{keyOption.label}</option>
 					{/each}
 				</select>
@@ -68,7 +68,7 @@
 					bind:value={selectedMode}
 					class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 				>
-					{#each modeOptions as option}
+					{#each modeOptions as option (option.mode)}
 						<option value={option.mode}>{option.label}</option>
 					{/each}
 				</select>

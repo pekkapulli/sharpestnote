@@ -95,16 +95,6 @@
 	onMount(() => {
 		game.tuner.checkSupport();
 		game.tuner.refreshDevices();
-
-		// Test helper: Arrow right to advance (for development)
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 'ArrowRight' && game.melody() && game.currentIndex() < game.melody()!.length) {
-				const currentNote = game.melody()![game.currentIndex()].note;
-			}
-		};
-
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
 	});
 
 	// Handle microphone start
@@ -197,7 +187,6 @@
 					showTimeSignature={false}
 					currentIndex={game.currentIndex()}
 					animatingIndex={null}
-					animationProgress={null}
 					playheadPosition={game.playheadPosition()}
 					ghostNote={game.ghostNoteDisplay()}
 					cents={game.isPlayingMelody() ? null : game.tuner.state.cents}
@@ -249,7 +238,7 @@
 					<div class="mt-3">
 						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current melody</p>
 						<p class="mt-1 text-xl font-bold text-white">
-							{#each game.melody()! as item, i}
+							{#each game.melody()! as item, i (i)}
 								<span
 									class={i === game.currentIndex()
 										? 'text-white'
@@ -313,17 +302,14 @@
 </div>
 
 <Modal isOpen={showTunerModal} onClose={handleTunerClose} title="Tuner" maxWidth="lg">
-	{#snippet children()}
-		<TunerPanel
-			fullPage={false}
-			compact={true}
-			showHeader={false}
-			eyebrow={null}
-			description={null}
-			note={game.tuner.state.note}
-			frequency={game.tuner.state.frequency}
-			cents={game.tuner.state.cents}
-			{instrument}
-		/>
-	{/snippet}
+	<TunerPanel
+		fullPage={false}
+		compact={true}
+		showHeader={false}
+		eyebrow={null}
+		description={null}
+		note={game.tuner.state.note}
+		cents={game.tuner.state.cents}
+		{instrument}
+	/>
 </Modal>

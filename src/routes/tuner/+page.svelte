@@ -53,8 +53,8 @@
 	<div class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4">
 		<header class={`${'mb-4'}`}>
 			<div>
-				<h1 class={'mt-1'}>Live Tuner</h1>
-				<p class={`max-w-xl text-sm text-slate-700`}>Use the needle to tune your instrument.</p>
+				<h1 class="mt-1">Live Tuner</h1>
+				<p class="max-w-xl text-sm text-slate-700">Use the needle to tune your instrument.</p>
 			</div>
 		</header>
 		<div class={micStarted ? 'mx-auto mb-2 max-w-sm' : 'mb-6'}>
@@ -76,7 +76,7 @@
 				bind:value={selectedInstrument}
 				class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 			>
-				{#each instrumentConfigs as instrument}
+				{#each instrumentConfigs as instrument (instrument.id)}
 					<option value={instrument.id}>{instrument.label}</option>
 				{/each}
 			</select>
@@ -84,7 +84,6 @@
 
 		<TunerPanel
 			note={tuner.state.note}
-			frequency={tuner.state.frequency}
 			cents={tuner.state.cents}
 			instrument={selectedInstrument}
 			showHeader={false}

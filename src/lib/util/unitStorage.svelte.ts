@@ -4,6 +4,7 @@ const STORAGE_PREFIX = 'unit_';
 
 interface UnitStorage {
 	keyCode?: string;
+	[key: string]: string | number | undefined;
 }
 
 export function getUnitStorage(unitCode: string): UnitStorage {

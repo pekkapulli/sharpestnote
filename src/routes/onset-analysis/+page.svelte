@@ -3,7 +3,7 @@
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import { createTuner } from '$lib/tuner/useTuner.svelte';
 	import { DEFAULT_A4 } from '$lib/tuner/tune';
-	import { onsetDetectionConfig, type OnsetDetectionConfig } from '$lib/config/onset';
+	import { onsetDetectionConfig } from '$lib/config/onset';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { createSynth } from '$lib/synth/useSynth.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
@@ -649,34 +649,6 @@
 
 	function handleDeviceChange(deviceId: string) {
 		tuner.state.selectedDeviceId = deviceId;
-	}
-
-	// Play a note with the synth
-	async function playTestNote() {
-		if (isPlayingNote) return;
-
-		// Stop any lingering notes first
-		synth.stopAll();
-
-		// Reset latency tracking
-		lastNoteStartTime = performance.now();
-		lastOnsetLatency = null;
-		onsetLatencyStatus = 'waiting';
-		tuner.resetLatencyTracking();
-
-		isPlayingNote = true;
-		const note: MelodyItem = {
-			note: selectedNote,
-			length: 4 // quarter note (4 sixteenths)
-		};
-
-		try {
-			await synth.playNote(note, tempo);
-		} catch (error) {
-			console.error('Error playing note:', error);
-		} finally {
-			isPlayingNote = false;
-		}
 	}
 
 	// Play a random note

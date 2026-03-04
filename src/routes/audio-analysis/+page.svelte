@@ -54,7 +54,6 @@
 	let animationId: number | null = null;
 	let sampleTimer: number | null = null;
 	let resizeObserver: ResizeObserver | null = null;
-	let shouldPlayOnStart = false; // Track if start button was explicitly clicked
 	let selectedSource: 'file' | 'microphone' = $state('file'); // Track selected source locally
 
 	let history: {
@@ -71,8 +70,6 @@
 		mlOnsetDetected: boolean; // ML model prediction
 		mlOnsetProbability: number; // ML model probability
 	}[] = [];
-	let prevNoteActive = false;
-
 	function startSampling() {
 		stopSampling();
 		onsetEvents = []; // Clear onset events when starting
@@ -624,7 +621,6 @@
 		// Update the selected source
 		selectedSource = sourceType;
 		// When source changes, don't auto-play - wait for start button
-		shouldPlayOnStart = false;
 		stopSampling();
 		startSampling();
 		// Note: Audio source will be set when user clicks Start button

@@ -42,10 +42,11 @@
 		});
 	});
 
-	const tuner = createTuner({
-		// svelte-ignore state_referenced_locally
-		instrument: unit.instrument
-	});
+	const tuner = $derived.by(() =>
+		createTuner({
+			instrument: unit.instrument
+		})
+	);
 
 	const STAFF_HEIGHT = 150;
 	const lineSpacing = STAFF_HEIGHT / 12;
@@ -148,7 +149,7 @@
 		// Load high score from localStorage
 		const storage = getUnitStorage(code);
 		const gameKey = `${pieceCode}_defend_highScore`;
-		highScore = (storage as any)[gameKey] || 0;
+		highScore = Number(storage[gameKey]) || 0;
 
 		// Set initial container width (subtract padding: 1rem on each side = 32px total)
 		if (containerElement) {
@@ -332,7 +333,7 @@
 			if (isNewHighScore) {
 				highScore = score;
 				const gameKey = `${pieceCode}_defend_highScore`;
-				setUnitStorage(code, { [gameKey]: highScore } as any);
+				setUnitStorage(code, { [gameKey]: highScore });
 			}
 			gameOver = true;
 		}
@@ -422,27 +423,25 @@
 						title="Game Over!"
 						maxWidth="md"
 					>
-						{#snippet children()}
-							{#if isNewHighScore}
-								<p class="mb-4 text-center text-sm font-semibold text-amber-600">
-									🏆 New High Score!
-								</p>
-							{/if}
+						{#if isNewHighScore}
+							<p class="mb-4 text-center text-sm font-semibold text-amber-600">
+								🏆 New High Score!
+							</p>
+						{/if}
 
-							<div class="flex items-center justify-center gap-4">
-								<div class="rounded-lg bg-white p-4 shadow-sm">
-									<p class="text-xs text-slate-600">Your Score</p>
-									<p class="text-2xl font-bold text-dark-blue">{score}</p>
-								</div>
-
-								{#if highScore > 0}
-									<div class="rounded-lg bg-white p-4 shadow-sm">
-										<p class="text-xs text-slate-600">High Score</p>
-										<p class="text-2xl font-bold text-amber-700">{highScore}</p>
-									</div>
-								{/if}
+						<div class="flex items-center justify-center gap-4">
+							<div class="rounded-lg bg-white p-4 shadow-sm">
+								<p class="text-xs text-slate-600">Your Score</p>
+								<p class="text-2xl font-bold text-dark-blue">{score}</p>
 							</div>
-						{/snippet}
+
+							{#if highScore > 0}
+								<div class="rounded-lg bg-white p-4 shadow-sm">
+									<p class="text-xs text-slate-600">High Score</p>
+									<p class="text-2xl font-bold text-amber-700">{highScore}</p>
+								</div>
+							{/if}
+						</div>
 
 						{#snippet actions()}
 							<button

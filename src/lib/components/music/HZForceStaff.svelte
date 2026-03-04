@@ -81,7 +81,7 @@
 		{/each}
 
 		<!-- Ledger lines (extended range) -->
-		{#each ledgerLinePositions as pos}
+		{#each ledgerLinePositions as pos (pos)}
 			{@const showLedgerLine =
 				scaleMinPosition === undefined ||
 				scaleMaxPosition === undefined ||

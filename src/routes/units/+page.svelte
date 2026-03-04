@@ -3,6 +3,7 @@
 	import type { InstrumentId } from '$lib/config/types';
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	let { data } = $props();
 
@@ -16,7 +17,7 @@
 			: allUnits.filter((unit) => unit.instrument === selectedInstrument)
 	);
 
-	const instruments = new Set<InstrumentId>();
+	const instruments = new SvelteSet<InstrumentId>();
 	allUnits.forEach((unit) => instruments.add(unit.instrument));
 </script>
 

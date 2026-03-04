@@ -69,7 +69,6 @@
 	// Visualization
 	let timelineCanvasEl: HTMLCanvasElement | null = null;
 	let timelineScrollContainer: HTMLDivElement | null = null;
-	let spectrumCtx: CanvasRenderingContext2D | null = null;
 	let timelineCtx: CanvasRenderingContext2D | null = null;
 	let animationId: number | null = null;
 
@@ -165,15 +164,6 @@
 
 		sampleTimer = window.setInterval(() => {
 			const now = performance.now();
-
-			// Check for onset events since last sample
-			const lastSampleTime =
-				recordedData.length > 0
-					? recordedData[recordedData.length - 1].timestamp
-					: now - SAMPLE_INTERVAL_MS;
-			const newOnsets = onsetEvents.filter(
-				(evt) => evt.timestamp > lastSampleTime && evt.timestamp <= now
-			);
 
 			// Record frame data
 			const frame: RecordedFrame = {
@@ -633,7 +623,7 @@
 				<MicrophoneSelector
 					tunerState={tuner.state}
 					onStartListening={() => {}}
-					onDeviceChange={async (deviceId) => {
+					onDeviceChange={async () => {
 						await tuner.refreshDevices();
 						// Device change is handled by tuner internally
 					}}
@@ -740,7 +730,7 @@
 		<div style="margin-bottom: 1rem;">
 			<h3>Training Instrument</h3>
 			<select bind:value={selectedInstrument} class="instrument-select">
-				{#each instrumentConfigs as instrument}
+				{#each instrumentConfigs as instrument (instrument.id)}
 					<option value={instrument.id}>{instrument.label}</option>
 				{/each}
 			</select>

@@ -17,6 +17,7 @@
 	let showCompletionModal = $state(false);
 	let currentMelody = $state<MelodyItem[]>([]);
 	let isInitialized = $state(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let melodyVersion = $state(0); // Track melody changes
 
 	// Get the total number of melodies in the piece
@@ -41,7 +42,7 @@
 		// Load completion count from localStorage
 		const storage = getUnitStorage(code);
 		const gameKey = `${pieceCode}_melody_completions`;
-		completionCount = (storage as any)[gameKey] || 0;
+		completionCount = Number(storage[gameKey]) || 0;
 	});
 
 	function hasOnlyNullNotes(phrase: MelodyItem[]): boolean {
@@ -92,7 +93,7 @@
 			// All melodies completed! Increment completion count and save to localStorage
 			completionCount += 1;
 			const gameKey = `${pieceCode}_melody_completions`;
-			setUnitStorage(code, { [gameKey]: completionCount } as any);
+			setUnitStorage(code, { [gameKey]: completionCount });
 
 			// TODO: Show completion modal (temporarily disabled to allow continuous practice)
 			// showCompletionModal = true;
@@ -158,16 +159,14 @@
 			icon={melodyIcon}
 			maxWidth="md"
 		>
-			{#snippet children()}
-				<div class="text-center">
-					<p class="mb-4 text-lg text-slate-700">You completed the melody from start to finish!</p>
-					<div class="mb-4 rounded-lg bg-white p-6 shadow-sm">
-						<p class="mb-0 text-4xl font-bold text-dark-blue">{completionCount}</p>
-						<p class="mt-0 text-sm text-slate-600">Times completed</p>
-					</div>
-					<p class="mt-4 text-sm text-slate-600">Keep practicing to master the tune!</p>
+			<div class="text-center">
+				<p class="mb-4 text-lg text-slate-700">You completed the melody from start to finish!</p>
+				<div class="mb-4 rounded-lg bg-white p-6 shadow-sm">
+					<p class="mb-0 text-4xl font-bold text-dark-blue">{completionCount}</p>
+					<p class="mt-0 text-sm text-slate-600">Times completed</p>
 				</div>
-			{/snippet}
+				<p class="mt-4 text-sm text-slate-600">Keep practicing to master the tune!</p>
+			</div>
 
 			{#snippet actions()}
 				<button

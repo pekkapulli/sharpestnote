@@ -11,6 +11,7 @@
 	let completionCount = $state(0);
 	let currentBlock = $state<MelodyItem[]>([]);
 	let isInitialized = $state(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let blockVersion = $state(0); // Track block changes
 
 	const sharePreviewData = $derived({
@@ -27,7 +28,7 @@
 		// Load completion count from localStorage
 		const storage = getUnitStorage(code);
 		const gameKey = `${pieceCode}_blocks_completions`;
-		completionCount = (storage as any)[gameKey] || 0;
+		completionCount = Number(storage[gameKey]) || 0;
 	});
 
 	function createNextBlock() {
@@ -57,7 +58,7 @@
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_blocks_completions`;
-		setUnitStorage(code, { [gameKey]: completionCount } as any);
+		setUnitStorage(code, { [gameKey]: completionCount });
 
 		// Continue to next block
 		setTimeout(() => createNextBlock(), 400);

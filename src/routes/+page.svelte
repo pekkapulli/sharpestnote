@@ -12,6 +12,7 @@
 	import { units } from '$lib/config/units';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import { resolve } from '$app/paths';
 
 	let { data } = $props();
 
@@ -40,25 +41,25 @@
 		<h2 class="mb-4 max-w-lg text-center text-xl font-light">
 			Beginner units for orchestral instruments, with interactive practice tools.
 		</h2>
-		<p class="text-center">Built for music educators, families, and adult learners.</p>
+		<p class="text-center">A thoughtful bridge between the music lesson and home practice.</p>
 		<nav
 			class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
 		>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href="/units"
+				href={resolve('/units')}
 			>
 				Units
 			</a>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href="/teachers"
+				href={resolve('/teachers')}
 			>
 				For Teachers
 			</a>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href="/parents"
+				href={resolve('/parents')}
 			>
 				For Parents
 			</a>

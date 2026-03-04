@@ -36,11 +36,6 @@
 	// Can be <0 if before notation starts, or >1 if after notation ends
 	const progressInNotation = $derived((progress - notationStart) / (notationEnd - notationStart));
 
-	// Inverse function: convert notation progress (0-1) back to track progress
-	function progressInNotationToProgressInTrack(notationProgress: number): number {
-		return notationStart + notationProgress * (notationEnd - notationStart);
-	}
-
 	// Calculate minimum width based on total notes - more notes = wider staff
 	// Use ~15px per sixteenth note as baseline (15 pixels per sixteenth from Staff component)
 	const totalSixteenths = $derived(bars.flat().reduce((sum, item) => sum + item.length, 0));
@@ -183,7 +178,7 @@
 		lastPointerTime = now;
 	}
 
-	function onPointerUp(_e: PointerEvent) {
+	function onPointerUp() {
 		if (!isScrubbing) return;
 		isScrubbing = false;
 		startInertia(velocityX);
@@ -249,6 +244,7 @@
 <div class="rolling-staff-container" bind:clientWidth={containerWidth}>
 	<div class="border-light-blue overflow-hidden rounded-lg border bg-white">
 		<div
+			role="presentation"
 			class="staff-viewport"
 			onpointerdown={onPointerDown}
 			onpointermove={onPointerMove}
@@ -269,7 +265,6 @@
 				<Staff
 					{bars}
 					{keySignature}
-					mode={piece.mode}
 					{clef}
 					barLength={piece.barLength}
 					minWidth={minStaffWidth}

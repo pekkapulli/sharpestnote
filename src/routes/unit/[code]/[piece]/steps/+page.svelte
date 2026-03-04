@@ -5,12 +5,14 @@
 	import stepsIcon from '$lib/assets/steps_icon.png';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
 	let completionCount = $state(0);
 	let currentStep = $state<MelodyItem[]>([]);
 	let isInitialized = $state(false);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let stepVersion = $state(0); // Track step changes
 
 	const sharePreviewData = $derived({
@@ -24,7 +26,7 @@
 		// Load completion count from localStorage
 		const storage = getUnitStorage(code);
 		const gameKey = `${pieceCode}_steps_completions`;
-		completionCount = (storage as any)[gameKey] || 0;
+		completionCount = Number(storage[gameKey]) || 0;
 	});
 
 	// Extract unique intervals once when the page loads
@@ -37,7 +39,7 @@
 
 		if (allNotes.length < 2) return [];
 
-		const intervalSet = new Set<string>();
+		const intervalSet = new SvelteSet<string>();
 		// Go through consecutive pairs in the flattened melody
 		for (let i = 0; i < allNotes.length - 1; i++) {
 			const note1 = allNotes[i]?.note;
@@ -81,7 +83,7 @@
 		// Increment completion count and save to localStorage
 		completionCount += 1;
 		const gameKey = `${pieceCode}_steps_completions`;
-		setUnitStorage(code, { [gameKey]: completionCount } as any);
+		setUnitStorage(code, { [gameKey]: completionCount });
 
 		// Continue to next step
 		setTimeout(() => createNextStep(), 400);

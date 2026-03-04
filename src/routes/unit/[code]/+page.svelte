@@ -2,6 +2,7 @@
 	import AudioTrackPlayer from '$lib/components/ui/AudioTrackPlayer.svelte';
 	import KeyEntry from '$lib/components/ui/KeyEntry.svelte';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
+	import { resolve } from '$app/paths';
 	import { fileStore } from '$lib/config/units';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import SharePreview from '$lib/components/SharePreview.svelte';
@@ -31,7 +32,8 @@
 	$effect(() => {
 		// Reset loading state when the image URL changes
 		imageLoaded = false;
-		imageUrl;
+		// Dependency on imageUrl is created by accessing it above
+		void imageUrl;
 	});
 
 	function handleKeySuccess() {
@@ -122,7 +124,7 @@
 			<section class="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-4">
 				<p class="text-sm font-semibold text-slate-800">Extras</p>
 				<ul class="mt-3 space-y-2">
-					{#each unit.extraLinks ?? [] as link}
+					{#each unit.extraLinks ?? [] as link (link.label)}
 						<li>
 							<a
 								class="text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
@@ -139,14 +141,18 @@
 		{/if}
 		{#if unit.photo}
 			<p class="mt-16 text-sm text-slate-600">
-				Photo by <a href={unit.photo.url} target="_blank" rel="noreferrer">{unit.photo.credit}</a>
-				on <a href="https://unsplash.com" target="_blank" rel="noreferrer">Unsplash</a>.
+				Photo by
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={unit.photo.url} target="_blank" rel="noreferrer">{unit.photo.credit}</a>
+				on
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href="https://unsplash.com" target="_blank" rel="noreferrer">Unsplash</a>.
 			</p>
 		{/if}
 		<section
 			class="mt-10 flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"
 		>
-			<p>Scanned the wrong code? <a class="underline" href="/">Go home</a></p>
+			<p>Scanned the wrong code? <a class="underline" href={resolve('/')}>Go home</a></p>
 			<p>
 				Need help? Email <a class="underline" href="mailto:support@sharpestnote.com"
 					>support@sharpestnote.com</a

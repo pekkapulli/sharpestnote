@@ -258,7 +258,7 @@
 					bind:value={selectedInstrument}
 					class="mx-auto block w-full max-w-sm rounded-lg border border-slate-300 px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none"
 				>
-					{#each instrumentConfigs as inst}
+					{#each instrumentConfigs as inst (inst.id)}
 						<option value={inst.id}>{inst.label}</option>
 					{/each}
 				</select>

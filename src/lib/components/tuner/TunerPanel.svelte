@@ -3,7 +3,6 @@
 	import { instrumentMap } from '$lib/config/instruments';
 	import { noteNameToMidi } from '$lib/synth/noteUtils';
 	import { vexFlowToDisplay } from '$lib/util/noteConverter';
-	import { centsOff, frequencyFromNoteNumber } from '$lib/tuner/tune';
 
 	interface Props {
 		fullPage?: boolean;
@@ -13,7 +12,6 @@
 		title?: string;
 		description?: string | null;
 		note?: string | null;
-		frequency?: number | null;
 		cents?: number | null;
 		instrument?: InstrumentId | null;
 	}
@@ -26,7 +24,6 @@
 		title,
 		description,
 		note = null,
-		frequency = null,
 		cents = null,
 		instrument = null
 	}: Props = $props();
@@ -184,7 +181,7 @@
 				/> -->
 
 				<!-- Range markers -->
-				{#each [-30, -15, 0, 15, 30] as markerAngle}
+				{#each [-30, -15, 0, 15, 30] as markerAngle (markerAngle)}
 					{@const markerStart = polarToCartesian(markerAngle, markerStartRadius)}
 					{@const markerEnd = polarToCartesian(markerAngle, markerEndRadius)}
 					<line
@@ -198,7 +195,7 @@
 				{/each}
 
 				<!-- Center labels -->
-				{#each [-30, 0, 30] as labelAngle}
+				{#each [-30, 0, 30] as labelAngle (labelAngle)}
 					{@const labelPos = polarToCartesian(labelAngle, labelRadius)}
 					<text
 						x={labelPos.x}
@@ -252,7 +249,7 @@
 				{@const strings = instrumentMap[instrument].strings}
 				{@const closestString = getClosestString(note, strings || [])}
 				<div class="mt-8 flex justify-center gap-3">
-					{#each strings || [] as stringNote}
+					{#each strings || [] as stringNote (stringNote)}
 						<div
 							class="flex h-16 w-16 items-center justify-center rounded-lg border-2 transition-all"
 							class:border-green-500={stringNote === closestString && note}

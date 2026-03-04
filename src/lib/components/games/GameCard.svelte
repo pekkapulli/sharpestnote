@@ -1,6 +1,9 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+
+	type GamePath = `/unit/${string}/${string}/${string}`;
 	interface Props {
-		href: string;
+		to: GamePath;
 		icon: string;
 		title: string;
 		description: string;
@@ -10,7 +13,7 @@
 	}
 
 	const {
-		href,
+		to,
 		icon,
 		title,
 		description,
@@ -32,7 +35,7 @@
 		</div>
 	</div>
 {:else}
-	<a class="game-card" {href} aria-label={ariaLabel}>
+	<a class="game-card" href={resolve(to)} aria-label={ariaLabel}>
 		{#if badgeText}
 			<span class="game-card__badge">{badgeText}</span>
 		{/if}

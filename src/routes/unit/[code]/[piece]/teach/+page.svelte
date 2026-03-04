@@ -8,7 +8,7 @@
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 
 	const { data } = $props();
-	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
+	const { unit, piece, code, imageUrl, pageUrl } = $derived(data);
 
 	let hasKeyAccess = $state(false);
 	let stage = $state<'scale-playing' | 'piece-playing' | 'piece-playing-muted'>('scale-playing');

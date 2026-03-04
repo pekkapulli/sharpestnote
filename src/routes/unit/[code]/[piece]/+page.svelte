@@ -13,6 +13,7 @@
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import { getImageUrl } from '$lib/util/getImageUrl';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import { resolve } from '$app/paths';
 
 	const { data } = $props();
 	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl } =
@@ -183,7 +184,7 @@
 			<nav aria-label="Piece navigation" class="mt-8 flex justify-between">
 				{#if previousPiece}
 					<a
-						href={`/unit/${code}/${previousPiece.code}`}
+						href={resolve(`/unit/${code}/${previousPiece.code}`)}
 						class="flex items-center gap-2 text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
 					>
 						← {previousPiece.label}
@@ -194,7 +195,7 @@
 
 				{#if nextPiece}
 					<a
-						href={`/unit/${code}/${nextPiece.code}`}
+						href={resolve(`/unit/${code}/${nextPiece.code}`)}
 						class="flex items-center gap-2 text-blue-700 underline decoration-2 underline-offset-4 hover:text-blue-800"
 					>
 						{nextPiece.label} →
@@ -205,9 +206,9 @@
 			<section class="mt-8">
 				<h3 class="text-sm font-semibold text-slate-800">Learn through games</h3>
 				<GameCardGrid>
-					{#each visibleGameCards as game}
+					{#each visibleGameCards as game (game.slug)}
 						<GameCard
-							href={`/unit/${code}/${pieceCode}/${game.slug}`}
+							to={`/unit/${code}/${pieceCode}/${game.slug}`}
 							icon={game.icon}
 							title={game.title}
 							description={game.description}
