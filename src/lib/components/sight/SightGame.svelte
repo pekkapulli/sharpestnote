@@ -18,6 +18,7 @@
 	import tempoSlowIcon from '$lib/assets/tempo-slow.svg';
 	import tempoMediumIcon from '$lib/assets/tempo-medium.svg';
 	import tempoFastIcon from '$lib/assets/tempo-fast.svg';
+	import { greatCompliments, preciseHitCompliments } from './great';
 
 	interface Props {
 		instrument: InstrumentId;
@@ -146,6 +147,40 @@
 			}
 		}
 	}
+
+	let successMessage = $state('Correct!');
+	let wasShowingSuccess = $state(false);
+
+	function getRandomCompliment(messages: readonly string[]) {
+		if (messages.length === 0) return 'Correct!';
+		const index = Math.floor(Math.random() * messages.length);
+		return messages[index] ?? 'Correct!';
+	}
+
+	function getSuccessMessage() {
+		return successMessage;
+	}
+
+	$effect(() => {
+		const isShowingSuccess = game.showSuccess();
+
+		if (isShowingSuccess && !wasShowingSuccess) {
+			const currentMelody = game.melody() ?? [];
+			const playableNotes = currentMelody.filter((item) => item.note !== null).length;
+			const greatIntonationCount = game.greatIntonationIndices().length;
+			const usePreciseCompliment = playableNotes > 0 && greatIntonationCount / playableNotes >= 0.5;
+
+			successMessage = getRandomCompliment(
+				usePreciseCompliment ? preciseHitCompliments : greatCompliments
+			);
+		}
+
+		if (!isShowingSuccess) {
+			successMessage = 'Correct!';
+		}
+
+		wasShowingSuccess = isShowingSuccess;
+	});
 </script>
 
 <div class="min-h-screen bg-off-white py-12">
@@ -197,6 +232,14 @@
 					{barLength}
 					greatIntonationIndices={game.greatIntonationIndices()}
 				/>
+
+				<p class="mt-4 text-lg text-green-600" role="status" aria-live="polite">
+					{#if game.showSuccess()}
+						✓ {getSuccessMessage()}
+					{:else}
+						&nbsp;
+					{/if}
+				</p>
 			</div>
 
 			<!-- Synth toggle -->
@@ -271,11 +314,6 @@
 						? 'Listening... Play the note shown above.'
 						: 'Microphone not active.'}
 				</p>
-				{#if game.showSuccess()}
-					<p class="mt-2 text-lg font-bold text-green-600" role="status" aria-live="polite">
-						✓ Correct!
-					</p>
-				{/if}
 
 				<div class="mt-4 flex justify-center gap-2">
 					<button
