@@ -18,7 +18,7 @@
 	import tempoSlowIcon from '$lib/assets/tempo-slow.svg';
 	import tempoMediumIcon from '$lib/assets/tempo-medium.svg';
 	import tempoFastIcon from '$lib/assets/tempo-fast.svg';
-	import { greatCompliments, preciseHitCompliments } from './great';
+	import { getRandomCompliment } from './great';
 
 	interface Props {
 		instrument: InstrumentId;
@@ -151,12 +151,6 @@
 	let successMessage = $state('Correct!');
 	let wasShowingSuccess = $state(false);
 
-	function getRandomCompliment(messages: readonly string[]) {
-		if (messages.length === 0) return 'Correct!';
-		const index = Math.floor(Math.random() * messages.length);
-		return messages[index] ?? 'Correct!';
-	}
-
 	function getSuccessMessage() {
 		return successMessage;
 	}
@@ -170,9 +164,7 @@
 			const greatIntonationCount = game.greatIntonationIndices().length;
 			const usePreciseCompliment = playableNotes > 0 && greatIntonationCount / playableNotes >= 0.5;
 
-			successMessage = getRandomCompliment(
-				usePreciseCompliment ? preciseHitCompliments : greatCompliments
-			);
+			successMessage = getRandomCompliment(usePreciseCompliment ? 'precise' : 'great');
 		}
 
 		if (!isShowingSuccess) {

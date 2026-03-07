@@ -224,3 +224,8 @@ export const preciseHitCompliments = [
 	'What control!',
 	'Ice cold precision!'
 ] as const;
+
+export const getRandomCompliment = (mode: 'great' | 'precise'): string => {
+	const compliments = mode === 'great' ? greatCompliments : preciseHitCompliments;
+	return compliments[Math.floor(Math.random() * compliments.length)];
+};
