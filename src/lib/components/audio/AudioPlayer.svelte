@@ -20,9 +20,11 @@
 		teachComplete?: boolean;
 	}
 
+	type SelectedTrack = 'full' | 'backing';
+
 	let { unit, piece, hasKeyAccess: hasKeyAccessProp, teachComplete = false }: Props = $props();
 	let selectedSpeed: Speed = $state('medium');
-	let selectedTrack: 'full' | 'backing' = $state('backing');
+	let selectedTrack = $state<SelectedTrack>('full');
 	let isPlaying: boolean = $state(false);
 	let isLoading: boolean = $state(false);
 	let isRepeat: boolean = $state(false);
@@ -172,7 +174,7 @@
 		}
 	}
 
-	async function handleTrackChange(track: 'full' | 'backing') {
+	async function handleTrackChange(track: SelectedTrack) {
 		const wasPlaying = isPlaying;
 		const progressPercent = duration > 0 ? currentTime / duration : 0;
 		isLoading = true;
@@ -387,7 +389,7 @@
 				</div>
 
 				<div class="selector-item">
-					<p class="text-sm font-semibold text-dark-blue">Select track</p>
+					<p class="text-sm font-semibold text-dark-blue">Accompaniment</p>
 					<PillSelector
 						options={[
 							{
