@@ -166,6 +166,9 @@ export function createTuner(options: TunerOptions = {}) {
 	const instrument = $state({ value: options.instrument ?? 'generic' });
 	const tempoBPM = $state({ value: options.tempoBPM ?? 120 });
 	const expectedMidi = $state<{ value: number | null }>({ value: options.expectedMidi ?? null });
+	$effect(() => {
+		console.log('expectedMidi updated:', expectedMidi.value);
+	});
 
 	// Create gain state wrappers for svelte reactivity
 	const gain = $state({ value: gainState.state.gain });

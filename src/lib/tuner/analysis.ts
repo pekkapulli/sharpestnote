@@ -175,10 +175,14 @@ export function correctOctaveErrors(
 	const halfNearOpenString = openStringFrequencies.some(
 		(openFreq) => centsDistance(halfFreq, openFreq) < 35
 	);
+	const isSustainingInstrument = instrument.sustaining;
 
 	// Primary check: Look for significant energy at the lower octave in the FFT
-	// Use adaptive thresholds for weak fundamentals and open-string regions on small instruments
-	const useRelaxedThresholds = halfFreq < 330 || halfNearOpenString || looksLikeUpwardOctaveJump;
+	// Use relaxed thresholds conservatively for sustaining instruments (e.g. violin/viola/cello)
+	// to avoid over-correcting down an octave when upper harmonics dominate.
+	const useRelaxedThresholds =
+		looksLikeUpwardOctaveJump ||
+		(!isSustainingInstrument && (halfFreq < 330 || halfNearOpenString));
 	const lowerOctaveEnergyThreshold = useRelaxedThresholds ? 0.12 : 0.2;
 	const lowerOctaveBandwidthCents = useRelaxedThresholds ? 90 : 50;
 	const lowerOctaveEnergyFloorFactor = useRelaxedThresholds ? 1.3 : 2.0;
@@ -205,19 +209,28 @@ export function correctOctaveErrors(
 	const favorsUpperOctaveHistory = nearDoubleCount >= 2 && nearDoubleCount >= nearFreqCount;
 	const strongLowerOctaveJumpContinuity = looksLikeUpwardOctaveJump && nearFreqCount <= 1;
 	const strongUpperOctaveJumpContinuity = looksLikeDownwardOctaveJump && nearFreqCount <= 1;
+	const expectedWindowSemitones = 7;
+	const expectedFreq = expectedMidi !== null ? frequencyFromNoteNumber(expectedMidi, a4) : null;
+	const isWithinExpectedWindow = (candidate: number): boolean => {
+		if (expectedFreq === null) return true;
+		const semitoneDistance = 12 * Math.abs(Math.log2(candidate / expectedFreq));
+		return semitoneDistance <= expectedWindowSemitones;
+	};
 
-	const candidateFrequencies = [halfFreq, freq, freq * 2].filter((candidate) =>
-		isFrequencyInInstrumentRange(candidate, instrument, a4)
+	const candidateFrequencies = [halfFreq, freq, freq * 2].filter(
+		(candidate) =>
+			isFrequencyInInstrumentRange(candidate, instrument, a4) && isWithinExpectedWindow(candidate)
 	);
 
 	const chooseExpectedBiasedFrequency = (): number | null => {
-		if (expectedMidi === null || candidateFrequencies.length === 0) {
+		if (expectedMidi === null || expectedFreq === null || candidateFrequencies.length === 0) {
 			return null;
 		}
 
-		const expectedFreq = frequencyFromNoteNumber(expectedMidi, a4);
+		const expectedFreqForScoring = expectedFreq;
+
 		const centsFromExpected = (candidate: number) =>
-			1200 * Math.abs(Math.log2(candidate / expectedFreq));
+			1200 * Math.abs(Math.log2(candidate / expectedFreqForScoring));
 		const centsFromRecent = (candidate: number) =>
 			recentAverage > 0 ? 1200 * Math.abs(Math.log2(candidate / recentAverage)) : 0;
 
@@ -232,7 +245,8 @@ export function correctOctaveErrors(
 			const isDouble = Math.abs(candidate - freq * 2) < 1e-6;
 
 			// Bonuses for lower octave (f → f/2)
-			const lowerSpectralBonus = isHalf && hasLowerOctaveEnergy ? 30 : 0;
+			const lowerSpectralBonus =
+				isHalf && hasLowerOctaveEnergy ? (isSustainingInstrument ? 15 : 30) : 0;
 			const lowerHistoryBonus = isHalf && favorsLowerOctaveHistory ? 20 : 0;
 			const lowerJumpBonus = isHalf && strongLowerOctaveJumpContinuity ? 20 : 0;
 
@@ -263,12 +277,21 @@ export function correctOctaveErrors(
 		return expectedBiasedFreq;
 	}
 
+	const hasAnyLowerHistory = nearHalfCount >= 1;
+	const lowerHistorySupportsCorrection =
+		(wasHalfFreqStable && favorsLowerOctaveHistory) || strongLowerOctaveJumpContinuity;
+	const halfWithinExpectedWindow = isWithinExpectedWindow(halfFreq);
+	const spectralEvidenceSupportsCorrection = isSustainingInstrument
+		? hasLowerOctaveEnergy &&
+			(lowerHistorySupportsCorrection || (hasAnyLowerHistory && nearFreqCount === 0)) &&
+			halfWithinExpectedWindow
+		: hasLowerOctaveEnergy;
+
 	// Fallback: correct to lower octave when spectral evidence exists,
 	// or when history strongly indicates we should stay in the lower octave
 	if (
-		hasLowerOctaveEnergy ||
-		(wasHalfFreqStable && favorsLowerOctaveHistory) ||
-		strongLowerOctaveJumpContinuity
+		halfWithinExpectedWindow &&
+		(spectralEvidenceSupportsCorrection || lowerHistorySupportsCorrection)
 	) {
 		return halfFreq;
 	}

@@ -74,7 +74,7 @@ export function useSightGameLogic(config: SightGameConfig) {
 
 			// Filter spurious onsets: ignore if note is sustained AND we already successfully
 			// detected this note (prevents multiple detections on single held note)
-			const isNoteSustained = held > 2 && lastOnsetHeldSixteenths > 2;
+			const isNoteSustained = held > 1 && lastOnsetHeldSixteenths > 1;
 			const alreadyDetectedThisNote = currentNoteSuccess && lastOnsetNoteIndex === currentIndex;
 
 			if (isNoteSustained && alreadyDetectedThisNote) {

@@ -39,7 +39,7 @@ export function createMLState(basePath: string = '') {
 		if (state.mlModelReady || state.mlModelLoadStarted) return;
 		state.mlModelLoadStarted = true;
 		state.mlModelLoadFailed = false;
-		const loadStart = performance.now();
+		// const loadStart = performance.now();
 		try {
 			const probe = await fetch(`${mlModelPath}/model.json`, { method: 'GET' });
 			if (!probe.ok) {
@@ -57,14 +57,14 @@ export function createMLState(basePath: string = '') {
 			.then(() => {
 				state.mlModelReady = true;
 				state.mlModelLoadFailed = false;
-				debugLogForce(
-					`[ML] Onset model loaded successfully in ${Math.round(performance.now() - loadStart)}ms`
-				);
+				// debugLogForce(
+				// 	`[ML] Onset model loaded successfully in ${Math.round(performance.now() - loadStart)}ms`
+				// );
 			})
-			.catch((err) => {
+			.catch(() => {
 				state.mlModelLoadFailed = true;
 				state.mlModelLoadStarted = false; // allow retry on next start
-				debugLogForce('[ML] Failed to load model', err);
+				// debugLogForce('[ML] Failed to load model', err);
 			});
 	}
 
@@ -82,20 +82,20 @@ export function createMLState(basePath: string = '') {
 			state.mlDiagLastLogTime = now;
 			switch (mlDiagState) {
 				case 'failed':
-					debugLogForce('[ML] Model load failed — see previous error');
+					// debugLogForce('[ML] Model load failed — see previous error');
 					break;
 				case 'not-ready':
-					debugLogForce('[ML] Waiting for model to load...');
+					// debugLogForce('[ML] Waiting for model to load...');
 					// If load never started, kick it off from here as a safety net
 					if (!state.mlModelLoadStarted) {
 						ensureMlModelLoad();
 					}
 					break;
 				case 'warming-up':
-					debugLogForce('[ML] Collecting history before first prediction');
+					// debugLogForce('[ML] Collecting history before first prediction');
 					break;
 				case 'predicting':
-					debugLogForce('[ML] Running predictions');
+					// debugLogForce('[ML] Running predictions');
 					break;
 			}
 		}
@@ -108,6 +108,7 @@ export function createMLState(basePath: string = '') {
 		highFrequencyEnergy: number,
 		hasPitch: boolean,
 		onsetDetected: boolean,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		frequency: number | null
 	): OnsetPrediction | null {
 		if (!state.mlModelReady) {
@@ -147,30 +148,30 @@ export function createMLState(basePath: string = '') {
 
 				// Log ML prediction for comparison (show all detections)
 				if (prediction.isOnset) {
-					const pitchInfo = hasPitch ? `freq=${frequency?.toFixed(1)}Hz` : '(no pitch lock)';
+					// const pitchInfo = hasPitch ? `freq=${frequency?.toFixed(1)}Hz` : '(no pitch lock)';
 					if (!onsetDetected) {
-						debugLogForce(
-							`🤖 ML detected onset (rule-based missed): prob=${prediction.probability.toFixed(3)} ${pitchInfo}`
-						);
+						// debugLogForce(
+						// 	`🤖 ML detected onset (rule-based missed): prob=${prediction.probability.toFixed(3)} ${pitchInfo}`
+						// );
 					} else {
-						debugLogForce(
-							`✅ Both detected onset: ML prob=${prediction.probability.toFixed(3)} rule=yes ${pitchInfo}`
-						);
+						// debugLogForce(
+						// 	`✅ Both detected onset: ML prob=${prediction.probability.toFixed(3)} rule=yes ${pitchInfo}`
+						// );
 					}
 				} else if (!prediction.isOnset && onsetDetected) {
-					debugLogForce(
-						`📊 Rule-based detected onset (ML missed): prob=${prediction.probability.toFixed(3)}`
-					);
+					// debugLogForce(
+					// 	`📊 Rule-based detected onset (ML missed): prob=${prediction.probability.toFixed(3)}`
+					// );
 				}
 
 				// Debug: log every 5th prediction with probability to see model output
 				if (Math.random() < 0.2) {
-					console.log(
-						`[ML] Prediction: isOnset=${prediction.isOnset}, prob=${prediction.probability.toFixed(3)}, rule=${onsetDetected}`
-					);
+					// console.log(
+					// 	`[ML] Prediction: isOnset=${prediction.isOnset}, prob=${prediction.probability.toFixed(3)}, rule=${onsetDetected}`
+					// );
 				}
 			} else {
-				debugLogForce('⚠️ ML prediction returned null');
+				// debugLogForce('⚠️ ML prediction returned null');
 			}
 
 			return prediction;
