@@ -53,14 +53,17 @@
 			window.addEventListener('load', updateIndicator);
 		}
 		try {
-			// @ts-ignore - FontFaceSet may not exist in all TS lib configs
-			if (typeof document !== 'undefined' && (document as any).fonts) {
-				// @ts-ignore
-				(document as any).fonts.ready.then(() => updateIndicator());
-				// @ts-ignore
-				(document as any).fonts.addEventListener?.('loadingdone', updateIndicator);
+			if (
+				typeof document !== 'undefined' &&
+				(document as Document & { fonts?: FontFaceSet }).fonts
+			) {
+				const fonts = (document as Document & { fonts: FontFaceSet }).fonts;
+				fonts.ready.then(() => updateIndicator());
+				fonts.addEventListener?.('loadingdone', updateIndicator);
 			}
-		} catch {}
+		} catch {
+			// Silently ignore font loading errors
+		}
 	});
 
 	onDestroy(() => {
@@ -69,12 +72,16 @@
 			window.removeEventListener('load', updateIndicator);
 		}
 		try {
-			// @ts-ignore
-			if (typeof document !== 'undefined' && (document as any).fonts) {
-				// @ts-ignore
-				(document as any).fonts.removeEventListener?.('loadingdone', updateIndicator);
+			if (
+				typeof document !== 'undefined' &&
+				(document as Document & { fonts?: FontFaceSet }).fonts
+			) {
+				const fonts = (document as Document & { fonts: FontFaceSet }).fonts;
+				fonts.removeEventListener?.('loadingdone', updateIndicator);
 			}
-		} catch {}
+		} catch {
+			// Silently ignore font loading errors
+		}
 		ro?.disconnect();
 	});
 
@@ -125,7 +132,7 @@
 	aria-label={ariaLabel || 'Options selector'}
 	bind:this={containerElement}
 >
-	{#each options as option, index}
+	{#each options as option, index (option.value)}
 		{#if iconOnly && option.icon}
 			<Tooltip text={option.label} position="top">
 				<button

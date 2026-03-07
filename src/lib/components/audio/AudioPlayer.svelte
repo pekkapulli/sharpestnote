@@ -17,9 +17,10 @@
 		unit: UnitMaterial;
 		piece: Piece;
 		hasKeyAccess?: boolean;
+		teachComplete?: boolean;
 	}
 
-	let { unit, piece, hasKeyAccess: hasKeyAccessProp }: Props = $props();
+	let { unit, piece, hasKeyAccess: hasKeyAccessProp, teachComplete = false }: Props = $props();
 	let selectedSpeed: Speed = $state('medium');
 	let selectedTrack: 'full' | 'backing' = $state('backing');
 	let isPlaying: boolean = $state(false);
@@ -266,7 +267,13 @@
 	<!-- Custom Audio Player -->
 	<div>
 		<h3 class="text-sm font-semibold text-dark-blue">Listen and play along</h3>
-		<p class="mb-4 text-sm text-slate-600">(But practice with the games and sheet music first)</p>
+		{#if teachComplete}
+			<p class="mb-4 text-sm text-slate-600">
+				Great job learning the piece! Now you can practice playing along.
+			</p>
+		{:else}
+			<p class="mb-4 text-sm text-slate-600">(But practice with the games and sheet music first)</p>
+		{/if}
 		<div class="player-box">
 			{#if hasKeyAccess}
 				<RollingStaff

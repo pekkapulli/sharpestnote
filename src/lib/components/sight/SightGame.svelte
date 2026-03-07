@@ -177,30 +177,6 @@
 
 <div class="min-h-screen bg-off-white py-12">
 	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-0 sm:px-4">
-		<header class="text-center">
-			<div class="flex flex-col items-center justify-center gap-2">
-				<p class="mx-auto mt-2 max-w-xl text-center text-slate-700">
-					Play the notes shown on the {game.selectedInstrument.clef} staff with your {instrument}. A
-					star means you hit the note perfectly!
-					{#if game.keySignature}
-						<span class="mt-1 block text-center text-sm text-slate-600">
-							Key: {keyNote}
-							{mode === 'natural_minor' ? 'minor' : 'major'}
-						</span>
-					{/if}
-				</p>
-			</div>
-		</header>
-
-		<div class={micStarted ? 'mx-auto mb-2 max-w-sm' : 'mb-6'}>
-			<MicrophoneSelector
-				tunerState={game.tuner.state}
-				onStartListening={startListening}
-				onDeviceChange={handleDeviceChange}
-				onRefreshDevices={game.tuner.refreshDevices}
-			/>
-		</div>
-
 		{#if game.melody() && micStarted}
 			<!-- Staff display -->
 			<div
@@ -252,6 +228,21 @@
 				</div>
 			{/if}
 
+			<div class="text-center">
+				<div class="flex flex-col items-center justify-center gap-2">
+					<p class="mx-auto mt-2 max-w-xl text-center text-slate-700">
+						Play the notes shown on the {game.selectedInstrument.clef} staff with your {instrument}.
+						A star means you hit the note perfectly!
+						{#if game.keySignature}
+							<span class="mt-1 block text-center text-sm text-slate-600">
+								Key: {keyNote}
+								{mode === 'natural_minor' ? 'minor' : 'major'}
+							</span>
+						{/if}
+					</p>
+				</div>
+			</div>
+
 			<div class="mt-3 flex flex-wrap items-center justify-center gap-3">
 				<button
 					onclick={() => (showTunerModal = true)}
@@ -268,7 +259,7 @@
 					<summary
 						class="cursor-pointer text-sm tracking-[0.08em] text-slate-300 uppercase hover:text-white"
 					>
-						Show note names
+						Show notes and volume meter
 					</summary>
 					<div class="mt-3">
 						<p class="text-sm tracking-[0.08em] text-slate-300 uppercase">Current melody</p>
@@ -328,6 +319,14 @@
 				</div>
 			</div>
 		{/if}
+		<div class={micStarted ? 'mx-auto mb-2 max-w-sm' : 'mb-6'}>
+			<MicrophoneSelector
+				tunerState={game.tuner.state}
+				onStartListening={startListening}
+				onDeviceChange={handleDeviceChange}
+				onRefreshDevices={game.tuner.refreshDevices}
+			/>
+		</div>
 	</div>
 </div>
 

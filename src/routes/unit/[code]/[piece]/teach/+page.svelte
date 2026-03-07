@@ -6,9 +6,10 @@
 	import melodyIcon from '$lib/assets/melody_icon.png';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
+	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
 
 	const { data } = $props();
-	const { unit, piece, code, imageUrl, pageUrl } = $derived(data);
+	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
 
 	let hasKeyAccess = $state(false);
 	let stage = $state<'scale-playing' | 'piece-playing' | 'piece-playing-muted'>('scale-playing');
@@ -16,6 +17,7 @@
 	let melodyIndex = $state(0);
 	let hasStarted = $state(false);
 	let hasCompletedOnce = $state(false);
+	let firstMutedRoundComplete = $state(false);
 	const synthMode = $derived(stage === 'piece-playing-muted' ? 'mute' : 'medium');
 
 	const melodyPool = $derived(piece.melody?.filter((m) => Array.isArray(m) && m.length > 0) ?? []);
@@ -26,6 +28,13 @@
 		description: `Guided practice for ${piece.label}: scale first, then the piece`,
 		image: imageUrl,
 		url: pageUrl
+	});
+
+	$effect(() => {
+		// Load mute round completion status from localStorage
+		const storage = getUnitStorage(code);
+		const gameKey = `${pieceCode}_teach_mute_complete`;
+		firstMutedRoundComplete = Boolean(storage[gameKey]);
 	});
 
 	$effect(() => {
@@ -93,6 +102,10 @@
 					}
 				}, 600);
 				return;
+			} else if (stage === 'piece-playing-muted' && !firstMutedRoundComplete) {
+				firstMutedRoundComplete = true; // Save to localStorage
+				const gameKey = `${pieceCode}_teach_mute_complete`;
+				setUnitStorage(code, { [gameKey]: 1 });
 			}
 		}
 
@@ -147,15 +160,25 @@
 			{/if}
 
 			{#if stage === 'piece-playing-muted'}
-				<div class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 text-center">
-					<h2 class="text-xl font-semibold text-slate-900">Now you lead the melody</h2>
-					<p class="mt-2 text-sm text-slate-700">
-						We’ve muted the guide so you can play the piece on your own.
-					</p>
-					<p class="mt-2 text-xs font-semibold tracking-wide text-emerald-700 uppercase">
-						Keep going — we’ll loop the phrases.
-					</p>
-				</div>
+				{#if !firstMutedRoundComplete}
+					<div class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 text-center">
+						<h2 class="text-xl font-semibold text-slate-900">Now you lead the melody</h2>
+						<p class="mt-2 text-sm text-slate-700">
+							We've muted the guide so you can play the piece on your own.
+						</p>
+						<p class="mt-2 text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+							Keep going — we'll loop the phrases.
+						</p>
+					</div>
+				{:else}
+					<div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-100/80 p-5 text-center">
+						<div class="mb-3 text-4xl">✓</div>
+						<h2 class="text-xl font-semibold text-slate-900">Great job!</h2>
+						<p class="mt-2 text-sm text-slate-700">
+							When you feel ready, you can try to play with the slow accompaniment.
+						</p>
+					</div>
+				{/if}
 			{/if}
 
 			{#if currentMelody.length > 0}
