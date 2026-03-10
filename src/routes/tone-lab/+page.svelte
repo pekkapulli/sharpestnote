@@ -40,15 +40,22 @@
 		a4: DEFAULT_A4,
 		accidental: 'sharp',
 		autoGain: true,
-		debounceTime: 0
+		debounceTime: 0,
+		maxGain: 500
 	});
-	const synth = createSynth({ waveform: 'sine', volume: 0.5, attack: 0.05, release: 0.3 });
+	const synth = createSynth({
+		waveform: 'sine',
+		volume: 0.5,
+		attack: 0.05,
+		release: 0.2,
+		reverbDecay: 0.2
+	});
 	let micStarted = $state(false);
 
 	// Visualizer
 	let canvas = $state<HTMLCanvasElement | undefined>(undefined);
 	let pageRootElement = $state<HTMLDivElement | undefined>(undefined);
-	let gameArenaElement = $state<HTMLDivElement | undefined>(undefined);
+	let staffCircleElement = $state<HTMLDivElement | undefined>(undefined);
 	let animationFrameId: number | null = null;
 
 	let selectedScaleKey = $state('C');
@@ -61,7 +68,7 @@
 		great: 15 // Within 15 cents
 	};
 	const LISTEN_COOLDOWN_MS = 350;
-	const SUCCESS_FLASH_MS = 700;
+	const SUCCESS_FLASH_MS = 1800;
 	let isListeningGateOpen = $state(true);
 	let listeningGateTimeout: ReturnType<typeof setTimeout> | null = null;
 	let successFlashActive = $state(false);
@@ -101,7 +108,7 @@
 
 	$effect(() => {
 		const shouldReposition = gameState !== 'idle' || targetStaffBars.length >= 0;
-		if (shouldReposition && canvas && pageRootElement && gameArenaElement) {
+		if (shouldReposition && canvas && pageRootElement && staffCircleElement) {
 			requestAnimationFrame(() => {
 				updateCanvasAnchor();
 			});
@@ -141,12 +148,12 @@
 	}
 
 	function updateCanvasAnchor() {
-		if (!canvas || !pageRootElement || !gameArenaElement) return;
+		if (!canvas || !pageRootElement || !staffCircleElement) return;
 
 		const rootRect = pageRootElement.getBoundingClientRect();
-		const arenaRect = gameArenaElement.getBoundingClientRect();
-		const centerX = arenaRect.left - rootRect.left + arenaRect.width / 2;
-		const centerY = arenaRect.top - rootRect.top + arenaRect.height / 2;
+		const circleRect = staffCircleElement.getBoundingClientRect();
+		const centerX = circleRect.left - rootRect.left + circleRect.width / 2;
+		const centerY = circleRect.top - rootRect.top + circleRect.height / 2;
 
 		canvas.style.left = `${centerX}px`;
 		canvas.style.top = `${centerY}px`;
@@ -191,9 +198,9 @@
 				ringRadius
 			);
 			if (successFlashActive) {
-				gradient.addColorStop(0, `rgba(35, 154, 103, ${opacity * 0.85})`);
-				gradient.addColorStop(0.55, `rgba(28, 124, 84, ${opacity * 0.75})`);
-				gradient.addColorStop(1, `rgba(35, 154, 103, ${opacity * 0.55})`);
+				gradient.addColorStop(0, `rgba(35, 154, 103, ${opacity * 0.45})`);
+				gradient.addColorStop(0.55, `rgba(28, 124, 84, ${opacity * 0.35})`);
+				gradient.addColorStop(1, `rgba(35, 154, 103, ${opacity * 0.2})`);
 			} else if (gameState === 'listening' && hasPitch) {
 				gradient.addColorStop(0, `rgba(246, 216, 104, ${opacity * 0.5})`);
 				gradient.addColorStop(0.55, `rgba(249, 248, 244, ${opacity * 0.8})`);
@@ -267,8 +274,8 @@
 		);
 
 		if (successFlashActive) {
-			centerGradient.addColorStop(0, `rgba(35, 154, 103, ${0.55 + amplitude * 0.35})`);
-			centerGradient.addColorStop(1, `rgba(28, 124, 84, ${0.3 + amplitude * 0.25})`);
+			centerGradient.addColorStop(0, `rgba(35, 154, 103, ${0.28 + amplitude * 0.16})`);
+			centerGradient.addColorStop(1, `rgba(28, 124, 84, ${0.14 + amplitude * 0.1})`);
 		} else if (gameState === 'listening' && hasPitch) {
 			centerGradient.addColorStop(0, `rgba(246, 216, 104, ${0.42 + amplitude * 0.26})`);
 			centerGradient.addColorStop(1, `rgba(249, 248, 244, ${0.18 + amplitude * 0.24})`);
@@ -285,6 +292,33 @@
 		ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
 		ctx.fill();
 
+		// Pitch guidance: rings flow up when pitch is low, down when pitch is high
+		const guidanceCents = getTargetGuidanceCents();
+		if (
+			!successFlashActive &&
+			guidanceCents !== null &&
+			gameState === 'listening' &&
+			isListeningGateOpen
+		) {
+			const normalized = Math.min(1, Math.abs(guidanceCents) / 100); // max out at ±100 cents
+			const direction = guidanceCents < 0 ? -1 : 1; // low -> up, high -> down
+			const ringCount = 3;
+
+			for (let i = 0; i < ringCount; i++) {
+				const phase = (now / 900 + i / ringCount) % 1;
+				const travel = (16 + normalized * 80) * phase;
+				const offsetY = direction * travel;
+				const ringRadius = centerRadius + 8 + phase * (24 + normalized * 56);
+				const alpha = (1 - phase) * (0.06 + normalized * 0.36);
+
+				ctx.strokeStyle = `rgba(246, 216, 104, ${alpha})`;
+				ctx.lineWidth = 1 + normalized * 2.2;
+				ctx.beginPath();
+				ctx.arc(centerX, centerY + offsetY, ringRadius, 0, Math.PI * 2);
+				ctx.stroke();
+			}
+		}
+
 		// Success ripple: water-drop style ring from center, expanding and fading
 		if (successRippleStartMs !== null) {
 			const rippleDuration = SUCCESS_FLASH_MS;
@@ -297,16 +331,16 @@
 				const eased = 1 - Math.pow(1 - progress, 3);
 				const maxRadius = Math.max(width, height) * 0.5;
 				const rippleRadius = centerRadius + eased * maxRadius;
-				const rippleAlpha = (1 - progress) * 0.55;
+				const rippleAlpha = (1 - progress) * 0.2;
 
 				ctx.strokeStyle = `rgba(35, 154, 103, ${rippleAlpha})`;
-				ctx.lineWidth = 2 + (1 - progress) * 7;
+				ctx.lineWidth = 1 + (1 - progress) * 2.5;
 				ctx.beginPath();
 				ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
 				ctx.stroke();
 
-				ctx.strokeStyle = `rgba(35, 154, 103, ${rippleAlpha * 0.45})`;
-				ctx.lineWidth = 1.5 + (1 - progress) * 4;
+				ctx.strokeStyle = `rgba(35, 154, 103, ${rippleAlpha * 0.35})`;
+				ctx.lineWidth = 0.8 + (1 - progress) * 1.8;
 				ctx.beginPath();
 				ctx.arc(centerX, centerY, rippleRadius * 0.8, 0, Math.PI * 2);
 				ctx.stroke();
@@ -504,6 +538,22 @@
 		const noteName = noteNameFromMidiDisplay(midi, 'sharp');
 
 		return { noteName, cents };
+	}
+
+	function getTargetGuidanceCents(): number | null {
+		if (gameState !== 'listening') return null;
+		if (!targetNote) return null;
+
+		const frequency = tuner.state.frequency;
+		const hasPitch = tuner.state.hasPitch;
+		if (!hasPitch || !frequency || frequency <= 0) return null;
+
+		const targetMidi = noteNameToMidi(targetNote);
+		if (targetMidi === null) return null;
+		const targetFrequency = frequencyFromNoteNumber(targetMidi, DEFAULT_A4);
+		const centsFromTarget = centsOff(frequency, targetFrequency);
+
+		return Math.max(-100, Math.min(100, centsFromTarget));
 	}
 
 	// Reactive current note info for display
@@ -744,7 +794,7 @@
 
 		<!-- Game Arena - Canvas behind staff circle -->
 		{#if targetStaffBars.length > 0}
-			<div bind:this={gameArenaElement} class="relative mx-auto w-full py-4">
+			<div class="relative mx-auto w-full py-4">
 				<!-- Staff circle and controls overlay -->
 				<div
 					class="pointer-events-none relative z-10 flex flex-col items-center justify-center gap-6 py-4"
@@ -757,7 +807,7 @@
 							</p>
 						{/if}
 
-						<div class="pointer-events-auto relative h-80 w-80">
+						<div bind:this={staffCircleElement} class="pointer-events-auto relative h-80 w-80">
 							<!-- Circular scale key buttons -->
 							{#each keyOptions as keyOption, index (keyOption.value)}
 								{@const angle = (index / keyOptions.length) * 2 * Math.PI - Math.PI / 2}
@@ -779,7 +829,7 @@
 
 							<!-- Staff display in center -->
 							<div
-								class={`pointer-events-none absolute top-1/2 left-1/2 flex h-50 w-50 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-off-white shadow-md transition-all duration-200 ${successFlashActive ? 'success-ring ring-8 ring-brand-green' : ''}`}
+								class={`pointer-events-none absolute top-1/2 left-1/2 flex h-50 w-50 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-off-white shadow-md transition-all duration-200 ${successFlashActive ? 'success-ring ring-2 ring-brand-green/30' : ''}`}
 							>
 								<div class="w-45">
 									<Staff
@@ -873,14 +923,14 @@
 <style>
 	@keyframes successRingPulse {
 		0% {
-			box-shadow: 0 0 0 0 rgba(35, 154, 103, 0.6);
+			box-shadow: 0 0 0 0 rgba(35, 154, 103, 0.22);
 		}
 		100% {
-			box-shadow: 0 0 0 18px rgba(35, 154, 103, 0);
+			box-shadow: 0 0 0 10px rgba(35, 154, 103, 0);
 		}
 	}
 
 	.success-ring {
-		animation: successRingPulse 700ms ease-out;
+		animation: successRingPulse 1800ms ease-out;
 	}
 </style>
