@@ -115,6 +115,8 @@
 
 <style>
 	.breadcrumb {
+		position: relative;
+		z-index: 20;
 		padding: 0.75rem 1rem 0;
 	}
 
