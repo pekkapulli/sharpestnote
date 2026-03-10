@@ -56,7 +56,6 @@
 		if (focusableElements.length === 0) return;
 
 		const firstElement = focusableElements[0] as HTMLElement;
-		const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
 		if (e.relatedTarget === null || !dialogElement.contains(e.relatedTarget as Node)) {
 			firstElement.focus();
@@ -103,7 +102,7 @@
 {#if isOpen}
 	<!-- Backdrop -->
 	<div
-		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-opacity"
 		onclick={handleBackdropClick}
 		role="presentation"
 	>

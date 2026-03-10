@@ -47,6 +47,8 @@
 
 	// Visualizer
 	let canvas = $state<HTMLCanvasElement | undefined>(undefined);
+	let pageRootElement = $state<HTMLDivElement | undefined>(undefined);
+	let gameArenaElement = $state<HTMLDivElement | undefined>(undefined);
 	let animationFrameId: number | null = null;
 
 	let selectedScaleKey = $state('C');
@@ -64,6 +66,7 @@
 	let listeningGateTimeout: ReturnType<typeof setTimeout> | null = null;
 	let successFlashActive = $state(false);
 	let successFlashTimeout: ReturnType<typeof setTimeout> | null = null;
+	let successRippleStartMs = $state<number | null>(null);
 
 	// Update the instrument for the tuner when selection changes
 	$effect(() => {
@@ -80,6 +83,7 @@
 				canvas.width = window.innerWidth;
 				canvas.height = window.innerHeight;
 			}
+			updateCanvasAnchor();
 		};
 		window.addEventListener('resize', handleResize);
 
@@ -92,6 +96,15 @@
 	$effect(() => {
 		if (canvas && !animationFrameId) {
 			startVisualizer();
+		}
+	});
+
+	$effect(() => {
+		const shouldReposition = gameState !== 'idle' || targetStaffBars.length >= 0;
+		if (shouldReposition && canvas && pageRootElement && gameArenaElement) {
+			requestAnimationFrame(() => {
+				updateCanvasAnchor();
+			});
 		}
 	});
 
@@ -115,6 +128,7 @@
 		// Set canvas to large size for visualization
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
+		updateCanvasAnchor();
 
 		animateVisualizer();
 	}
@@ -124,6 +138,18 @@
 			cancelAnimationFrame(animationFrameId);
 			animationFrameId = null;
 		}
+	}
+
+	function updateCanvasAnchor() {
+		if (!canvas || !pageRootElement || !gameArenaElement) return;
+
+		const rootRect = pageRootElement.getBoundingClientRect();
+		const arenaRect = gameArenaElement.getBoundingClientRect();
+		const centerX = arenaRect.left - rootRect.left + arenaRect.width / 2;
+		const centerY = arenaRect.top - rootRect.top + arenaRect.height / 2;
+
+		canvas.style.left = `${centerX}px`;
+		canvas.style.top = `${centerY}px`;
 	}
 
 	function animateVisualizer() {
@@ -138,12 +164,13 @@
 		const centerY = height / 2;
 
 		// Clear with a slight fade for trails
-		ctx.fillStyle = 'rgba(249, 248, 244, 0.28)';
+		ctx.fillStyle = 'rgba(249, 248, 244, 0.16)';
 		ctx.fillRect(0, 0, width, height);
 
 		const amplitude = tuner.state.amplitude;
 		const spectrum = tuner.state.spectrum;
 		const hasPitch = tuner.state.hasPitch;
+		const now = performance.now();
 
 		// Calculate base radius that scales with amplitude
 		const baseRadius = Math.max(100, Math.min(400, amplitude * 800));
@@ -152,7 +179,7 @@
 		// Draw outer rings that pulse with amplitude
 		for (let i = 0; i < 3; i++) {
 			const ringRadius = baseRadius + i * 80 + Math.sin(pulseSpeed * 2 + i) * 20;
-			const opacity = amplitude * 0.3 * (1 - i * 0.3);
+			const opacity = Math.max(0.14, amplitude * 0.46 * (1 - i * 0.24));
 
 			// Gradient based on game state
 			const gradient = ctx.createRadialGradient(
@@ -181,7 +208,7 @@
 			}
 
 			ctx.strokeStyle = gradient;
-			ctx.lineWidth = 3;
+			ctx.lineWidth = 3.5;
 			ctx.beginPath();
 			ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
 			ctx.stroke();
@@ -205,9 +232,10 @@
 
 				// Soft yellow/off-white spectrum accents
 				const lightness = 82 + (i / numBars) * 10;
+				const barOpacity = Math.max(0.16, value * 0.62);
 				ctx.strokeStyle = successFlashActive
-					? `hsla(145, 55%, 48%, ${value * 0.5})`
-					: `hsla(48, 70%, ${lightness}%, ${value * 0.35})`;
+					? `hsla(145, 55%, 48%, ${barOpacity})`
+					: `hsla(48, 70%, ${lightness}%, ${barOpacity * 0.92})`;
 				ctx.lineWidth = 3;
 				ctx.beginPath();
 				ctx.moveTo(x1, y1);
@@ -216,9 +244,10 @@
 
 				// Add glow particles at bar ends
 				if (value > 0.3) {
+					const particleOpacity = Math.max(0.2, value * 0.58);
 					ctx.fillStyle = successFlashActive
-						? `hsla(145, 58%, 58%, ${value * 0.45})`
-						: `hsla(48, 75%, 88%, ${value * 0.28})`;
+						? `hsla(145, 58%, 58%, ${particleOpacity})`
+						: `hsla(48, 75%, 88%, ${particleOpacity * 0.82})`;
 					ctx.beginPath();
 					ctx.arc(x2, y2, 2 + value * 3, 0, Math.PI * 2);
 					ctx.fill();
@@ -238,23 +267,51 @@
 		);
 
 		if (successFlashActive) {
-			centerGradient.addColorStop(0, `rgba(35, 154, 103, ${0.45 + amplitude * 0.35})`);
-			centerGradient.addColorStop(1, `rgba(28, 124, 84, ${0.2 + amplitude * 0.25})`);
+			centerGradient.addColorStop(0, `rgba(35, 154, 103, ${0.55 + amplitude * 0.35})`);
+			centerGradient.addColorStop(1, `rgba(28, 124, 84, ${0.3 + amplitude * 0.25})`);
 		} else if (gameState === 'listening' && hasPitch) {
-			centerGradient.addColorStop(0, `rgba(246, 216, 104, ${0.3 + amplitude * 0.25})`);
-			centerGradient.addColorStop(1, `rgba(249, 248, 244, ${amplitude * 0.28})`);
+			centerGradient.addColorStop(0, `rgba(246, 216, 104, ${0.42 + amplitude * 0.26})`);
+			centerGradient.addColorStop(1, `rgba(249, 248, 244, ${0.18 + amplitude * 0.24})`);
 		} else if (gameState === 'result') {
-			centerGradient.addColorStop(0, 'rgba(246, 216, 104, 0.36)');
-			centerGradient.addColorStop(1, 'rgba(249, 248, 244, 0.24)');
+			centerGradient.addColorStop(0, 'rgba(246, 216, 104, 0.46)');
+			centerGradient.addColorStop(1, 'rgba(249, 248, 244, 0.3)');
 		} else {
-			centerGradient.addColorStop(0, `rgba(249, 248, 244, ${0.26 + amplitude * 0.2})`);
-			centerGradient.addColorStop(1, `rgba(246, 216, 104, ${amplitude * 0.2})`);
+			centerGradient.addColorStop(0, `rgba(249, 248, 244, ${0.34 + amplitude * 0.2})`);
+			centerGradient.addColorStop(1, `rgba(246, 216, 104, ${0.16 + amplitude * 0.2})`);
 		}
 
 		ctx.fillStyle = centerGradient;
 		ctx.beginPath();
 		ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
 		ctx.fill();
+
+		// Success ripple: water-drop style ring from center, expanding and fading
+		if (successRippleStartMs !== null) {
+			const rippleDuration = SUCCESS_FLASH_MS;
+			const elapsed = now - successRippleStartMs;
+			const progress = Math.min(1, elapsed / rippleDuration);
+
+			if (progress >= 1) {
+				successRippleStartMs = null;
+			} else {
+				const eased = 1 - Math.pow(1 - progress, 3);
+				const maxRadius = Math.max(width, height) * 0.5;
+				const rippleRadius = centerRadius + eased * maxRadius;
+				const rippleAlpha = (1 - progress) * 0.55;
+
+				ctx.strokeStyle = `rgba(35, 154, 103, ${rippleAlpha})`;
+				ctx.lineWidth = 2 + (1 - progress) * 7;
+				ctx.beginPath();
+				ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
+				ctx.stroke();
+
+				ctx.strokeStyle = `rgba(35, 154, 103, ${rippleAlpha * 0.45})`;
+				ctx.lineWidth = 1.5 + (1 - progress) * 4;
+				ctx.beginPath();
+				ctx.arc(centerX, centerY, rippleRadius * 0.8, 0, Math.PI * 2);
+				ctx.stroke();
+			}
+		}
 
 		// Continue animation
 		animationFrameId = requestAnimationFrame(animateVisualizer);
@@ -518,12 +575,14 @@
 
 		isListeningGateOpen = false;
 		successFlashActive = true;
+		successRippleStartMs = performance.now();
 		if (successFlashTimeout) {
 			clearTimeout(successFlashTimeout);
 			successFlashTimeout = null;
 		}
 		successFlashTimeout = setTimeout(() => {
 			successFlashActive = false;
+			successRippleStartMs = null;
 			successFlashTimeout = null;
 			nextRound();
 		}, SUCCESS_FLASH_MS);
@@ -549,14 +608,43 @@
 			tuner.expectedMidi = noteNameToMidi(targetNote);
 		}
 	}
+
+	function refreshTargetForScaleChange() {
+		generateRandomNote();
+		tuner.expectedMidi = noteNameToMidi(targetNote);
+
+		if (gameState !== 'idle') {
+			playTargetNote();
+		}
+	}
+
+	function handleScaleKeyChange(nextKey: string) {
+		if (selectedScaleKey === nextKey) return;
+		selectedScaleKey = nextKey;
+		refreshTargetForScaleChange();
+	}
+
+	function handleScaleModeChange(nextMode: Mode) {
+		if (selectedScaleMode === nextMode) return;
+		selectedScaleMode = nextMode;
+		refreshTargetForScaleChange();
+	}
 </script>
 
 <SharePreview data={data.sharePreviewData} />
 
-<div class="relative min-h-screen w-full py-12">
-	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">
+<div bind:this={pageRootElement} class="relative min-h-screen w-full py-12">
+	{#if targetStaffBars.length > 0}
+		<canvas
+			bind:this={canvas}
+			class="pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
+			style="background: radial-gradient(circle at 20% 20%, rgba(246, 216, 104, 0.2), transparent 46%), radial-gradient(circle at 80% 30%, rgba(249, 248, 244, 0.45), transparent 52%), max-width: none;"
+		></canvas>
+	{/if}
+
+	<div class="relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">
 		<!-- Header -->
-		<header class="text-center">
+		<header class="z-20 text-center">
 			<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mx-auto mb-4 w-52" />
 			<h1
 				class="bg-linear-to-r from-dark-blue via-dark-blue-highlight to-brand-green bg-clip-text text-5xl font-extrabold text-transparent"
@@ -568,31 +656,19 @@
 				href={resolve('/units')}
 				class="mt-1 inline-block text-sm text-dark-blue/55 underline decoration-dark-blue/25 underline-offset-2 transition hover:text-dark-blue/75"
 			>
-				Explore The Sharpest Note units
+				Explore The Sharpest Note teaching materials
 			</a>
 			<div class="mt-4 flex justify-center">
 				<button
 					type="button"
 					onclick={() => (showInstructionsModal = true)}
-					class="flex h-10 w-10 items-center justify-center rounded-full border border-dark-blue/25 bg-off-white/95 text-lg font-bold text-dark-blue shadow-sm backdrop-blur-sm transition hover:bg-white"
+					class="flex h-10 items-center justify-center rounded-full border border-dark-blue/25 bg-white px-4 text-lg text-dark-blue shadow-sm backdrop-blur-sm transition hover:bg-white"
 					aria-label="Open instructions"
 				>
-					?
+					<span class="aria-hidden: display-block mr-2 text-2xl font-bold">?</span>How to play
 				</button>
 			</div>
 		</header>
-
-		<!-- Microphone Setup -->
-		{#if !micStarted || gameState === 'idle'}
-			<div class="mx-auto w-full max-w-md">
-				<MicrophoneSelector
-					tunerState={tuner.state}
-					onStartListening={startListening}
-					onDeviceChange={handleDeviceChange}
-					onRefreshDevices={tuner.refreshDevices}
-				/>
-			</div>
-		{/if}
 
 		<!-- Instrument Selector -->
 		{#if gameState === 'idle'}
@@ -609,6 +685,18 @@
 						<option value={instrument.id}>{instrument.label}</option>
 					{/each}
 				</select>
+			</div>
+		{/if}
+
+		<!-- Microphone Setup -->
+		{#if !micStarted || gameState === 'idle'}
+			<div class="mx-auto w-full max-w-md">
+				<MicrophoneSelector
+					tunerState={tuner.state}
+					onStartListening={startListening}
+					onDeviceChange={handleDeviceChange}
+					onRefreshDevices={tuner.refreshDevices}
+				/>
 			</div>
 		{/if}
 
@@ -634,8 +722,8 @@
 		{/if}
 
 		<!-- Game Area -->
-		<div class="mx-auto w-full max-w-2xl">
-			{#if gameState === 'idle'}
+		{#if gameState === 'idle'}
+			<div class="mx-auto w-full max-w-2xl">
 				<div class="p-12 text-center">
 					<div class="mb-6 text-6xl">🎵</div>
 					<h2 class="mb-4 text-2xl font-bold text-dark-blue">Ready to Practice?</h2>
@@ -646,31 +734,20 @@
 					<button
 						onclick={startGame}
 						disabled={!micStarted}
-						class="rounded-full bg-linear-to-r from-brand-green to-dark-blue px-8 py-4 text-lg font-bold text-off-white transition hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+						class="rounded-full bg-brand-green px-8 py-4 text-lg font-bold text-off-white transition hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
 					>
-						Start Practice
+						Start
 					</button>
 				</div>
-			{:else if gameState === 'playing' || gameState === 'listening'}
-				<div class="h-24" aria-hidden="true"></div>
-			{:else if gameState === 'result'}
-				<div class="h-24" aria-hidden="true"></div>
-			{/if}
-		</div>
+			</div>
+		{/if}
 
 		<!-- Game Arena - Canvas behind staff circle -->
 		{#if targetStaffBars.length > 0}
-			<div class="relative mx-auto w-full py-12">
-				<!-- Canvas positioned behind as background -->
-				<canvas
-					bind:this={canvas}
-					class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-					style="background: radial-gradient(circle at 20% 20%, rgba(246, 216, 104, 0.2), transparent 46%), radial-gradient(circle at 80% 30%, rgba(249, 248, 244, 0.45), transparent 52%), max-width: none;"
-				></canvas>
-
+			<div bind:this={gameArenaElement} class="relative mx-auto w-full py-4">
 				<!-- Staff circle and controls overlay -->
 				<div
-					class="pointer-events-none relative z-10 flex flex-col items-center justify-center gap-8 py-12"
+					class="pointer-events-none relative z-10 flex flex-col items-center justify-center gap-6 py-4"
 				>
 					<div class="flex flex-col items-center gap-4">
 						<!-- Scale instruction -->
@@ -680,15 +757,15 @@
 							</p>
 						{/if}
 
-						<div class="pointer-events-auto relative h-137.5 w-137.5">
+						<div class="pointer-events-auto relative h-80 w-80">
 							<!-- Circular scale key buttons -->
 							{#each keyOptions as keyOption, index (keyOption.value)}
 								{@const angle = (index / keyOptions.length) * 2 * Math.PI - Math.PI / 2}
-								{@const radius = 220}
+								{@const radius = 140}
 								{@const x = Math.cos(angle) * radius}
 								{@const y = Math.sin(angle) * radius}
 								<button
-									onclick={() => (selectedScaleKey = keyOption.value)}
+									onclick={() => handleScaleKeyChange(keyOption.value)}
 									class="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-200 {selectedScaleKey ===
 									keyOption.value
 										? 'scale-110 border-dark-blue bg-dark-blue text-off-white shadow-lg'
@@ -702,7 +779,7 @@
 
 							<!-- Staff display in center -->
 							<div
-								class={`pointer-events-none absolute top-1/2 left-1/2 flex h-80 w-80 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-off-white shadow-md transition-all duration-200 ${successFlashActive ? 'success-ring ring-8 ring-brand-green' : ''}`}
+								class={`pointer-events-none absolute top-1/2 left-1/2 flex h-50 w-50 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-off-white shadow-md transition-all duration-200 ${successFlashActive ? 'success-ring ring-8 ring-brand-green' : ''}`}
 							>
 								<div class="w-45">
 									<Staff
@@ -731,9 +808,21 @@
 									{ value: 'natural_minor', label: 'Minor' }
 								]}
 								selected={selectedScaleMode}
-								onSelect={(mode) => (selectedScaleMode = mode)}
+								onSelect={(mode) => handleScaleModeChange(mode)}
 								ariaLabel="Select scale mode"
 							/>
+						</div>
+						<div class="pointer-events-auto p-0 text-center">
+							<button
+								onclick={() => {
+									gameState = 'idle';
+									score = 0;
+									streak = 0;
+								}}
+								class="rounded-full bg-white px-8 py-4 text-lg font-bold text-dark-blue transition hover:scale-105"
+							>
+								Stop
+							</button>
 						</div>
 					{/if}
 				</div>
