@@ -17,8 +17,11 @@ export interface VexFlowRenderResult {
  * Convert our key signature format to VexFlow format
  */
 function keySignatureToVexFlow(keySignature: KeySignature): string {
-	// VexFlow expects key names like "C", "D", "Bb", "F#"
-	// We already have this in keySignature.note
+	// VexFlow expects key names like "C" for major, "Am" for minor
+	// Return the key with mode suffix for natural minor
+	if (keySignature.mode === 'natural_minor') {
+		return `${keySignature.note}m`;
+	}
 	return keySignature.note;
 }
 

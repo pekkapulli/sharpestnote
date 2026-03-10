@@ -3,6 +3,7 @@
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import Staff from '$lib/components/music/Staff.svelte';
 	import TheSharpestNoteLogo from '$lib/assets/The Sharpest Note Logo.svg';
 	import type { MelodyItem } from '$lib/config/melody';
@@ -15,13 +16,7 @@
 		centsOff,
 		noteNameFromMidiDisplay
 	} from '$lib/tuner/tune';
-	import {
-		keyOptions,
-		modeOptions,
-		modeIntervals,
-		getKeySignature,
-		type Mode
-	} from '$lib/config/keys';
+	import { keyOptions, modeIntervals, getKeySignature, type Mode } from '$lib/config/keys';
 	import { instrumentConfigs, defaultInstrumentId } from '$lib/config/instruments';
 	import type { InstrumentId } from '$lib/config/types';
 	import { noteNameToMidi } from '$lib/util/noteNames.js';
@@ -51,7 +46,7 @@
 	let micStarted = $state(false);
 
 	// Visualizer
-	let canvas: HTMLCanvasElement;
+	let canvas = $state<HTMLCanvasElement | undefined>(undefined);
 	let animationFrameId: number | null = null;
 
 	let selectedScaleKey = $state('C');
@@ -70,7 +65,7 @@
 	let successFlashActive = $state(false);
 	let successFlashTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	// Update tuner instrument when selection changes
+	// Update the instrument for the tuner when selection changes
 	$effect(() => {
 		tuner.instrument = selectedInstrument;
 	});
@@ -78,7 +73,6 @@
 	onMount(() => {
 		tuner.checkSupport();
 		tuner.refreshDevices();
-		startVisualizer();
 
 		// Handle window resize
 		const handleResize = () => {
@@ -92,6 +86,13 @@
 		return () => {
 			window.removeEventListener('resize', handleResize);
 		};
+	});
+
+	// Start visualizer when canvas becomes available
+	$effect(() => {
+		if (canvas && !animationFrameId) {
+			startVisualizer();
+		}
 	});
 
 	onDestroy(() => {
@@ -111,7 +112,7 @@
 	function startVisualizer() {
 		if (!canvas) return;
 
-		// Set initial canvas size
+		// Set canvas to large size for visualization
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 
@@ -336,8 +337,6 @@
 		const keySignature = getKeySignature(selectedScaleKey, selectedScaleMode);
 		const tonicPitchClass =
 			NOTE_TO_PITCH_CLASS[keySignature.note] ?? NOTE_TO_PITCH_CLASS[selectedScaleKey] ?? 0;
-		const twoOctaveMin = 48 + tonicPitchClass;
-		const twoOctaveMax = twoOctaveMin + 24;
 
 		const selectedInstrumentConfig = instrumentConfigs.find(
 			(instrument) => instrument.id === selectedInstrument
@@ -348,6 +347,13 @@
 		const instrumentMax = selectedInstrumentConfig?.topNote
 			? noteNameToMidi(selectedInstrumentConfig.topNote)
 			: null;
+
+		// Start the two-octave window from the first tonic at or above the instrument's bottom note
+		const bottomMidi = instrumentMin ?? 48; // default to C3 if no instrument specified
+		const bottomPitchClass = bottomMidi % 12;
+		const semitonesToTonic = (tonicPitchClass - bottomPitchClass + 12) % 12;
+		const twoOctaveMin = bottomMidi + semitonesToTonic;
+		const twoOctaveMax = twoOctaveMin + 24;
 
 		const guidedMin =
 			instrumentMin !== null
@@ -404,20 +410,24 @@
 	async function playTargetNote() {
 		gameState = 'playing';
 
-		// Play the note
-		await synth.playNote({ note: targetNote, length: 8 }, 120); // Half note at 120 BPM
+		// Close the listening gate before playing
 		isListeningGateOpen = false;
 		if (listeningGateTimeout) {
 			clearTimeout(listeningGateTimeout);
 			listeningGateTimeout = null;
 		}
+
+		// Play the note
+		await synth.playNote({ note: targetNote, length: 8 }, 120); // Half note at 120 BPM
+
+		// After playing, start listening phase
+		startListeningPhase();
+
+		// Open the gate after a cooldown (to avoid detecting synth echo/resonance)
 		listeningGateTimeout = setTimeout(() => {
 			isListeningGateOpen = true;
 			listeningGateTimeout = null;
 		}, LISTEN_COOLDOWN_MS);
-
-		// After playing, start listening
-		startListeningPhase();
 	}
 
 	function startListeningPhase() {
@@ -543,37 +553,7 @@
 
 <SharePreview data={data.sharePreviewData} />
 
-<!-- Audio Visualizer Background -->
-<canvas
-	bind:this={canvas}
-	class="pointer-events-none fixed inset-0 z-0 h-full w-full"
-	style="background: radial-gradient(circle at 20% 20%, rgba(246, 216, 104, 0.2), transparent 46%), radial-gradient(circle at 80% 30%, rgba(249, 248, 244, 0.45), transparent 52%), linear-gradient(to bottom right, #f9f8f4, #f9f8f4, #fbfaf6);"
-></canvas>
-
-{#if targetStaffBars.length > 0}
-	<div class="pointer-events-none fixed inset-0 z-5 flex items-center justify-center px-4">
-		<div
-			class={`flex h-80 w-80 items-center justify-center rounded-full bg-off-white shadow-md transition-all duration-200 ${successFlashActive ? 'success-ring ring-8 ring-brand-green' : ''}`}
-		>
-			<div class="w-45">
-				<Staff
-					bars={targetStaffBars}
-					keySignature={selectedKeySignature}
-					clef={selectedClef}
-					ghostNote={detectedGhostNote}
-					cents={detectedCents}
-					currentIndex={0}
-					isCurrentNoteHit={successFlashActive}
-					showTimeSignature={false}
-					showAllBlack={false}
-					minWidth={180}
-				/>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<div class="relative z-10 min-h-screen py-12">
+<div class="relative min-h-screen w-full py-12">
 	<div class="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4">
 		<!-- Header -->
 		<header class="text-center">
@@ -630,29 +610,6 @@
 					{/each}
 				</select>
 			</div>
-
-			<!-- Scale Selector -->
-			<div class="mx-auto w-full max-w-md">
-				<div class="mb-2 block text-sm font-medium text-dark-blue/85">Scale</div>
-				<div class="grid grid-cols-2 gap-2">
-					<select
-						bind:value={selectedScaleKey}
-						class="block w-full rounded-lg border border-dark-blue/25 bg-off-white/95 px-4 py-2 text-dark-blue shadow-sm backdrop-blur-sm transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/40 focus:outline-none"
-					>
-						{#each keyOptions as keyOption (keyOption.value)}
-							<option value={keyOption.value}>{keyOption.label}</option>
-						{/each}
-					</select>
-					<select
-						bind:value={selectedScaleMode}
-						class="block w-full rounded-lg border border-dark-blue/25 bg-off-white/95 px-4 py-2 text-dark-blue shadow-sm backdrop-blur-sm transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/40 focus:outline-none"
-					>
-						{#each modeOptions as modeOption (modeOption.mode)}
-							<option value={modeOption.mode}>{modeOption.label}</option>
-						{/each}
-					</select>
-				</div>
-			</div>
 		{/if}
 
 		<!-- Score Display -->
@@ -700,6 +657,88 @@
 				<div class="h-24" aria-hidden="true"></div>
 			{/if}
 		</div>
+
+		<!-- Game Arena - Canvas behind staff circle -->
+		{#if targetStaffBars.length > 0}
+			<div class="relative mx-auto w-full py-12">
+				<!-- Canvas positioned behind as background -->
+				<canvas
+					bind:this={canvas}
+					class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+					style="background: radial-gradient(circle at 20% 20%, rgba(246, 216, 104, 0.2), transparent 46%), radial-gradient(circle at 80% 30%, rgba(249, 248, 244, 0.45), transparent 52%), max-width: none;"
+				></canvas>
+
+				<!-- Staff circle and controls overlay -->
+				<div
+					class="pointer-events-none relative z-10 flex flex-col items-center justify-center gap-8 py-12"
+				>
+					<div class="flex flex-col items-center gap-4">
+						<!-- Scale instruction -->
+						{#if gameState !== 'idle'}
+							<p class="pointer-events-none text-sm font-medium text-dark-blue/70">
+								Click around the circle to change scale
+							</p>
+						{/if}
+
+						<div class="pointer-events-auto relative h-137.5 w-137.5">
+							<!-- Circular scale key buttons -->
+							{#each keyOptions as keyOption, index (keyOption.value)}
+								{@const angle = (index / keyOptions.length) * 2 * Math.PI - Math.PI / 2}
+								{@const radius = 220}
+								{@const x = Math.cos(angle) * radius}
+								{@const y = Math.sin(angle) * radius}
+								<button
+									onclick={() => (selectedScaleKey = keyOption.value)}
+									class="absolute flex h-12 w-12 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-200 {selectedScaleKey ===
+									keyOption.value
+										? 'scale-110 border-dark-blue bg-dark-blue text-off-white shadow-lg'
+										: 'border-dark-blue/30 bg-off-white/95 text-dark-blue backdrop-blur-sm hover:scale-105 hover:border-dark-blue-highlight hover:shadow-md'}"
+									style="left: calc(50% + {x}px); top: calc(50% + {y}px); transform: translate(-50%, -50%);"
+									aria-label="Select {keyOption.label} scale"
+								>
+									{keyOption.label}
+								</button>
+							{/each}
+
+							<!-- Staff display in center -->
+							<div
+								class={`pointer-events-none absolute top-1/2 left-1/2 flex h-80 w-80 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-off-white shadow-md transition-all duration-200 ${successFlashActive ? 'success-ring ring-8 ring-brand-green' : ''}`}
+							>
+								<div class="w-45">
+									<Staff
+										bars={targetStaffBars}
+										keySignature={selectedKeySignature}
+										clef={selectedClef}
+										ghostNote={detectedGhostNote}
+										cents={detectedCents}
+										currentIndex={0}
+										isCurrentNoteHit={successFlashActive}
+										showTimeSignature={false}
+										showAllBlack={false}
+										minWidth={180}
+									/>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Mode Selector (shown during game) -->
+					{#if gameState !== 'idle'}
+						<div class="pointer-events-auto">
+							<PillSelector
+								options={[
+									{ value: 'major', label: 'Major' },
+									{ value: 'natural_minor', label: 'Minor' }
+								]}
+								selected={selectedScaleMode}
+								onSelect={(mode) => (selectedScaleMode = mode)}
+								ariaLabel="Select scale mode"
+							/>
+						</div>
+					{/if}
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
 
