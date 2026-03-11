@@ -9,11 +9,14 @@
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import GameCard from '$lib/components/games/GameCard.svelte';
 	import GameCardGrid from '$lib/components/games/GameCardGrid.svelte';
+	import PracticeCalendar from '$lib/components/ui/PracticeCalendar.svelte';
 	import { getUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import { getImageUrl } from '$lib/util/getImageUrl';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
+	import type { Speed } from '$lib/config/types';
 
 	const { data } = $props();
 	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl } =
@@ -116,6 +119,17 @@
 		hasKeyAccess = true;
 		showSuccessMessage = true;
 	}
+
+	function handleAudioTrackComplete(event: { track: 'full' | 'backing'; speed: Speed }) {
+		recordPracticeSession({
+			unitCode: code,
+			unitName: unit.title,
+			pieceCode,
+			pieceName: piece.label,
+			gameCode: 'audio-practice',
+			gameName: `Audio practice (${event.speed})`
+		});
+	}
 </script>
 
 <SharePreview data={sharePreviewData} />
@@ -164,8 +178,18 @@
 			{/if}
 
 			{#if piece.tracks && Object.values(piece.tracks).length > 0}
-				<AudioPlayer {unit} {piece} {hasKeyAccess} {teachComplete} />
+				<AudioPlayer
+					{unit}
+					{piece}
+					{hasKeyAccess}
+					{teachComplete}
+					onTrackComplete={handleAudioTrackComplete}
+				/>
 			{/if}
+
+			<section class="mt-8">
+				<PracticeCalendar title="Recent practice" unitCode={code} {pieceCode} />
+			</section>
 
 			<nav aria-label="Piece navigation" class="mt-8 flex justify-between">
 				{#if previousPiece}

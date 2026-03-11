@@ -8,6 +8,7 @@
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
@@ -94,6 +95,14 @@
 			completionCount += 1;
 			const gameKey = `${pieceCode}_melody_completions`;
 			setUnitStorage(code, { [gameKey]: completionCount });
+			recordPracticeSession({
+				unitCode: code,
+				unitName: unit.title,
+				pieceCode,
+				pieceName: piece.label,
+				gameCode: 'melody',
+				gameName: 'Melody'
+			});
 
 			// TODO: Show completion modal (temporarily disabled to allow continuous practice)
 			// showCompletionModal = true;

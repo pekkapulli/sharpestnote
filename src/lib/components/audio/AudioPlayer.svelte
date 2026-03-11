@@ -18,11 +18,18 @@
 		piece: Piece;
 		hasKeyAccess?: boolean;
 		teachComplete?: boolean;
+		onTrackComplete?: (event: { track: SelectedTrack; speed: Speed }) => void;
 	}
 
 	type SelectedTrack = 'full' | 'backing';
 
-	let { unit, piece, hasKeyAccess: hasKeyAccessProp, teachComplete = false }: Props = $props();
+	let {
+		unit,
+		piece,
+		hasKeyAccess: hasKeyAccessProp,
+		teachComplete = false,
+		onTrackComplete
+	}: Props = $props();
 	let selectedSpeed: Speed = $state('medium');
 	let selectedTrack = $state<SelectedTrack>('full');
 	let isPlaying: boolean = $state(false);
@@ -31,6 +38,8 @@
 	let currentTime: number = $state(0);
 	let displayTime: number = $state(0);
 	let duration: number = $state(0);
+	let hasReportedTrackCompletion: boolean = $state(false);
+	let lastPlaybackTime: number = $state(0);
 	let localKeyAccess = $state(false);
 
 	// Use provided prop if available, otherwise derive from async check
@@ -55,6 +64,22 @@
 			: ''
 	);
 
+	function getNotationEndTimeSeconds(): number {
+		if (!duration || !Number.isFinite(duration)) return Number.POSITIVE_INFINITY;
+		const endPercent = Math.min(1, Math.max(0, piece.notationEndPercent ?? 1));
+		return duration * endPercent;
+	}
+
+	function maybeReportTrackCompletion(playbackTime: number) {
+		if (hasReportedTrackCompletion) return;
+		const notationEndTime = getNotationEndTimeSeconds();
+		if (!Number.isFinite(notationEndTime)) return;
+		if (playbackTime >= notationEndTime) {
+			hasReportedTrackCompletion = true;
+			onTrackComplete?.({ track: selectedTrack, speed: selectedSpeed });
+		}
+	}
+
 	function setupAudioElement() {
 		if (!audioElement) {
 			audioElement = new Audio();
@@ -65,12 +90,22 @@
 
 			audioElement.addEventListener('loadedmetadata', () => {
 				duration = audioElement!.duration;
+				hasReportedTrackCompletion = false;
+				lastPlaybackTime = 0;
 			});
 
 			audioElement.addEventListener('timeupdate', () => {
-				currentTime = audioElement!.currentTime;
+				const playbackTime = audioElement!.currentTime;
+				if (playbackTime + 0.25 < lastPlaybackTime) {
+					hasReportedTrackCompletion = false;
+				}
+				lastPlaybackTime = playbackTime;
+				currentTime = playbackTime;
 				if (!isLoading) {
 					displayTime = currentTime;
+				}
+				if (!audioElement!.paused) {
+					maybeReportTrackCompletion(playbackTime);
 				}
 			});
 
@@ -135,6 +170,10 @@
 			}
 			currentTime = time;
 			displayTime = time;
+			if (time < getNotationEndTimeSeconds()) {
+				hasReportedTrackCompletion = false;
+			}
+			lastPlaybackTime = time;
 		}
 	}
 
@@ -146,6 +185,8 @@
 		if (audioElement) {
 			audioElement.pause();
 		}
+		hasReportedTrackCompletion = false;
+		lastPlaybackTime = 0;
 
 		selectedSpeed = speed;
 
@@ -182,6 +223,8 @@
 		if (audioElement) {
 			audioElement.pause();
 		}
+		hasReportedTrackCompletion = false;
+		lastPlaybackTime = 0;
 
 		selectedTrack = track;
 
@@ -222,6 +265,8 @@
 			audioElement.currentTime = 0;
 			currentTime = 0;
 			displayTime = 0;
+			hasReportedTrackCompletion = false;
+			lastPlaybackTime = 0;
 			audioElement.play();
 		}
 	}
@@ -249,6 +294,8 @@
 			audioElement.pause();
 			audioElement.src = url;
 			audioElement.load();
+			hasReportedTrackCompletion = false;
+			lastPlaybackTime = 0;
 
 			if (wasPlaying) {
 				audioElement.play();

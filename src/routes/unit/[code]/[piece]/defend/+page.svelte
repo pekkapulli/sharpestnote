@@ -7,6 +7,7 @@
 	import MicrophoneSelector from '$lib/components/ui/MicrophoneSelector.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 	import { getKeySignature } from '$lib/config/keys.js';
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import defendIcon from '$lib/assets/defend_icon.png';
@@ -328,6 +329,14 @@
 		const lost = monsters.some((m) => m.x < 80);
 		if (lost) {
 			stopGame();
+			recordPracticeSession({
+				unitCode: code,
+				unitName: unit.title,
+				pieceCode,
+				pieceName: piece.label,
+				gameCode: 'defend',
+				gameName: 'Defend'
+			});
 			// Update high score if needed
 			isNewHighScore = score > highScore;
 			if (isNewHighScore) {

@@ -6,6 +6,7 @@
 	import { fileStore } from '$lib/config/units';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import SharePreview from '$lib/components/SharePreview.svelte';
+	import PracticeCalendar from '$lib/components/ui/PracticeCalendar.svelte';
 
 	const { data } = $props();
 	const { unit, code, imageUrl, instrumentLabel, pageUrl } = $derived(data);
@@ -92,6 +93,10 @@
 		{#if !hasKeyAccess}
 			<KeyEntry unitCode={code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
 		{/if}
+
+		<section class="mt-8">
+			<PracticeCalendar title="Recent unit practice" unitCode={code} />
+		</section>
 
 		<section class="mt-8 mb-8">
 			<h3 class="text-sm font-semibold text-slate-800">Learn the Pieces</h3>

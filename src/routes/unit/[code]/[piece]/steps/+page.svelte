@@ -5,6 +5,7 @@
 	import stepsIcon from '$lib/assets/steps_icon.png';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 
 	const { data } = $props();
@@ -84,6 +85,14 @@
 		completionCount += 1;
 		const gameKey = `${pieceCode}_steps_completions`;
 		setUnitStorage(code, { [gameKey]: completionCount });
+		recordPracticeSession({
+			unitCode: code,
+			unitName: unit.title,
+			pieceCode,
+			pieceName: piece.label,
+			gameCode: 'steps',
+			gameName: 'Steps'
+		});
 
 		// Continue to next step
 		setTimeout(() => createNextStep(), 400);

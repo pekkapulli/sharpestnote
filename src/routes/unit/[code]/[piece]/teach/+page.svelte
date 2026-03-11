@@ -7,6 +7,7 @@
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
@@ -106,6 +107,14 @@
 				firstMutedRoundComplete = true; // Save to localStorage
 				const gameKey = `${pieceCode}_teach_mute_complete`;
 				setUnitStorage(code, { [gameKey]: 1 });
+				recordPracticeSession({
+					unitCode: code,
+					unitName: unit.title,
+					pieceCode,
+					pieceName: piece.label,
+					gameCode: 'teach',
+					gameName: 'Teach me'
+				});
 			}
 		}
 

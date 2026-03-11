@@ -13,6 +13,7 @@
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
+	import PracticeCalendar from '$lib/components/ui/PracticeCalendar.svelte';
 
 	let { data } = $props();
 
@@ -76,6 +77,10 @@
 			<KeyCodeNavigator />
 		</div>
 	</details>
+
+	<section class="mt-10 w-full max-w-md">
+		<PracticeCalendar title="Your recent practice" />
+	</section>
 
 	<section class="mt-24 w-full max-w-md">
 		<p class="text-md">

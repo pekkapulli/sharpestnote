@@ -5,6 +5,7 @@
 	import scalesIcon from '$lib/assets/scales_icon.png';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
+	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 
 	const { data } = $props();
 	const { unit, piece, code, pieceCode, imageUrl, pageUrl } = $derived(data);
@@ -58,6 +59,14 @@
 		completionCount += 1;
 		const gameKey = `${pieceCode}_scales_completions`;
 		setUnitStorage(code, { [gameKey]: completionCount });
+		recordPracticeSession({
+			unitCode: code,
+			unitName: unit.title,
+			pieceCode,
+			pieceName: piece.label,
+			gameCode: 'scales',
+			gameName: 'Scales'
+		});
 
 		// Continue to next scale
 		setTimeout(() => createNextScale(), 400);
