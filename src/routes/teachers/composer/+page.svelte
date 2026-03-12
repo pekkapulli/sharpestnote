@@ -131,7 +131,7 @@
 	);
 
 	const melodyPreviewSynth = createSynth({
-		waveform: 'sawtooth',
+		waveform: 'sine',
 		volume: 0.25,
 		attack: 0.02,
 		decay: 0.1,

@@ -31,6 +31,17 @@ function getSemitoneToFingerMapping(instrumentId: string): (semitones: number) =
 		};
 	}
 
+	if (instrumentId === 'double-bass') {
+		// Simandl-style lower-position bass pattern: 1-2-4 (no 3rd finger)
+		return (semitones: number): number | null => {
+			if (semitones === 0) return 0;
+			if (semitones === 1) return 1;
+			if (semitones === 2) return 2;
+			if (semitones >= 3) return 4;
+			return null;
+		};
+	}
+
 	// Default pattern for violin, viola, guitar
 	return (semitones: number): number | null => {
 		if (semitones === 0) return 0;
@@ -85,6 +96,7 @@ export const defaultFingerMarkings: StringInstrumentFingermarkings = {
 	violin: generateFingerMarkings(instrumentMap.violin.strings!, 'violin'),
 	viola: generateFingerMarkings(instrumentMap.viola.strings!, 'viola'),
 	cello: generateFingerMarkings(instrumentMap.cello.strings!, 'cello'),
+	'double-bass': generateFingerMarkings(instrumentMap['double-bass'].strings!, 'double-bass'),
 	guitar: generateFingerMarkings(instrumentMap.guitar.strings!, 'guitar')
 };
 

@@ -1,7 +1,14 @@
 import type { Mode, NoteName } from './keys';
 import type { MelodyItem } from './melody';
 
-export type InstrumentId = 'violin' | 'guitar' | 'viola' | 'cello' | 'flute' | 'recorder';
+export type InstrumentId =
+	| 'violin'
+	| 'guitar'
+	| 'viola'
+	| 'cello'
+	| 'double-bass'
+	| 'flute'
+	| 'recorder';
 
 export type Clef = 'treble' | 'alto' | 'bass';
 

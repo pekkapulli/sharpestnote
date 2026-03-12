@@ -122,6 +122,23 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		}
 	},
 	{
+		id: 'double-bass',
+		label: 'Double Bass',
+		clef: 'bass',
+		sustaining: true,
+		transpositionSemitones: -12, // sounds an octave lower than written
+		bottomNote: 'E1',
+		topNote: 'G3',
+		strings: ['E1', 'A1', 'D2', 'G2'],
+		detectionConfig: genericDetectionConfig,
+		adsrConfig: {
+			attack: 0.07, // Slower attack for deep tone
+			decay: 0.25, // Full-bodied decay
+			sustain: 0.75, // Strong sustain
+			release: 0.2 // Smooth release
+		}
+	},
+	{
 		id: 'flute',
 		label: 'Flute',
 		clef: 'treble',
