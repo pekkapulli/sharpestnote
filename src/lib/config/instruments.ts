@@ -127,9 +127,9 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		clef: 'bass',
 		sustaining: true,
 		transpositionSemitones: -12, // sounds an octave lower than written
-		bottomNote: 'E1',
-		topNote: 'G3',
-		strings: ['E1', 'A1', 'D2', 'G2'],
+		bottomNote: 'E2',
+		topNote: 'G4',
+		strings: ['E2', 'A2', 'D3', 'G3'],
 		detectionConfig: genericDetectionConfig,
 		adsrConfig: {
 			attack: 0.07, // Slower attack for deep tone

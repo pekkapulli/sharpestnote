@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from '$lib/components/ui/Button.svelte';
 	import type { Clef } from '$lib/config/types';
 	import type { KeySignature } from '$lib/config/keys';
 	import type { MelodyItem, NoteLength } from '$lib/config/melody';
@@ -77,7 +78,7 @@
 		type="button"
 		title={isPlayingMelodyPreview ? 'Stop melody preview' : 'Play melody preview'}
 		onclick={onToggleMelodyPlayback}
-		class="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-700 bg-white text-slate-700 transition-colors hover:bg-slate-100"
+		class="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-dark-blue text-off-white transition hover:-translate-y-px hover:bg-dark-blue-highlight hover:shadow"
 		aria-label={isPlayingMelodyPreview ? 'Stop melody preview' : 'Play melody preview'}
 	>
 		{#if isPlayingMelodyPreview}
@@ -110,22 +111,10 @@
 		/>
 
 		<div class="mt-4 flex justify-center gap-3">
-			<button
-				type="button"
-				title="Remove last bar"
-				onclick={onRemoveBar}
-				class="flex h-10 items-center justify-center rounded-full border-2 border-slate-700 px-4 font-bold text-slate-700 transition-colors hover:bg-slate-100"
-			>
+			<Button type="button" size="medium" title="Remove last bar" onclick={onRemoveBar}>
 				− remove bar
-			</button>
-			<button
-				type="button"
-				title="Add new bar"
-				onclick={onAddBar}
-				class="flex h-10 items-center justify-center rounded-full border-2 border-slate-700 px-4 font-bold text-slate-700 transition-colors hover:bg-slate-100"
-			>
-				+ add bar
-			</button>
+			</Button>
+			<Button type="button" size="medium" title="Add new bar" onclick={onAddBar}>+ add bar</Button>
 		</div>
 		{#if editorError}
 			<p class="mt-2 text-sm font-medium text-red-700">{editorError}</p>

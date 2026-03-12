@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Button from '$lib/components/ui/Button.svelte';
+
 	interface Props {
 		errors: string[];
 		copyStatus: string;
@@ -29,27 +31,9 @@
 	{/if}
 
 	<div class="mt-4 flex flex-wrap gap-2">
-		<button
-			type="button"
-			class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-			onclick={onCopy}
-		>
-			Copy JSON
-		</button>
-		<button
-			type="button"
-			class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-			onclick={onCopyCustomUrl}
-		>
-			Copy custom URL
-		</button>
-		<button
-			type="button"
-			class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-			onclick={onDownload}
-		>
-			Download JSON
-		</button>
+		<Button type="button" size="medium" onclick={onCopy}>Copy JSON</Button>
+		<Button type="button" size="medium" onclick={onCopyCustomUrl}>Copy custom URL</Button>
+		<Button type="button" size="medium" color="green" onclick={onDownload}>Download JSON</Button>
 	</div>
 
 	{#if copyStatus}
