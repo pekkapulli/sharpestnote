@@ -92,8 +92,24 @@
 	</button>
 
 	<h2 class="text-xl font-semibold text-slate-900">Melody editor</h2>
-	<div class="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700">
-		<div class="mt-4 flex gap-3">
+	<div class="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700"></div>
+
+	<div class="mt-6 rounded-lg border border-slate-100 bg-slate-50 p-3">
+		<ComposerStaff
+			bars={melodyBars}
+			{keySignature}
+			{clef}
+			{barLength}
+			minBarWidth={280}
+			pitchPalette={availablePitches}
+			{selectedNoteIndex}
+			{onMoveNote}
+			{onAddNote}
+			{onSelectNote}
+			{onOpenNoteContextMenu}
+		/>
+
+		<div class="mt-4 flex justify-center gap-3">
 			<button
 				type="button"
 				title="Remove last bar"
@@ -114,22 +130,6 @@
 		{#if editorError}
 			<p class="mt-2 text-sm font-medium text-red-700">{editorError}</p>
 		{/if}
-	</div>
-
-	<div class="mt-6 rounded-lg border border-slate-100 bg-slate-50 p-3">
-		<ComposerStaff
-			bars={melodyBars}
-			{keySignature}
-			{clef}
-			{barLength}
-			minBarWidth={280}
-			pitchPalette={availablePitches}
-			{selectedNoteIndex}
-			{onMoveNote}
-			{onAddNote}
-			{onSelectNote}
-			{onOpenNoteContextMenu}
-		/>
 
 		{#if noteContextMenu && selectedSequenceItem}
 			<ComposerNoteContextMenu

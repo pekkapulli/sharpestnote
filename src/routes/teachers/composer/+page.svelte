@@ -1,6 +1,5 @@
 <script lang="ts">
 	import SharePreview from '$lib/components/SharePreview.svelte';
-	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import { getKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
 	import type { Mode, NoteName } from '$lib/config/keys';
@@ -22,7 +21,7 @@
 	} from '$lib/util/composerUtils';
 	import ComposerSettingsForm from '$lib/components/composer/ComposerSettingsForm.svelte';
 	import ComposerMelodyEditor from '$lib/components/composer/ComposerMelodyEditor.svelte';
-	import ComposerJsonOutput from '$lib/components/composer/ComposerJsonOutput.svelte';
+	import ComposerShareCard from '$lib/components/composer/ComposerShareCard.svelte';
 
 	const LENGTH_OPTIONS: NoteLength[] = [1, 2, 3, 4, 6, 8, 12, 16];
 
@@ -65,7 +64,8 @@
 	let selectedNoteIndex = $state(-1);
 	let noteContextMenu = $state<{ index: number; x: number; y: number } | null>(null);
 	let editorError = $state('');
-	let copyStatus = $state('');
+	let shareStatus = $state('');
+	let teacherShareNote = $state('');
 	let isPlayingMelodyPreview = $state(false);
 	let shouldStopMelodyPreview = $state(false);
 
@@ -91,12 +91,35 @@
 		return lastBar.reduce((sum, item) => sum + item.length, 0) % barLength;
 	});
 
-	const pieceOutput = $derived.by(() => {
-		const result = buildPiece();
-		if (!result.piece) return '';
-		return JSON.stringify(result.piece, null, 2);
-	});
 	const pieceBuildResult = $derived.by(() => buildPiece());
+	const customPieceShare = $derived.by(() => {
+		if (!pieceBuildResult.piece) {
+			return {
+				url: '',
+				error: pieceBuildResult.errors[0] ?? 'Piece is not valid yet.'
+			};
+		}
+
+		try {
+			const baseUrl = getShareBaseUrl();
+			if (!baseUrl) {
+				return {
+					url: '',
+					error: 'Unable to determine the site URL for sharing.'
+				};
+			}
+
+			return {
+				url: `${baseUrl}/unit/custom/${packPieceForUrl(pieceBuildResult.piece)}`,
+				error: ''
+			};
+		} catch {
+			return {
+				url: '',
+				error: 'Unable to build custom piece URL.'
+			};
+		}
+	});
 	const inferredTempiPreview = $derived.by(() => inferPracticeTempiFromFastTempo(fastTempo));
 	const selectedSequenceItem = $derived(
 		selectedNoteIndex >= 0 ? (sequence[selectedNoteIndex] ?? null) : null
@@ -123,7 +146,7 @@
 		melody = rearrangeNotesForTimeSignatureChange(melody, previousBarLength, barLength);
 		previousBarLength = barLength;
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 	});
 
 	$effect(() => {
@@ -192,6 +215,10 @@
 		return `${letter.toLowerCase()}${signatureAccidental}/${octave}`;
 	}
 
+	function resolveFingerAfterPitchChange(item: MelodyItem, nextNote: string): number | undefined {
+		return getOptimalFingering(instrumentId, nextNote)?.finger;
+	}
+
 	function appendNote(note: string | null): boolean {
 		const safeBarLength = Math.max(1, Number(barLength) || 16);
 		if (selectedLength > safeBarLength) {
@@ -238,7 +265,7 @@
 
 	function handleMoveNoteFromStaff(index: number, note: string) {
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 		closeNoteContextMenu();
 		selectedNoteIndex = index;
 		const normalizedNote = applyKeySignatureToNaturalNote(note);
@@ -248,11 +275,10 @@
 			if (barIndex !== mapped.barIndex) return bar;
 			return bar.map((item, itemIndex) => {
 				if (itemIndex !== mapped.itemIndex) return item;
-				const defaultFinger = getOptimalFingering(instrumentId, normalizedNote)?.finger;
 				return {
 					...item,
 					note: normalizedNote,
-					finger: item.finger ?? defaultFinger
+					finger: resolveFingerAfterPitchChange(item, normalizedNote)
 				};
 			});
 		});
@@ -260,7 +286,7 @@
 
 	function handleAddNoteFromStaff(note: string) {
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 		closeNoteContextMenu();
 		const previousLength = sequence.length;
 		const didAppend = appendNote(applyKeySignatureToNaturalNote(note));
@@ -276,7 +302,7 @@
 
 	function handleOpenNoteContextMenu(payload: { index: number; x: number; y: number }) {
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 		selectedNoteIndex = payload.index;
 		noteContextMenu = payload;
 	}
@@ -299,7 +325,7 @@
 			nextSequence.length > 0 ? Math.min(selectedNoteIndex, nextSequence.length - 1) : -1;
 		melody = updatedBars;
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 	}
 
 	function handleChangeLengthFromMenu(length: NoteLength) {
@@ -335,7 +361,7 @@
 		});
 
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 	}
 
 	function handleSetFingerFromMenu(finger: number | undefined) {
@@ -357,7 +383,7 @@
 		});
 
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 	}
 
 	function moveSelectedNoteBySemitone(direction: 1 | -1) {
@@ -373,11 +399,17 @@
 		if (!shifted || !availablePitches.includes(shifted)) return;
 
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 		melody = melody.map((bar, barIndex) => {
 			if (barIndex !== mapped.barIndex) return bar;
 			return bar.map((entry, itemIndex) =>
-				itemIndex === mapped.itemIndex ? { ...entry, note: shifted } : entry
+				itemIndex === mapped.itemIndex
+					? {
+							...entry,
+							note: shifted,
+							finger: resolveFingerAfterPitchChange(entry, shifted)
+						}
+					: entry
 			);
 		});
 	}
@@ -444,14 +476,14 @@
 
 	function addBar() {
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 		const newBar = createInitialRests(barLength as NoteLength, 1)[0];
 		melody = [...melody, newBar];
 	}
 
 	function removeLastBar() {
 		editorError = '';
-		copyStatus = '';
+		shareStatus = '';
 		if (melody.length === 0) return;
 
 		const updatedMelody = melody.slice(0, -1);
@@ -493,52 +525,34 @@
 		return { piece, errors: [] };
 	}
 
-	async function copyPieceJson() {
-		const result = buildPiece();
-		if (!result.piece) {
-			copyStatus = result.errors[0] ?? 'Piece is not valid yet.';
-			return;
+	function getShareBaseUrl(): string {
+		if (typeof window !== 'undefined' && window.location.origin) {
+			return window.location.origin;
 		}
-		await navigator.clipboard.writeText(JSON.stringify(result.piece, null, 2));
-		copyStatus = 'Piece JSON copied to clipboard.';
+
+		const fallbackUrl = data.sharePreviewData.url;
+		if (!fallbackUrl) return '';
+
+		try {
+			return new URL(fallbackUrl).origin;
+		} catch {
+			return '';
+		}
 	}
 
 	async function copyCustomPieceUrl() {
-		const result = buildPiece();
-		if (!result.piece) {
-			copyStatus = result.errors[0] ?? 'Piece is not valid yet.';
+		if (!customPieceShare.url) {
+			shareStatus =
+				customPieceShare.error || pieceBuildResult.errors[0] || 'Piece is not valid yet.';
 			return;
 		}
 
 		try {
-			const packedPiece = packPieceForUrl(result.piece);
-			const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-			const customPieceUrl = `${baseUrl}/unit/custom/${packedPiece}`;
-			await navigator.clipboard.writeText(customPieceUrl);
-			copyStatus = 'Custom piece URL copied to clipboard.';
+			await navigator.clipboard.writeText(customPieceShare.url);
+			shareStatus = 'Custom piece URL copied to clipboard.';
 		} catch {
-			copyStatus = 'Unable to build custom piece URL.';
+			shareStatus = 'Unable to copy custom piece URL.';
 		}
-	}
-
-	function downloadPieceJson() {
-		const result = buildPiece();
-		if (!result.piece) {
-			copyStatus = result.errors[0] ?? 'Piece is not valid yet.';
-			return;
-		}
-
-		const content = JSON.stringify(result.piece, null, 2);
-		const blob = new Blob([content], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
-		const anchor = document.createElement('a');
-		anchor.href = url;
-		anchor.download = `${pieceCode.trim() || 'piece'}.json`;
-		document.body.appendChild(anchor);
-		anchor.click();
-		document.body.removeChild(anchor);
-		URL.revokeObjectURL(url);
-		copyStatus = 'Piece JSON downloaded.';
 	}
 </script>
 
@@ -557,9 +571,6 @@
 <div class="min-h-screen bg-off-white py-10">
 	<div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4">
 		<header class="space-y-4">
-			<div class="flex flex-wrap items-center gap-3">
-				<LinkButton href="/teachers" color="blue">Back to teacher page</LinkButton>
-			</div>
 			<div>
 				<p class="text-sm font-semibold tracking-wide text-brand-green uppercase">Teacher tools</p>
 				<h1 class="mt-2 text-3xl font-semibold text-slate-900">
@@ -571,7 +582,6 @@
 		<section>
 			<ComposerSettingsForm
 				bind:pieceLabel
-				{pieceCode}
 				bind:instrumentId
 				bind:pieceKey
 				bind:pieceMode
@@ -610,13 +620,14 @@
 				onSetFingerFromMenu={handleSetFingerFromMenu}
 			/>
 
-			<ComposerJsonOutput
+			<ComposerShareCard
+				bind:teacherShareNote
+				{pieceLabel}
+				shareUrl={customPieceShare.url}
+				shareError={customPieceShare.error}
 				errors={pieceBuildResult.errors}
-				{copyStatus}
-				{pieceOutput}
-				onCopy={copyPieceJson}
-				onCopyCustomUrl={copyCustomPieceUrl}
-				onDownload={downloadPieceJson}
+				{shareStatus}
+				onCopyUrl={copyCustomPieceUrl}
 			/>
 		</section>
 	</div>

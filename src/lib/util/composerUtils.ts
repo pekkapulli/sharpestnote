@@ -17,12 +17,27 @@ export function createInitialRests(barLengthSixteenths: NoteLength, bars = 4): M
 }
 
 export function slugifyPieceCode(label: string): string {
+	const transliterated = label
+		.normalize('NFKD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/ß/g, 'ss')
+		.replace(/æ/gi, 'ae')
+		.replace(/œ/gi, 'oe')
+		.replace(/ø/gi, 'o')
+		.replace(/å/gi, 'a')
+		.replace(/ł/gi, 'l')
+		.replace(/đ/gi, 'd')
+		.replace(/þ/gi, 'th');
+
 	return label
-		.trim()
-		.toLowerCase()
-		.replace(/[^a-z0-9\s-]/g, '')
-		.replace(/\s+/g, '-')
-		.replace(/-+/g, '-');
+		? transliterated
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9\s-]/g, '')
+				.replace(/\s+/g, '-')
+				.replace(/-+/g, '-')
+				.replace(/^-+|-+$/g, '')
+		: '';
 }
 
 function midiToVexSharp(midi: number): string {

@@ -26,6 +26,7 @@
 	const ROW_HEIGHT = 150;
 	const ROW_GAP = 16;
 	const SELECT_NOTE_THRESHOLD = 20;
+	const SMALL_SCREEN_BREAKPOINT = 640;
 
 	type RowSpec = {
 		rowIndex: number;
@@ -78,6 +79,10 @@
 	let rowRenderData = $state<Record<number, RowRenderData>>({});
 	let hoverState = $state<HoverState | null>(null);
 	const computedBarsPerRow = $derived.by(() => {
+		if (effectiveWidth > 0 && effectiveWidth <= SMALL_SCREEN_BREAKPOINT) {
+			return 1;
+		}
+
 		if (barsPerRow !== undefined) {
 			return Math.max(1, Math.floor(barsPerRow));
 		}
