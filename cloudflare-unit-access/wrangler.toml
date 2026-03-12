@@ -6,6 +6,13 @@ workers_dev = true
 compatibility_date = "2024-11-15"
 compatibility_flags = ["nodejs_compat"]
 
+[[kv_namespaces]]
+binding = "SHORT_LINKS"
+id = "21ecd359cce64f06bb2d7b396ec5f09d"
+preview_id = "8cdcbedab57b4b80ab9bf7f8be56a5fb"
+
 [env.production]
-route = "sharpestnote.com/*"
-zone_id = "997410d58cedc70c717cd833336df893"
+
+[[env.production.kv_namespaces]]
+binding = "SHORT_LINKS"
+id = "21ecd359cce64f06bb2d7b396ec5f09d"

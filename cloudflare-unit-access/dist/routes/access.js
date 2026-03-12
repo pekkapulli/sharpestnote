@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleAccessLookup = exports.handleAccessRoutes = void 0;
-const types_1 = require("../types");
 const units_1 = require("./units");
 // Simple in-memory rate limit tracking (IP -> { count, resetTime })
 // For production, use Cloudflare KV or add a WAF rate limit rule
@@ -49,18 +48,24 @@ const handleAccessRoutes = (request) => __awaiter(void 0, void 0, void 0, functi
             headers: { 'Content-Type': 'application/json' }
         });
     }
-    const unit = (0, units_1.findUnitByCode)(unitCode);
+    // Direct lookup by keyCode (O(1) instead of searching by unitCode)
+    const normalizedKey = keyCode.trim().toUpperCase();
+    const unit = units_1.unitDatabase[normalizedKey];
     if (!unit) {
-        return new Response(JSON.stringify({ error: 'Unit not found', message: 'The requested unit does not exist' }), {
+        return new Response(JSON.stringify({
+            error: 'Invalid key code',
+            message: 'The provided key code does not exist'
+        }), {
             status: 404,
             headers: { 'Content-Type': 'application/json' }
         });
     }
-    const hasAccess = keyCode.trim().toUpperCase() === unit.keyCode.trim().toUpperCase();
+    // Verify the keyCode matches the requested unitCode
+    const hasAccess = unit.code === unitCode;
     const response = {
         unitCode,
         hasAccess,
-        message: hasAccess ? 'Access granted' : 'Invalid key code'
+        message: hasAccess ? 'Access granted' : 'Invalid unit code for this key code'
     };
     return new Response(JSON.stringify(response), {
         headers: { 'Content-Type': 'application/json' }
@@ -92,8 +97,7 @@ const handleAccessLookup = (request) => __awaiter(void 0, void 0, void 0, functi
     }
     const trimmedKey = keyCode.trim().toUpperCase();
     // Direct lookup by keyCode (O(1) because unitDatabase is keyed by keyCode)
-    const normalizedKey = (0, types_1.createKeyCode)(trimmedKey);
-    const unit = units_1.unitDatabase[normalizedKey];
+    const unit = units_1.unitDatabase[trimmedKey];
     if (!unit) {
         return new Response(JSON.stringify({ error: 'Key code not found' }), {
             status: 404,

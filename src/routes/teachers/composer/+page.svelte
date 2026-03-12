@@ -66,6 +66,11 @@
 	let editorError = $state('');
 	let shareStatus = $state('');
 	let teacherShareNote = $state('');
+	let isShareModalOpen = $state(false);
+	let shortShareUrl = $state('');
+	let shortShareSourceUrl = $state('');
+	let shortShareError = $state('');
+	let isCreatingShortShareUrl = $state(false);
 	let isPlayingMelodyPreview = $state(false);
 	let shouldStopMelodyPreview = $state(false);
 
@@ -95,7 +100,7 @@
 	const customPieceShare = $derived.by(() => {
 		if (!pieceBuildResult.piece) {
 			return {
-				url: '',
+				longUrl: '',
 				error: pieceBuildResult.errors[0] ?? 'Piece is not valid yet.'
 			};
 		}
@@ -104,22 +109,23 @@
 			const baseUrl = getShareBaseUrl();
 			if (!baseUrl) {
 				return {
-					url: '',
+					longUrl: '',
 					error: 'Unable to determine the site URL for sharing.'
 				};
 			}
 
 			return {
-				url: `${baseUrl}/unit/custom/${packPieceForUrl(pieceBuildResult.piece)}`,
+				longUrl: `${baseUrl}/unit/custom/${packPieceForUrl(pieceBuildResult.piece)}`,
 				error: ''
 			};
 		} catch {
 			return {
-				url: '',
+				longUrl: '',
 				error: 'Unable to build custom piece URL.'
 			};
 		}
 	});
+	const shareError = $derived.by(() => shortShareError || customPieceShare.error);
 	const inferredTempiPreview = $derived.by(() => inferPracticeTempiFromFastTempo(fastTempo));
 	const selectedSequenceItem = $derived(
 		selectedNoteIndex >= 0 ? (sequence[selectedNoteIndex] ?? null) : null
@@ -147,6 +153,18 @@
 		previousBarLength = barLength;
 		editorError = '';
 		shareStatus = '';
+	});
+
+	$effect(() => {
+		const nextSourceUrl = customPieceShare.longUrl;
+		if (!shortShareSourceUrl || shortShareSourceUrl === nextSourceUrl) return;
+
+		shortShareUrl = '';
+		shortShareSourceUrl = '';
+		shortShareError = '';
+		if (isShareModalOpen && nextSourceUrl) {
+			void ensureShortShareUrl();
+		}
 	});
 
 	$effect(() => {
@@ -541,18 +559,74 @@
 	}
 
 	async function copyCustomPieceUrl() {
-		if (!customPieceShare.url) {
-			shareStatus =
-				customPieceShare.error || pieceBuildResult.errors[0] || 'Piece is not valid yet.';
+		if (!shortShareUrl) {
+			shareStatus = shareError || pieceBuildResult.errors[0] || 'Share link is not ready yet.';
 			return;
 		}
 
 		try {
-			await navigator.clipboard.writeText(customPieceShare.url);
-			shareStatus = 'Custom piece URL copied to clipboard.';
+			await navigator.clipboard.writeText(shortShareUrl);
+			shareStatus = 'Short share link copied to clipboard.';
 		} catch {
-			shareStatus = 'Unable to copy custom piece URL.';
+			shareStatus = 'Unable to copy short share link.';
 		}
+	}
+
+	async function ensureShortShareUrl() {
+		const targetUrl = customPieceShare.longUrl;
+		if (!targetUrl) {
+			shortShareError = customPieceShare.error || 'Piece is not valid yet.';
+			return;
+		}
+
+		if (shortShareUrl && shortShareSourceUrl === targetUrl) {
+			return;
+		}
+
+		if (isCreatingShortShareUrl) {
+			return;
+		}
+
+		isCreatingShortShareUrl = true;
+		shortShareError = '';
+
+		try {
+			const res = await fetch('/api/share/custom', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ targetUrl })
+			});
+
+			if (!res.ok) {
+				const payload = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new Error(payload.error || 'Unable to create short share link.');
+			}
+
+			const payload = (await res.json()) as { shortUrl?: string };
+			if (!payload.shortUrl) {
+				throw new Error('Short-link service returned an invalid response.');
+			}
+
+			shortShareUrl = payload.shortUrl;
+			shortShareSourceUrl = targetUrl;
+		} catch (error) {
+			shortShareUrl = '';
+			shortShareSourceUrl = '';
+			shortShareError =
+				error instanceof Error ? error.message : 'Unable to create short share link.';
+		} finally {
+			isCreatingShortShareUrl = false;
+		}
+	}
+
+	async function openShareModal() {
+		isShareModalOpen = true;
+		shareStatus = '';
+		await ensureShortShareUrl();
+	}
+
+	function closeShareModal() {
+		isShareModalOpen = false;
 	}
 </script>
 
@@ -623,8 +697,12 @@
 			<ComposerShareCard
 				bind:teacherShareNote
 				{pieceLabel}
-				shareUrl={customPieceShare.url}
-				shareError={customPieceShare.error}
+				{isShareModalOpen}
+				onOpenShareModal={openShareModal}
+				onCloseShareModal={closeShareModal}
+				isPreparingShareUrl={isCreatingShortShareUrl}
+				shareUrl={shortShareUrl}
+				{shareError}
 				errors={pieceBuildResult.errors}
 				{shareStatus}
 				onCopyUrl={copyCustomPieceUrl}

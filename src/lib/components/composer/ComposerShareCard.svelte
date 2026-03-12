@@ -1,11 +1,15 @@
 <script lang="ts">
-	import QRCode from 'qrcode';
 	import TheSharpestNoteLogo from '$lib/assets/The Sharpest Note Logo.svg';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	interface Props {
 		pieceLabel: string;
 		teacherShareNote?: string;
+		isShareModalOpen: boolean;
+		onOpenShareModal: () => void;
+		onCloseShareModal: () => void;
+		isPreparingShareUrl: boolean;
 		shareUrl: string;
 		shareError: string;
 		errors: string[];
@@ -16,6 +20,10 @@
 	let {
 		pieceLabel,
 		teacherShareNote = $bindable(''),
+		isShareModalOpen,
+		onOpenShareModal,
+		onCloseShareModal,
+		isPreparingShareUrl,
 		shareUrl,
 		shareError,
 		errors,
@@ -37,6 +45,12 @@
 	});
 
 	$effect(() => {
+		if (!isShareModalOpen) {
+			qrCodeDataUrl = '';
+			qrCodeError = '';
+			return;
+		}
+
 		const nextShareUrl = shareUrl.trim();
 		let isActive = true;
 
@@ -49,14 +63,17 @@
 			};
 		}
 
-		void QRCode.toDataURL(nextShareUrl, {
-			margin: 1,
-			width: 320,
-			color: {
-				dark: '#0f172a',
-				light: '#0000'
-			}
-		})
+		void import('qrcode')
+			.then(({ toDataURL }) =>
+				toDataURL(nextShareUrl, {
+					margin: 1,
+					width: 320,
+					color: {
+						dark: '#0f172a',
+						light: '#0000'
+					}
+				})
+			)
 			.then((dataUrl) => {
 				if (!isActive) return;
 				qrCodeDataUrl = dataUrl;
@@ -340,7 +357,7 @@
 		<div>
 			<h2 class="text-xl font-semibold text-slate-900">Share with student</h2>
 			<p class="mt-1 text-sm text-slate-600">
-				Generate a direct practice link with a printable QR preview and a teacher note.
+				Create a short link, open a QR preview, and add a teacher note.
 			</p>
 		</div>
 	</div>
@@ -360,107 +377,138 @@
 		</div>
 	{/if}
 
-	<div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-		<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share URL</p>
-		<div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start">
-			<input
-				readonly
-				value={shareUrl}
-				class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-			/>
-			<Button type="button" size="medium" onclick={onCopyUrl} disabled={!shareUrl}>
-				Copy to clipboard
-			</Button>
-		</div>
+	<div class="mt-5 space-y-4">
+		<label class="flex flex-col gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+			Teacher note
+			<textarea
+				bind:value={teacherShareNote}
+				rows="5"
+				placeholder="Add a note for the student about how to practice this piece."
+				class="rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-800"
+			></textarea>
+		</label>
+
+		<Button
+			type="button"
+			size="medium"
+			color="green"
+			onclick={onOpenShareModal}
+			disabled={errors.length > 0}
+		>
+			Share
+		</Button>
 		{#if shareStatus}
-			<p class="mt-2 text-sm font-medium text-brand-green">{shareStatus}</p>
+			<p class="text-sm font-medium text-brand-green">{shareStatus}</p>
 		{/if}
-		{#if imageActionStatus}
-			<p class="mt-2 text-sm font-medium text-brand-green">{imageActionStatus}</p>
-		{/if}
-		{#if !canUseNativeShare}
-			<p class="mt-2 text-xs text-slate-500">Native PNG sharing depends on browser support.</p>
+		{#if shareError && !isShareModalOpen}
+			<p class="text-sm text-amber-800">{shareError}</p>
 		{/if}
 	</div>
 
-	<div class="mt-5 grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
-		<div>
-			<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
+	<Modal
+		isOpen={isShareModalOpen}
+		onClose={onCloseShareModal}
+		title="Share with student"
+		maxWidth="xl"
+	>
+		<div class="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
+			<div>
+				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
 
-			<div class="mt-4 w-64 rounded-2xl border border-slate-200 bg-white p-5">
-				<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mx-auto h-5 w-auto" />
+				<div class="mt-4 w-64 rounded-2xl border border-slate-200 bg-white p-5">
+					<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mx-auto h-5 w-auto" />
 
-				<div class="flex flex-col items-center gap-3">
-					{#if qrCodeDataUrl}
-						<img
-							src={qrCodeDataUrl}
-							alt={`QR code for ${trimmedPieceLabel}`}
-							class="w-full max-w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-						/>
+					<div class="flex flex-col items-center gap-3">
+						{#if qrCodeDataUrl}
+							<img
+								src={qrCodeDataUrl}
+								alt={`QR code for ${trimmedPieceLabel}`}
+								class="w-full max-w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+							/>
+						{:else}
+							<div
+								class="flex h-64 w-full max-w-64 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-sm text-slate-500"
+							>
+								{#if qrCodeError}
+									{qrCodeError}
+								{:else if isPreparingShareUrl}
+									Creating short link...
+								{:else if shareUrl}
+									Generating QR code preview...
+								{:else}
+									The QR code will appear when the share link is ready.
+								{/if}
+							</div>
+						{/if}
+						<p class="text-xs leading-5 text-slate-500">
+							Students can scan this code to open the custom piece directly.
+						</p>
+					</div>
+
+					<h3 class="mt-5 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
+					{#if trimmedTeacherShareNote}
+						<p class="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-700">
+							{trimmedTeacherShareNote}
+						</p>
 					{:else}
-						<div
-							class="flex h-64 w-full max-w-64 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-sm text-slate-500"
-						>
-							{#if qrCodeError}
-								{qrCodeError}
-							{:else if shareUrl}
-								Generating QR code preview...
-							{:else}
-								The QR code will appear when the piece is ready to share.
-							{/if}
-						</div>
+						<p class="mt-3 text-sm leading-6 text-slate-500">
+							Add a note to include practice instructions or reminders for the student.
+						</p>
 					{/if}
-					<p class="text-xs leading-5 text-slate-500">
-						Students can scan this code to open the custom piece directly.
-					</p>
+				</div>
+			</div>
+
+			<div class="space-y-4">
+				<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share link</p>
+					<p class="mt-2 text-sm text-slate-600">Copy the short link or share the QR image.</p>
+					<div class="mt-3 flex flex-wrap gap-2">
+						<Button
+							type="button"
+							size="medium"
+							onclick={onCopyUrl}
+							disabled={!shareUrl || isPreparingShareUrl}
+						>
+							Copy link
+						</Button>
+					</div>
+					{#if shareError}
+						<p class="mt-2 text-sm text-amber-800">{shareError}</p>
+					{/if}
+					{#if imageActionStatus}
+						<p class="mt-2 text-sm font-medium text-brand-green">{imageActionStatus}</p>
+					{/if}
+					{#if !canUseNativeShare}
+						<p class="mt-2 text-xs text-slate-500">
+							Native PNG sharing depends on browser support.
+						</p>
+					{/if}
 				</div>
 
-				<h3 class="mt-5 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
-				{#if trimmedTeacherShareNote}
-					<p class="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-700">
-						{trimmedTeacherShareNote}
-					</p>
-				{:else}
-					<p class="mt-3 text-sm leading-6 text-slate-500">
-						Add a note to include practice instructions or reminders for the student.
-					</p>
-				{/if}
+				<div class="flex flex-wrap gap-2">
+					<Button
+						type="button"
+						size="medium"
+						color="green"
+						onclick={handleDownloadImage}
+						disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
+					>
+						{isPreparingImage ? 'Preparing image...' : 'Download image'}
+					</Button>
+					<Button
+						type="button"
+						size="medium"
+						color="green"
+						onclick={handleNativeShareImage}
+						disabled={!canCreateShareImage ||
+							!canUseNativeShare ||
+							isPreparingImage ||
+							isPreparingShareUrl}
+					>
+						Share image
+					</Button>
+				</div>
 			</div>
 		</div>
-
-		<div class="space-y-4">
-			<label
-				class="flex flex-col gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase"
-			>
-				Teacher note
-				<textarea
-					bind:value={teacherShareNote}
-					rows="5"
-					placeholder="Add a note for the student about how to practice this piece."
-					class="rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-800"
-				></textarea>
-			</label>
-
-			<div class="flex flex-wrap gap-2">
-				<Button
-					type="button"
-					size="medium"
-					color="green"
-					onclick={handleDownloadImage}
-					disabled={!canCreateShareImage || isPreparingImage}
-				>
-					{isPreparingImage ? 'Preparing image...' : 'Download image'}
-				</Button>
-				<Button
-					type="button"
-					size="medium"
-					color="green"
-					onclick={handleNativeShareImage}
-					disabled={!canCreateShareImage || !canUseNativeShare || isPreparingImage}
-				>
-					Share image
-				</Button>
-			</div>
-		</div>
-	</div>
+	</Modal>
 </div>

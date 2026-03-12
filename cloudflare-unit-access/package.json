@@ -6,7 +6,7 @@
 	"scripts": {
 		"build": "tsc",
 		"start": "wrangler dev",
-		"deploy": "wrangler publish"
+		"deploy": "wrangler deploy"
 	},
 	"dependencies": {
 		"itty-router": "^4.0.0"
