@@ -31,6 +31,7 @@
 		showAllBlack?: boolean; // If true, render all notes in black instead of colored by state
 		showTimeSignature?: boolean; // If false, hide the time signature (default: true)
 		greatIntonationIndices?: number[]; // Array of indices of notes with great intonation (for star display)
+		singleRow?: boolean; // Reserved option for rolling staff/engraving modes
 	}
 
 	const HEIGHT = 150;
@@ -53,7 +54,8 @@
 		noteXPositions = $bindable([] as number[]),
 		showTimeSignature = true,
 		showAllBlack = false,
-		greatIntonationIndices = []
+		greatIntonationIndices = [],
+		singleRow = true
 	}: Props = $props();
 
 	// Flatten bars into a single sequence for indexing
@@ -101,8 +103,6 @@
 	let vexflowContainer: HTMLDivElement;
 	let noteXs = $state<number[]>([]);
 	let noteYs = $state<number[]>([]);
-	let topLineY = $state(0);
-	let bottomLineY = $state(0);
 	let vexStave = $state<Stave | null>(null);
 
 	// Track last render parameters to avoid infinite loops
@@ -112,7 +112,7 @@
 	$effect(() => {
 		if (vexflowContainer && bars.length > 0 && effectiveWidth > 0) {
 			// Create a key from the render parameters
-			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${effectiveWidth}-${noteColors.join(',')}-${barLength ?? 'none'}-${showTimeSignature}`;
+			const renderKey = `${bars.map((b) => b.map((s) => `${s.note}-${s.length}`).join('|')).join(',')}-${clef}-${JSON.stringify(keySignature)}-${effectiveWidth}-${noteColors.join(',')}-${barLength ?? 'none'}-${showTimeSignature}-${singleRow}`;
 
 			// Only render if parameters have actually changed
 			if (renderKey === lastRenderKey) {
@@ -133,8 +133,6 @@
 				);
 				noteXs = result.noteXPositions;
 				noteYs = result.noteYPositions;
-				topLineY = result.topLineY;
-				bottomLineY = result.bottomLineY;
 				centerY = result.middleLineY;
 				lineSpacing = result.lineSpacing;
 				vexStave = result.stave;
@@ -155,26 +153,6 @@
 		noteXs && sequence && sequence.length
 			? noteXs[Math.min(Math.max(currentIndex, 0), sequence.length - 1)]
 			: null
-	);
-
-	// Compute bar line positions using note center spacing
-	const barLineXPositions = $derived(
-		(() => {
-			if (!barLength || barLength <= 0 || !noteXs.length || sequence.length < 2)
-				return [] as number[];
-			const positions: number[] = [];
-			let cumulative = 0;
-			for (let i = 0; i < sequence.length - 1; i++) {
-				const len = sequence[i]?.length ?? 4;
-				cumulative += len;
-				if (cumulative % barLength === 0) {
-					// Place barline midway between current and next note centers
-					const mid = (noteXs[i] + noteXs[i + 1]) / 2;
-					positions.push(mid);
-				}
-			}
-			return positions;
-		})()
 	);
 
 	// Calculate playhead X position
@@ -217,11 +195,6 @@
 
 		<!-- Feedback overlay SVG layer -->
 		<svg class="feedback-overlay" width={effectiveWidth} height={HEIGHT}>
-			{#if barLineXPositions.length}
-				{#each barLineXPositions as barX (barX)}
-					<line x1={barX} x2={barX} y1={topLineY} y2={bottomLineY} stroke="#333" stroke-width="1" />
-				{/each}
-			{/if}
 			{#if notes.length && noteXs.length}
 				{#each notes as n, i (i)}
 					{@const x = noteXs[i] ?? 0}

@@ -10,9 +10,10 @@
 		selectedSpeed: Speed;
 		instrumentId: InstrumentId;
 		onSeek?: (progress: number) => void; // Callback for seek events
+		singleRow?: boolean;
 	}
 
-	let { piece, progress, selectedSpeed, instrumentId, onSeek }: Props = $props();
+	let { piece, progress, selectedSpeed, instrumentId, onSeek, singleRow = true }: Props = $props();
 
 	// Get instrument config for clef
 	const instrumentConfig = $derived(instrumentConfigs.find((config) => config.id === instrumentId));
@@ -271,6 +272,7 @@
 					bind:firstNoteX
 					bind:lastNoteX
 					bind:noteXPositions
+					{singleRow}
 					showAllBlack={true}
 				/>
 			</div>

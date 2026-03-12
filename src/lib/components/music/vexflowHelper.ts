@@ -1,7 +1,9 @@
-import { Factory, Dot, Beam, Voice, Curve, type Stave } from 'vexflow';
+import { Factory, Dot, Beam, Voice, Curve, BarNote, type Stave } from 'vexflow';
 import type { KeySignature } from '$lib/config/keys';
 import type { Clef } from '$lib/config/types';
 import type { MelodyItem } from '$lib/config/melody';
+
+const SPLIT_LENGTHS = [16, 12, 8, 6, 4, 3, 2, 1] as const;
 
 export interface VexFlowRenderResult {
 	noteXPositions: number[];
@@ -101,6 +103,81 @@ function noteToVexFlow(
 	};
 }
 
+function splitLengthToChunks(length: number, maxChunk: number): number[] {
+	const chunks: number[] = [];
+	let remaining = length;
+
+	while (remaining > 0) {
+		const limit = Math.min(remaining, maxChunk);
+		const chunk = SPLIT_LENGTHS.find((value) => value <= limit) ?? 1;
+		chunks.push(chunk);
+		remaining -= chunk;
+	}
+
+	return chunks;
+}
+
+/**
+ * Split one phrase (`MelodyItem[]`) into bar-sized groups for display.
+ */
+export function splitPhraseToDisplayBars(
+	phrase: MelodyItem[],
+	barLengthSixteenths: number
+): MelodyItem[][] {
+	const safeBarLength = Math.max(1, Math.floor(barLengthSixteenths));
+	if (!phrase.length) return [];
+
+	const displayBars: MelodyItem[][] = [];
+	let currentBar: MelodyItem[] = [];
+	let currentFill = 0;
+
+	for (const item of phrase) {
+		let remainingLength = item.length;
+
+		while (remainingLength > 0) {
+			const remainingInBar = safeBarLength - currentFill;
+			const chunkLimit = Math.min(remainingLength, remainingInBar);
+			const chunks = splitLengthToChunks(remainingLength, chunkLimit);
+			const nextChunk = chunks[0] ?? remainingLength;
+
+			currentBar.push({
+				...item,
+				length: nextChunk as MelodyItem['length']
+			});
+
+			remainingLength -= nextChunk;
+			currentFill += nextChunk;
+
+			if (currentFill === safeBarLength) {
+				displayBars.push(currentBar);
+				currentBar = [];
+				currentFill = 0;
+			}
+		}
+	}
+
+	if (currentBar.length > 0) {
+		displayBars.push(currentBar);
+	}
+
+	return displayBars;
+}
+
+/**
+ * Normalize phrase-oriented melody arrays to display bars.
+ * Each input array is treated as a phrase, not necessarily one bar.
+ */
+export function splitPhrasesToDisplayBars(
+	phrases: MelodyItem[][],
+	barLengthSixteenths?: number
+): MelodyItem[][] {
+	if (!barLengthSixteenths || barLengthSixteenths <= 0) {
+		return phrases;
+	}
+
+	return phrases.flatMap((phrase) => splitPhraseToDisplayBars(phrase, barLengthSixteenths));
+}
+
 /**
  * Render melody bars using VexFlow with proportional note widths within each bar
  */
@@ -116,6 +193,8 @@ export function renderVexFlowStaff(
 ): VexFlowRenderResult {
 	// Clear container
 	container.innerHTML = '';
+
+	const displayBars = splitPhrasesToDisplayBars(bars, barLengthSixteenths);
 
 	const height = 150;
 
@@ -137,7 +216,7 @@ export function renderVexFlowStaff(
 	const context = vf.getContext();
 
 	// Flatten bars for computing total sixteenths
-	const flatSequence = bars.flat();
+	const flatSequence = displayBars.flat();
 	const totalSixteenths = flatSequence.reduce((sum, item) => sum + item.length, 0);
 	const totalBeats = totalSixteenths / 4; // Convert to quarter notes
 
@@ -169,9 +248,11 @@ export function renderVexFlowStaff(
 
 	// Build all notes from all bars
 	const allNotes = [];
+	const allTickables = [];
 	let flatNoteIndex = 0;
 
-	for (const bar of bars) {
+	for (let barIndex = 0; barIndex < displayBars.length; barIndex++) {
+		const bar = displayBars[barIndex];
 		for (const item of bar) {
 			const { duration, dots } = lengthToDurationWithDots(item.length);
 			if (item.note === null) {
@@ -188,6 +269,7 @@ export function renderVexFlowStaff(
 					Dot.buildAndAttach([rest], { all: true });
 				}
 				allNotes.push(rest);
+				allTickables.push(rest);
 			} else {
 				// Note
 				const { keys, accidentals } = noteToVexFlow(item.note, keySignature);
@@ -213,8 +295,14 @@ export function renderVexFlowStaff(
 				}
 
 				allNotes.push(staveNote);
+				allTickables.push(staveNote);
 			}
 			flatNoteIndex++;
+		}
+
+		// Native internal measure separator in the tickable stream.
+		if (barIndex < displayBars.length - 1) {
+			allTickables.push(new BarNote());
 		}
 	}
 
@@ -228,7 +316,7 @@ export function renderVexFlowStaff(
 		let noteIndex = 0;
 		let totalComputedWidth = 0;
 
-		for (const bar of bars) {
+		for (const bar of displayBars) {
 			const barSixteenths = bar.reduce((sum, item) => sum + item.length, 0);
 			const reserveForClefAndKey = noteIndex === 0 ? 150 : 20; // Only first bar needs space for clef/key
 			const barAvailableWidth = (width / totalSixteenths) * barSixteenths - reserveForClefAndKey;
@@ -244,14 +332,14 @@ export function renderVexFlowStaff(
 
 		const voice = vf.Voice({ time: { numBeats: totalBeats, beatValue: 4 } });
 		voice.setMode(Voice.Mode.SOFT);
-		voice.addTickables(allNotes);
+		voice.addTickables(allTickables);
 
 		// Create beams based on manual beam markers or auto-generate
 		const beams: Beam[] = [];
 		let hasManualBeams = false;
 
 		// Check if any notes have manual beam markers
-		const flatSequenceWithBeams = bars.flat();
+		const flatSequenceWithBeams = displayBars.flat();
 		for (const item of flatSequenceWithBeams) {
 			if (item.beamStart || item.beamEnd) {
 				hasManualBeams = true;
@@ -264,7 +352,7 @@ export function renderVexFlowStaff(
 			let beamStartIndex = -1;
 			noteIndex = 0;
 
-			for (const bar of bars) {
+			for (const bar of displayBars) {
 				for (const item of bar) {
 					if (item.beamStart && item.note !== null) {
 						beamStartIndex = noteIndex;
@@ -317,7 +405,7 @@ export function renderVexFlowStaff(
 		let slurStartIndex = -1;
 		noteIndex = 0;
 
-		for (const bar of bars) {
+		for (const bar of displayBars) {
 			for (const item of bar) {
 				if (item.slurStart) {
 					slurStartIndex = noteIndex;

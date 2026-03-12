@@ -13,7 +13,6 @@
 	import { getUnitStorage } from '$lib/util/unitStorage.svelte';
 	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess';
-	import { getImageUrl } from '$lib/util/getImageUrl';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
 	import type { Speed } from '$lib/config/types';
@@ -139,7 +138,7 @@
 		<article class="rounded-2xl bg-white p-8 shadow-md">
 			<div class="mb-8 flex flex-col gap-4 xs:flex-row xs:gap-6">
 				<img
-					src={getImageUrl(code, true)}
+					src={imageUrl}
 					alt={`${unit.title} cover art`}
 					class="h-full w-full shrink-0 rounded-lg object-cover xs:mt-2 xs:h-16 xs:w-16"
 				/>

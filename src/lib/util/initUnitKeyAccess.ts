@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { page } from '$app/state';
+import type { UnitMaterial } from '$lib/config/types';
 import { setUnitKeyCode, getUnitKeyCode } from './unitStorage.svelte';
-import type { UnitMaterial } from '$lib/config/units';
 
 async function validateAccess(unitCode: string, keyCode: string): Promise<boolean> {
 	const res = await fetch('/api/access', {

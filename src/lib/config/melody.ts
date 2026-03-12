@@ -80,6 +80,8 @@ export const lengthNoteMap: Record<number, string> = {
 	1: '\u{1D161}' // beamed eighth note symbol
 };
 
+export const lengthToNoteMap = lengthNoteMap;
+
 export const lengthRestMap: Record<number, string> = {
 	16: '\uD834\uDD3B', // 𝄻 double whole rest symbol
 	8: '\uD834\uDD3C', // 𝄼 half rest symbol
