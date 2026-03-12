@@ -6,6 +6,7 @@ const MAX_TTL_SECONDS = 60 * 60 * 24 * 365; // 1 year
 const SHORT_ID_LENGTH = 7;
 const MAX_COLLISION_RETRIES = 5;
 const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+const CANONICAL_APP_ORIGIN = 'https://sharpestnote.com';
 
 type ShareCreateRequest = {
 	targetUrl?: string;
@@ -54,12 +55,11 @@ export async function handleCreateCustomShare(
 		);
 	}
 
-	const requestUrl = new URL(request.url);
-	if (!isAllowedTargetUrl(targetUrl, requestUrl)) {
+	if (!isAllowedTargetUrl(targetUrl)) {
 		return json(
 			{
 				error: 'Invalid targetUrl',
-				message: 'Short links only support same-origin Sharpest Note URLs.'
+				message: 'Short links only support sharpestnote.com URLs.'
 			},
 			400
 		);
@@ -81,7 +81,7 @@ export async function handleCreateCustomShare(
 
 		return json({
 			id,
-			shortUrl: `${requestUrl.origin}/s/${id}`,
+			shortUrl: `${CANONICAL_APP_ORIGIN}/s/${id}`,
 			targetUrl,
 			ttlSeconds
 		});
@@ -126,8 +126,7 @@ export async function handleResolveCustomShare(
 		return new Response('Short link is invalid.', { status: 500 });
 	}
 
-	const requestUrl = new URL(request.url);
-	if (!isAllowedTargetUrl(record.targetUrl, requestUrl)) {
+	if (!isAllowedTargetUrl(record.targetUrl)) {
 		return new Response('Short link target is not allowed.', { status: 400 });
 	}
 
@@ -152,7 +151,7 @@ function clampTtl(ttlSeconds: number | undefined): number {
 	return Math.max(MIN_TTL_SECONDS, Math.min(MAX_TTL_SECONDS, safeValue));
 }
 
-function isAllowedTargetUrl(targetUrl: string, requestUrl: URL): boolean {
+function isAllowedTargetUrl(targetUrl: string): boolean {
 	let parsed: URL;
 	try {
 		parsed = new URL(targetUrl);
@@ -163,10 +162,9 @@ function isAllowedTargetUrl(targetUrl: string, requestUrl: URL): boolean {
 	if (parsed.protocol !== 'https:') return false;
 
 	const targetOrigin = parsed.origin.toLowerCase();
-	const requestOrigin = requestUrl.origin.toLowerCase();
 
 	const allowedOrigins = new Set<string>([
-		requestOrigin,
+		CANONICAL_APP_ORIGIN,
 		'https://sharpestnote.com',
 		'https://www.sharpestnote.com'
 	]);

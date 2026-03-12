@@ -23,6 +23,7 @@
 	import ComposerMelodyEditor from '$lib/components/composer/ComposerMelodyEditor.svelte';
 	import ComposerShareCard from '$lib/components/composer/ComposerShareCard.svelte';
 
+	const CANONICAL_SHARE_ORIGIN = 'https://sharpestnote.com';
 	const LENGTH_OPTIONS: NoteLength[] = [1, 2, 3, 4, 6, 8, 12, 16];
 
 	interface Props {
@@ -544,18 +545,7 @@
 	}
 
 	function getShareBaseUrl(): string {
-		if (typeof window !== 'undefined' && window.location.origin) {
-			return window.location.origin;
-		}
-
-		const fallbackUrl = data.sharePreviewData.url;
-		if (!fallbackUrl) return '';
-
-		try {
-			return new URL(fallbackUrl).origin;
-		} catch {
-			return '';
-		}
+		return CANONICAL_SHARE_ORIGIN;
 	}
 
 	async function copyCustomPieceUrl() {
