@@ -12,6 +12,7 @@
 
 	const LENGTH_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
 	const REST_CHUNK_LENGTHS: NoteLength[] = [16, 12, 8, 6, 4, 3, 2, 1];
+	const MAX_MELODY_BARS = 16;
 	const BOTTOM_STAFF_LINE_NOTE_BY_CLEF: Record<Clef, string> = {
 		treble: 'e/4',
 		alto: 'f/4',
@@ -56,6 +57,7 @@
 	let isSmallScreen = $state(false);
 	let contextMenuRestoreNote = $state<string | null>(null);
 	let contextMenuRestoreIndex = $state<number | null>(null);
+	const hasReachedMaxBars = $derived(melody.length >= MAX_MELODY_BARS);
 	type StaffContextMenuAnchorProvider = {
 		getContextMenuAnchorForNote: (
 			noteIndex: number
@@ -246,6 +248,10 @@
 		let targetBar = updatedBars[updatedBars.length - 1];
 		const fill = targetBar.reduce((sum, item) => sum + item.length, 0);
 		if (fill + selectedLength > safeBarLength) {
+			if (updatedBars.length >= MAX_MELODY_BARS) {
+				editorError = `Melody is limited to ${MAX_MELODY_BARS} bars.`;
+				return false;
+			}
 			targetBar = [];
 			updatedBars.push(targetBar);
 		}
@@ -713,6 +719,11 @@
 
 	function addBar() {
 		markEdited();
+		if (melody.length >= MAX_MELODY_BARS) {
+			editorError = `Melody is limited to ${MAX_MELODY_BARS} bars.`;
+			return;
+		}
+
 		const newBar = createInitialRests(barLength as NoteLength, 1)[0];
 		melody = [...melody, newBar];
 	}
@@ -824,7 +835,7 @@
 	<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Melody editor</h2>
 
 	<div class="mt-3 p-1 sm:mt-6 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50 sm:p-3">
-		<div class="mb-2 flex justify-center sm:mb-3">
+		<div class="mb-2 flex justify-around gap-2 sm:mb-3">
 			<Button
 				type="button"
 				size="medium"
@@ -834,6 +845,27 @@
 			>
 				Tidy up rests
 			</Button>
+			<div class="flex gap-2">
+				<Button
+					type="button"
+					size="medium"
+					variant="secondary"
+					title="Remove last bar"
+					onclick={removeLastBar}
+				>
+					− Remove bar
+				</Button>
+				<Button
+					type="button"
+					size="medium"
+					variant="secondary"
+					title={hasReachedMaxBars ? `Maximum ${MAX_MELODY_BARS} bars reached` : 'Add new bar'}
+					onclick={addBar}
+					disabled={hasReachedMaxBars}
+				>
+					+ Add bar
+				</Button>
+			</div>
 		</div>
 
 		<ComposerStaff
@@ -854,20 +886,6 @@
 			onOpenNoteContextMenu={handleOpenNoteContextMenu}
 		/>
 
-		<div class="mt-3 flex justify-center gap-2 sm:mt-4 sm:gap-3">
-			<Button
-				type="button"
-				size="medium"
-				variant="secondary"
-				title="Remove last bar"
-				onclick={removeLastBar}
-			>
-				− remove bar
-			</Button>
-			<Button type="button" size="medium" variant="secondary" title="Add new bar" onclick={addBar}
-				>+ add bar</Button
-			>
-		</div>
 		{#if editorError}
 			<p class="mt-2 text-sm font-medium text-red-700">{editorError}</p>
 		{/if}

@@ -85,7 +85,7 @@ export function createCustomUnitStub(): UnitMaterial {
 
 function createCustomUnitMaterial(customUnitMaterial: CustomUnitMaterial): UnitMaterial {
 	const { piece, instrument, teacherNote } = customUnitMaterial;
-	const trimmedTeacherNote = teacherNote.trim();
+	const trimmedTeacherNote = teacherNote?.trim() ?? '';
 	const defaultDescription = `${piece.label} by ${piece.composer || 'Unknown composer'}`;
 	const description = trimmedTeacherNote || defaultDescription;
 

@@ -112,10 +112,12 @@
 				};
 			}
 
+			const trimmedTeacherNote = teacherShareNote.trim();
+
 			const customUnitMaterial: CustomUnitMaterial = {
 				piece: pieceBuildResult.piece,
 				instrument: instrumentId,
-				teacherNote: teacherShareNote.trim()
+				teacherNote: trimmedTeacherNote || undefined
 			};
 
 			return {

@@ -10,6 +10,7 @@
 	const DEFAULT_BARS_PER_ROW = 4;
 	const COMPACT_BARS_PER_ROW = 2;
 	const MAX_BARS_FOR_COMPACT_LAYOUT = 8;
+	const ROWS_PER_PAGE = 4;
 	const PRINT_MODE_CLASS = 'composer-print-active';
 
 	interface Props {
@@ -27,6 +28,11 @@
 		rowIndex: number;
 		bars: MelodyItem[][];
 		notes: MelodyItem[];
+	};
+
+	type PageSpec = {
+		pageIndex: number;
+		rows: RowSpec[];
 	};
 
 	type RowRenderData = {
@@ -70,6 +76,18 @@
 		}
 
 		return rows;
+	});
+	const pageSpecs = $derived.by(() => {
+		const pages: PageSpec[] = [];
+
+		for (let index = 0; index < rowSpecs.length; index += ROWS_PER_PAGE) {
+			pages.push({
+				pageIndex: pages.length,
+				rows: rowSpecs.slice(index, index + ROWS_PER_PAGE)
+			});
+		}
+
+		return pages;
 	});
 
 	$effect(() => {
@@ -171,55 +189,55 @@
 
 <div bind:this={hostElement} class="print-sheet-host" aria-hidden="true">
 	<div bind:this={sheetElement} class="print-sheet">
-		<header class="sheet-header">
-			<h1>{trimmedPieceLabel}</h1>
-			<div class="teacher-note-card">
-				<p class="eyebrow">Teacher note</p>
-				{#if trimmedTeacherShareNote}
-					<p class="teacher-note">{trimmedTeacherShareNote}</p>
-				{:else}
-					<p class="teacher-note teacher-note-placeholder">
-						Add a teacher note in the share modal to include practice guidance here.
-					</p>
-				{/if}
-			</div>
-		</header>
+		{#each pageSpecs as page (page.pageIndex)}
+			<div class="print-page">
+				<header class="sheet-header">
+					<h1>{trimmedPieceLabel}</h1>
+					{#if page.pageIndex === 0 && trimmedTeacherShareNote}
+						<div class="teacher-note-card">
+							<p class="eyebrow">Teacher note</p>
+							<p class="teacher-note">{trimmedTeacherShareNote}</p>
+						</div>
+					{/if}
+				</header>
 
-		<section class="sheet-notation" bind:clientWidth={notationWidth}>
-			{#each rowSpecs as row (row.rowIndex)}
-				<div class="staff-row">
-					<div bind:this={rowContainers[row.rowIndex]} class="staff-vexflow"></div>
-					<svg class="staff-overlay" width="100%" height="100%" aria-hidden="true">
-						{#if rowRenderData[row.rowIndex]}
-							{#each row.notes as item, noteIndex (noteIndex)}
-								{#if item.note !== null}
-									<FingerMarking
-										{item}
-										x={rowRenderData[row.rowIndex].noteXPositions[noteIndex] ?? 0}
-										y={140}
-										lineSpacing={rowRenderData[row.rowIndex].lineSpacing}
-									/>
+				<section class="sheet-notation" bind:clientWidth={notationWidth}>
+					{#each page.rows as row (row.rowIndex)}
+						<div class="staff-row">
+							<div bind:this={rowContainers[row.rowIndex]} class="staff-vexflow"></div>
+							<svg class="staff-overlay" width="100%" height="100%" aria-hidden="true">
+								{#if rowRenderData[row.rowIndex]}
+									{#each row.notes as item, noteIndex (noteIndex)}
+										{#if item.note !== null}
+											<FingerMarking
+												{item}
+												x={rowRenderData[row.rowIndex].noteXPositions[noteIndex] ?? 0}
+												y={140}
+												lineSpacing={rowRenderData[row.rowIndex].lineSpacing}
+											/>
+										{/if}
+									{/each}
 								{/if}
-							{/each}
+							</svg>
+						</div>
+					{/each}
+				</section>
+
+				<footer class="sheet-footer">
+					<div class="footer-qr-block">
+						{#if qrCodeDataUrl}
+							<img src={qrCodeDataUrl} alt={`QR code for ${trimmedPieceLabel}`} class="footer-qr" />
 						{/if}
-					</svg>
-				</div>
-			{/each}
-		</section>
+					</div>
 
-		<footer class="sheet-footer">
-			<div class="footer-qr-block">
-				{#if qrCodeDataUrl}
-					<img src={qrCodeDataUrl} alt={`QR code for ${trimmedPieceLabel}`} class="footer-qr" />
-				{/if}
+					<div class="footer-copy">
+						<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="footer-logo" />
+						<p class="footer-url">{trimmedShareUrl}</p>
+						<p class="footer-cta">Open on The Sharpest Note to practice with immediate feedback!</p>
+					</div>
+				</footer>
 			</div>
-
-			<div class="footer-copy">
-				<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="footer-logo" />
-				<p class="footer-url">{trimmedShareUrl}</p>
-				<p class="footer-cta">Open on The Sharpest Note to practice with immediate feedback!</p>
-			</div>
-		</footer>
+		{/each}
 	</div>
 </div>
 
@@ -232,17 +250,70 @@
 		z-index: -1;
 	}
 
+	:global(html.composer-print-active),
+	:global(body.composer-print-active) {
+		margin: 0 !important;
+		padding: 0 !important;
+		background: #ffffff !important;
+	}
+
+	:global(body.composer-print-active) {
+		overflow: hidden !important;
+	}
+
+	:global(body.composer-print-active > *:not(.print-sheet-host)) {
+		display: none !important;
+	}
+
+	:global(body.composer-print-active) .print-sheet-host {
+		position: fixed !important;
+		inset: 0 !important;
+		left: auto !important;
+		top: auto !important;
+		width: 100vw !important;
+		height: 100vh !important;
+		padding: 12mm 0 !important;
+		margin: 0 !important;
+		visibility: visible !important;
+		pointer-events: none !important;
+		z-index: 9999 !important;
+		display: block !important;
+		overflow: auto;
+		background: #ffffff;
+	}
+
+	:global(body.composer-print-active) .print-sheet {
+		min-height: auto;
+		padding-bottom: 0;
+		margin: 0 auto;
+	}
+
 	.print-sheet {
 		width: 186mm;
-		min-height: 273mm;
 		padding: 0;
 		box-sizing: border-box;
 		background: #ffffff;
 		color: #0f172a;
+		display: block;
+		font-family: var(--font-serif, 'Spectral', serif);
+	}
+
+	.print-page {
+		width: 100%;
+		min-height: 273mm;
+		padding: 0 0 4mm;
+		box-sizing: border-box;
+		background: #ffffff;
 		display: flex;
 		flex-direction: column;
 		gap: 8mm;
-		font-family: var(--font-serif, 'Spectral', serif);
+		break-after: page;
+		page-break-after: always;
+	}
+
+	.print-page:last-child {
+		break-after: auto;
+		page-break-after: auto;
 	}
 
 	.sheet-header {
@@ -285,10 +356,6 @@
 		line-height: 1.5;
 		white-space: pre-wrap;
 		text-align: center;
-	}
-
-	.teacher-note-placeholder {
-		color: #94a3b8;
 	}
 
 	.sheet-notation {
@@ -397,12 +464,6 @@
 			-webkit-print-color-adjust: exact;
 		}
 
-		/* Hide every direct body sibling; the print host is moved to body
-		   directly in printSheet() so this selector collapses page-height. */
-		:global(body.composer-print-active > *:not(.print-sheet-host)) {
-			display: none !important;
-		}
-
 		/* Print host: flow normally (not fixed) so it appears exactly once. */
 		.print-sheet-host {
 			position: static !important;
@@ -415,8 +476,7 @@
 			visibility: visible !important;
 			pointer-events: none !important;
 			z-index: auto !important;
-			display: flex !important;
-			justify-content: center;
+			display: block !important;
 		}
 
 		.print-sheet-host * {
@@ -426,6 +486,22 @@
 		.print-sheet {
 			background: #ffffff !important;
 			box-shadow: none !important;
+			min-height: auto !important;
+			padding-bottom: 0;
+			display: block !important;
+			width: 186mm !important;
+			margin: 0 auto !important;
+		}
+
+		.print-page {
+			background: #ffffff !important;
+			display: block !important;
+			break-inside: avoid-page;
+			page-break-inside: avoid;
+		}
+
+		.print-page > .sheet-footer {
+			margin-top: 8mm;
 		}
 	}
 </style>

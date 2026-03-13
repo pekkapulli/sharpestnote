@@ -118,7 +118,7 @@ function isCustomUnitMaterialUrlPayload(value: unknown): value is CustomUnitMate
 
 	const material = maybe.customUnitMaterial as Partial<CustomUnitMaterial>;
 	if (typeof material.instrument !== 'string') return false;
-	if (typeof material.teacherNote !== 'string') return false;
+	if (material.teacherNote !== undefined && typeof material.teacherNote !== 'string') return false;
 	if (!material.piece || typeof material.piece !== 'object') return false;
 
 	const piecePayloadCandidate: PieceUrlPayload = {

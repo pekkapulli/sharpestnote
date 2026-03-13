@@ -69,5 +69,5 @@ export interface UnitMaterial {
 export interface CustomUnitMaterial {
 	piece: Piece;
 	instrument: InstrumentId;
-	teacherNote: string;
+	teacherNote?: string;
 }
