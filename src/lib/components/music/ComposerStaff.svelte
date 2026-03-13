@@ -28,6 +28,22 @@
 	const ROW_GAP = 16;
 	const SELECT_NOTE_THRESHOLD = 20;
 	const SMALL_SCREEN_BREAKPOINT = 640;
+	const DRAG_START_THRESHOLD = 8;
+	const LONG_PRESS_MS = 420;
+
+	type DragState = {
+		pointerId: number;
+		rowIndex: number;
+		noteIndex: number;
+		noteX: number;
+		startX: number;
+		startY: number;
+		lastMovedNote: string | null;
+		didDrag: boolean;
+		longPressEligible: boolean;
+		longPressTriggered: boolean;
+		longPressTimer: ReturnType<typeof setTimeout> | null;
+	};
 
 	type RowSpec = {
 		rowIndex: number;
@@ -80,6 +96,8 @@
 	let rowContainers = $state<Array<HTMLDivElement | null>>([]);
 	let rowRenderData = $state<Record<number, RowRenderData>>({});
 	let hoverState = $state<HoverState | null>(null);
+	let dragState = $state<DragState | null>(null);
+	let suppressNextClick = $state(false);
 	const computedBarsPerRow = $derived.by(() => {
 		if (effectiveWidth > 0 && effectiveWidth <= SMALL_SCREEN_BREAKPOINT) {
 			return 1;
@@ -186,8 +204,16 @@
 				noteColors
 			);
 
+			const seenNaturalNotes = new Set<string>();
+
 			const snapPoints = pitchPalette
 				.filter((note) => note !== 'rest')
+				.map((note) => toNaturalStaffNote(note))
+				.filter((note) => {
+					if (seenNaturalNotes.has(note)) return false;
+					seenNaturalNotes.add(note);
+					return true;
+				})
 				.map((note) => ({
 					note,
 					y: result.stave ? getNoteYPosition(note, clef, result.stave) : result.middleLineY
@@ -206,6 +232,13 @@
 		rowRenderData = nextRenderData;
 	});
 
+	function toNaturalStaffNote(note: string): string {
+		const match = /^([a-g])([#b]?)\/(\d+)$/.exec(note);
+		if (!match) return note;
+		const [, letter, , octave] = match;
+		return `${letter}/${octave}`;
+	}
+
 	function getClosestPitch(rowIndex: number, y: number): { note: string; y: number } | null {
 		const points = rowRenderData[rowIndex]?.snapPoints ?? [];
 		if (points.length === 0) return null;
@@ -223,33 +256,12 @@
 		return best;
 	}
 
-	function onRowMouseMove(event: MouseEvent, row: RowSpec) {
-		const rowData = rowRenderData[row.rowIndex];
-		if (!rowData) return;
-
-		const target = event.currentTarget as HTMLDivElement;
-		const rect = target.getBoundingClientRect();
-		const localX = event.clientX - rect.left;
-		const localY = event.clientY - rect.top;
-
-		const closestPitch = getClosestPitch(row.rowIndex, localY);
-		if (!closestPitch) {
-			hoverState = null;
-			return;
-		}
-
-		const noteXs = rowData.noteXPositions;
-		if (noteXs.length === 0) {
-			hoverState = {
-				rowIndex: row.rowIndex,
-				x: Math.max(24, Math.min(effectiveWidth - 24, localX)),
-				y: closestPitch.y,
-				note: closestPitch.note,
-				action: 'add',
-				noteIndex: row.startNoteIndex
-			};
-			return;
-		}
+	function getNearestNoteAtX(
+		row: RowSpec,
+		localX: number
+	): { noteIndex: number; localIndex: number; noteX: number; distance: number } | null {
+		const noteXs = rowRenderData[row.rowIndex]?.noteXPositions ?? [];
+		if (noteXs.length === 0) return null;
 
 		let nearestIndex = 0;
 		let nearestDistance = Math.abs(noteXs[0] - localX);
@@ -261,6 +273,38 @@
 			}
 		}
 
+		return {
+			noteIndex: row.startNoteIndex + nearestIndex,
+			localIndex: nearestIndex,
+			noteX: noteXs[nearestIndex],
+			distance: nearestDistance
+		};
+	}
+
+	function updateHoverStateFromPosition(row: RowSpec, localX: number, localY: number) {
+		const rowData = rowRenderData[row.rowIndex];
+		if (!rowData) return;
+
+		const closestPitch = getClosestPitch(row.rowIndex, localY);
+		if (!closestPitch) {
+			hoverState = null;
+			return;
+		}
+
+		const nearest = getNearestNoteAtX(row, localX);
+		if (!nearest) {
+			hoverState = {
+				rowIndex: row.rowIndex,
+				x: Math.max(24, Math.min(effectiveWidth - 24, localX)),
+				y: closestPitch.y,
+				note: closestPitch.note,
+				action: 'add',
+				noteIndex: row.startNoteIndex
+			};
+			return;
+		}
+
+		const noteXs = rowData.noteXPositions;
 		const addThresholdX = noteXs[noteXs.length - 1] + 24;
 		if (localX > addThresholdX) {
 			hoverState = {
@@ -276,16 +320,172 @@
 
 		hoverState = {
 			rowIndex: row.rowIndex,
-			x: noteXs[nearestIndex],
+			x: nearest.noteX,
 			y: closestPitch.y,
 			note: closestPitch.note,
-			action: nearestDistance <= SELECT_NOTE_THRESHOLD ? 'move' : 'add',
-			noteIndex: row.startNoteIndex + nearestIndex
+			action: nearest.distance <= SELECT_NOTE_THRESHOLD ? 'move' : 'add',
+			noteIndex: nearest.noteIndex
 		};
 	}
 
+	function onRowMouseMove(event: MouseEvent, row: RowSpec) {
+		const target = event.currentTarget as HTMLDivElement;
+		const rect = target.getBoundingClientRect();
+		const localX = event.clientX - rect.left;
+		const localY = event.clientY - rect.top;
+
+		updateHoverStateFromPosition(row, localX, localY);
+	}
+
 	function onRowMouseLeave() {
+		if (dragState) return;
 		hoverState = null;
+	}
+
+	function onRowPointerDown(event: PointerEvent, row: RowSpec) {
+		if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+		const target = event.currentTarget as HTMLDivElement;
+		const rect = target.getBoundingClientRect();
+		const localX = event.clientX - rect.left;
+		const localY = event.clientY - rect.top;
+
+		// Touch and quick clicks may not emit mousemove first, so seed click intent here.
+		updateHoverStateFromPosition(row, localX, localY);
+
+		const nearest = getNearestNoteAtX(row, localX);
+		if (!nearest) return;
+		const isLongPressEligible = nearest.distance <= SELECT_NOTE_THRESHOLD;
+
+		const longPressTimer =
+			isLongPressEligible && onOpenNoteContextMenu
+				? setTimeout(() => {
+						if (!dragState || dragState.pointerId !== event.pointerId || dragState.didDrag) return;
+
+						onSelectNote?.(nearest.noteIndex);
+						emitContextMenuForNote(row, nearest.noteIndex, nearest.noteX);
+						suppressNextClick = true;
+						dragState = {
+							...dragState,
+							longPressTriggered: true,
+							longPressTimer: null
+						};
+					}, LONG_PRESS_MS)
+				: null;
+
+		dragState = {
+			pointerId: event.pointerId,
+			rowIndex: row.rowIndex,
+			noteIndex: nearest.noteIndex,
+			noteX: nearest.noteX,
+			startX: localX,
+			startY: event.clientY - rect.top,
+			lastMovedNote: null,
+			didDrag: false,
+			longPressEligible: isLongPressEligible,
+			longPressTriggered: false,
+			longPressTimer
+		};
+
+		onSelectNote?.(nearest.noteIndex);
+		target.setPointerCapture(event.pointerId);
+	}
+
+	function onRowPointerMove(event: PointerEvent, row: RowSpec) {
+		const target = event.currentTarget as HTMLDivElement;
+		const rect = target.getBoundingClientRect();
+		const localX = event.clientX - rect.left;
+		const localY = event.clientY - rect.top;
+
+		updateHoverStateFromPosition(row, localX, localY);
+
+		if (
+			!dragState ||
+			dragState.pointerId !== event.pointerId ||
+			dragState.rowIndex !== row.rowIndex
+		) {
+			return;
+		}
+
+		if (dragState.longPressTriggered) {
+			event.preventDefault();
+			return;
+		}
+
+		if (!dragState.didDrag) {
+			const deltaX = localX - dragState.startX;
+			const deltaY = localY - dragState.startY;
+			const distance = Math.hypot(deltaX, deltaY);
+			if (distance < DRAG_START_THRESHOLD) {
+				return;
+			}
+
+			if (dragState.longPressTimer) {
+				clearTimeout(dragState.longPressTimer);
+			}
+			dragState = {
+				...dragState,
+				longPressTimer: null
+			};
+		}
+
+		const closestPitch = getClosestPitch(row.rowIndex, localY);
+		if (!closestPitch) return;
+
+		hoverState = {
+			rowIndex: row.rowIndex,
+			x: dragState.noteX,
+			y: closestPitch.y,
+			note: closestPitch.note,
+			action: 'move',
+			noteIndex: dragState.noteIndex
+		};
+
+		if (dragState.lastMovedNote === closestPitch.note) {
+			event.preventDefault();
+			return;
+		}
+
+		onMoveNote?.(dragState.noteIndex, closestPitch.note);
+		onSelectNote?.(dragState.noteIndex);
+		dragState = {
+			...dragState,
+			lastMovedNote: closestPitch.note,
+			didDrag: true,
+			longPressTimer: null
+		};
+		event.preventDefault();
+	}
+
+	function endDrag(event: PointerEvent) {
+		if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+		const currentDrag = dragState;
+		const target = event.currentTarget as HTMLDivElement;
+		const rect = target.getBoundingClientRect();
+		const localX = event.clientX - rect.left;
+		const localY = event.clientY - rect.top;
+
+		updateHoverStateFromPosition(rowSpecs[currentDrag.rowIndex], localX, localY);
+
+		if (dragState.longPressTimer) {
+			clearTimeout(dragState.longPressTimer);
+		}
+
+		if (!currentDrag.didDrag && !currentDrag.longPressTriggered) {
+			performHoverAction();
+			suppressNextClick = true;
+		}
+
+		if (dragState.didDrag) {
+			suppressNextClick = true;
+		}
+
+		if (target.hasPointerCapture(event.pointerId)) {
+			target.releasePointerCapture(event.pointerId);
+		}
+
+		dragState = null;
 	}
 
 	function emitContextMenuForNote(row: RowSpec, noteIndex: number, fallbackX: number) {
@@ -339,7 +539,7 @@
 		};
 	}
 
-	function onRowClick() {
+	function performHoverAction() {
 		if (!hoverState) return;
 		if (hoverState.action === 'add') {
 			const row = rowSpecs[hoverState.rowIndex];
@@ -355,6 +555,15 @@
 				emitContextMenuForNote(row, hoverState.noteIndex, hoverState.x);
 			}
 		}
+	}
+
+	function onRowClick() {
+		if (suppressNextClick) {
+			suppressNextClick = false;
+			return;
+		}
+
+		performHoverAction();
 	}
 
 	function onRowKeyDown(event: KeyboardEvent) {
@@ -408,6 +617,10 @@
 				style="height: {ROW_HEIGHT}px;"
 				onmousemove={(e) => onRowMouseMove(e, row)}
 				onmouseleave={onRowMouseLeave}
+				onpointerdown={(e) => onRowPointerDown(e, row)}
+				onpointermove={(e) => onRowPointerMove(e, row)}
+				onpointerup={endDrag}
+				onpointercancel={endDrag}
 				onclick={onRowClick}
 				oncontextmenu={(e) => onRowContextMenu(e, row)}
 				onkeydown={onRowKeyDown}
@@ -449,6 +662,7 @@
 		position: relative;
 		width: 100%;
 		margin-bottom: 16px;
+		touch-action: none;
 	}
 
 	.row:last-child {

@@ -45,7 +45,7 @@
 		{ label: '4/4', barLength: 16 }
 	];
 
-	let pieceLabel = $state('Teacher Etude No. 1');
+	let pieceLabel = $state('Opus No. 1');
 	let pieceKey = $state<NoteName>('D');
 	let pieceMode = $state<Mode>('major');
 	let instrumentId = $state<InstrumentId>('violin');
@@ -335,7 +335,7 @@
 </script>
 
 <svelte:head>
-	<title>Etude Composer - Teacher Tools - The Sharpest Note</title>
+	<title>Piece Composer - Teacher Tools - The Sharpest Note</title>
 </svelte:head>
 
 <SharePreview data={data.sharePreviewData} />
