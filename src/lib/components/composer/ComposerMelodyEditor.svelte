@@ -903,6 +903,7 @@
 			<li>Use <em>Tidy up rests</em> to merge adjacent rests into longer ones.</li>
 			<li>Use <em>Add/Remove bar</em> to change the number of bars.</li>
 			<li>On desktop, keyboard shortcuts are shown in the context menu when a note is selected.</li>
+			<li>The length of the piece is limited to 16 bars.</li>
 		</ul>
 	</details>
 
