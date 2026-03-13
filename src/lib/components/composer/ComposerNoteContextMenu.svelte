@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import {
 		lengthRestMap,
@@ -6,6 +7,7 @@
 		type MelodyItem,
 		type NoteLength
 	} from '$lib/config/melody';
+	import { isTouchDevice } from '$lib/util/isTouchDevice';
 
 	interface Props {
 		x: number;
@@ -39,6 +41,7 @@
 	let menuLeft = $state(0);
 	let menuTop = $state(0);
 	let arrowLeft = $state(0);
+	let showShortcutHints = $state(false);
 
 	const isRestItem = $derived(selectedItem.note === null);
 	const selectedFingerOption = $derived.by((): FingerOption => {
@@ -121,6 +124,10 @@
 			y
 		);
 	});
+
+	onMount(() => {
+		showShortcutHints = !isTouchDevice();
+	});
 </script>
 
 <svelte:window onresize={updateContextMenuPosition} />
@@ -140,9 +147,11 @@
 				class:is-active={selectedItem.length === length}
 				disabled={length > remainingInBar}
 				onclick={() => onChangeLength(length)}
-				title={`Shortcut: ${index + 1}`}
+				title={showShortcutHints ? `Shortcut: ${index + 1}` : undefined}
 			>
-				<span class="shortcut">{index + 1}</span>
+				{#if showShortcutHints}
+					<span class="shortcut">{index + 1}</span>
+				{/if}
 				<span class="note">{getLengthGlyph(length)}</span>
 			</button>
 		{/each}
@@ -157,9 +166,11 @@
 			onSelect={onSetItemKind}
 			ariaLabel="Toggle note or rest"
 		/>
-		<div class="note-context-shortcut-overlay" aria-hidden="true">
-			<span class="shortcut">Space</span>
-		</div>
+		{#if showShortcutHints}
+			<div class="note-context-shortcut-overlay" aria-hidden="true">
+				<span class="shortcut">Space</span>
+			</div>
+		{/if}
 	</div>
 	{#if !isRestItem}
 		<div class="note-context-menu-actions">
@@ -177,9 +188,11 @@
 				onSelect={handleFingerChange}
 				ariaLabel="Set finger number"
 			/>
-			<div class="note-context-shortcut-overlay-top" aria-hidden="true">
-				<span class="shortcut">F</span>
-			</div>
+			{#if showShortcutHints}
+				<div class="note-context-shortcut-overlay-top" aria-hidden="true">
+					<span class="shortcut">F</span>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
