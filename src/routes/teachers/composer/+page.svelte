@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { getKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
@@ -11,7 +12,6 @@
 
 	import {
 		buildScaleFromMelody,
-		createInitialRests,
 		getPitchPalette,
 		groupBarsToPhrases,
 		inferPracticeTempiFromFastTempo,
@@ -23,7 +23,19 @@
 	import ComposerShareCard from '$lib/components/composer/ComposerShareCard.svelte';
 
 	const CANONICAL_SHARE_ORIGIN = 'https://sharpestnote.com';
+	const COMPOSER_DRAFT_PARAM = 'draft';
 	const LENGTH_OPTIONS: NoteLength[] = [1, 2, 3, 4, 6, 8, 12, 16];
+
+	interface ComposerDraftState {
+		pieceLabel: string;
+		pieceKey: NoteName;
+		pieceMode: Mode;
+		instrumentId: InstrumentId;
+		selectedTimeSignature: string;
+		fastTempo: string;
+		melody: MelodyItem[][];
+		teacherShareNote: string;
+	}
 
 	interface Props {
 		data: {
@@ -33,10 +45,17 @@
 				image: string;
 				url: string;
 			};
+			initialDraftState: ComposerDraftState;
 		};
 	}
 
 	let { data }: Props = $props();
+
+	function getInitialDraftState(): ComposerDraftState {
+		return data.initialDraftState;
+	}
+
+	const initialDraftState = getInitialDraftState();
 
 	const modeOptions: Mode[] = ['major', 'natural_minor'];
 	const noteOptions: NoteName[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -46,21 +65,21 @@
 		{ label: '4/4', barLength: 16 }
 	];
 
-	let pieceLabel = $state('Opus No. 1');
-	let pieceKey = $state<NoteName>('D');
-	let pieceMode = $state<Mode>('major');
-	let instrumentId = $state<InstrumentId>('violin');
-	let selectedTimeSignature = $state('4/4');
+	let pieceLabel = $state(initialDraftState.pieceLabel);
+	let pieceKey = $state<NoteName>(initialDraftState.pieceKey);
+	let pieceMode = $state<Mode>(initialDraftState.pieceMode);
+	let instrumentId = $state<InstrumentId>(initialDraftState.instrumentId);
+	let selectedTimeSignature = $state(initialDraftState.selectedTimeSignature);
 	const initialBarLength: NoteLength =
 		timeSignatureOptions.find((option) => option.label === selectedTimeSignature)?.barLength ?? 16;
 	const notationStartPercent = 0;
 	const notationEndPercent = 1;
 
-	let fastTempo = $state('90');
+	let fastTempo = $state(initialDraftState.fastTempo);
 
-	let melody = $state<MelodyItem[][]>(createInitialRests(initialBarLength));
+	let melody = $state<MelodyItem[][]>(initialDraftState.melody);
 	let shareStatus = $state('');
-	let teacherShareNote = $state('');
+	let teacherShareNote = $state(initialDraftState.teacherShareNote);
 	let isShareModalOpen = $state(false);
 	let shortShareUrl = $state('');
 	let shortShareSourceUrl = $state('');
@@ -171,6 +190,22 @@
 		if (instrumentConfig.adsrConfig) {
 			melodyPreviewSynth.setOptions(instrumentConfig.adsrConfig);
 		}
+	});
+
+	$effect(() => {
+		if (!browser) return;
+
+		const customUnitMaterial = buildDraftCustomUnitMaterial();
+		const packedDraft = packCustomUnitMaterialForUrl(customUnitMaterial);
+		const currentUrl = new URL(window.location.href);
+
+		if (currentUrl.searchParams.get(COMPOSER_DRAFT_PARAM) === packedDraft) {
+			return;
+		}
+
+		currentUrl.searchParams.set(COMPOSER_DRAFT_PARAM, packedDraft);
+		const nextUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+		window.history.replaceState(window.history.state, '', nextUrl);
 	});
 
 	async function previewMelodyItem(item: MelodyItem) {
@@ -293,6 +328,29 @@
 
 	function handleMelodyEdited() {
 		shareStatus = '';
+	}
+
+	function buildDraftCustomUnitMaterial(): CustomUnitMaterial {
+		const draftPiece: Piece = {
+			code: pieceCode.trim(),
+			label: pieceLabel.trim(),
+			composer: '',
+			arranger: '',
+			practiceTempi: buildPracticeTempi(),
+			key: pieceKey,
+			mode: pieceMode,
+			barLength,
+			melody: groupBarsToPhrases(melody, 2),
+			scale: buildScaleFromMelody(sequence),
+			notationStartPercent,
+			notationEndPercent
+		};
+
+		return {
+			piece: draftPiece,
+			instrument: instrumentId,
+			teacherNote: teacherShareNote.trim() || undefined
+		};
 	}
 
 	function buildPiece(): { piece: Piece | null; errors: string[] } {
