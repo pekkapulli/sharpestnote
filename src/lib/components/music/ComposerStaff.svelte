@@ -3,7 +3,7 @@
 	import type { KeySignature } from '$lib/config/keys';
 	import FingerMarking from './FingerMarking.svelte';
 	import { type MelodyItem } from '$lib/config/melody';
-	import { getNoteYPosition, renderVexFlowStaff } from './vexflowHelper';
+	import { getNoteYPosition, renderVexFlowStaff, type VexFlowLayoutOptions } from './vexflowHelper';
 	import type { Stave } from 'vexflow';
 
 	interface Props {
@@ -15,6 +15,7 @@
 		showTimeSignature?: boolean;
 		barsPerRow?: number;
 		minBarWidth?: number;
+		compactMode?: boolean;
 		pitchPalette?: string[];
 		selectedNoteIndex?: number;
 		onMoveNote?: (index: number, note: string) => void;
@@ -79,6 +80,7 @@
 		showTimeSignature = true,
 		barsPerRow,
 		minBarWidth = 240,
+		compactMode = false,
 		pitchPalette = [],
 		selectedNoteIndex = -1,
 		onMoveNote,
@@ -109,6 +111,19 @@
 
 		const safeMinBarWidth = Math.max(120, Math.floor(minBarWidth));
 		return Math.max(1, Math.floor(effectiveWidth / safeMinBarWidth));
+	});
+
+	const vexLayoutOptions = $derived.by<VexFlowLayoutOptions>(() => {
+		if (!compactMode) {
+			return {};
+		}
+
+		return {
+			staveInsetX: 4,
+			firstBarHeaderReserve: 116,
+			subsequentBarReserve: 10,
+			minNoteWidth: 14
+		};
 	});
 
 	const rowSpecs = $derived.by(() => {
@@ -201,7 +216,8 @@
 				effectiveWidth,
 				barLength,
 				showTimeSignature && row.rowIndex === 0,
-				noteColors
+				noteColors,
+				vexLayoutOptions
 			);
 
 			const seenNaturalNotes = new Set<string>();
@@ -614,6 +630,7 @@
 		{#each rowSpecs as row (row.rowIndex)}
 			<div
 				class="row"
+				class:row-compact={compactMode}
 				style="height: {ROW_HEIGHT}px;"
 				onmousemove={(e) => onRowMouseMove(e, row)}
 				onmouseleave={onRowMouseLeave}
@@ -663,6 +680,10 @@
 		width: 100%;
 		margin-bottom: 16px;
 		touch-action: none;
+	}
+
+	.row.row-compact {
+		margin-bottom: 10px;
 	}
 
 	.row:last-child {

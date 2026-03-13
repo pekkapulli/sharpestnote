@@ -15,6 +15,14 @@ export interface VexFlowRenderResult {
 	stave: Stave;
 }
 
+export interface VexFlowLayoutOptions {
+	staveInsetX?: number;
+	staveY?: number;
+	firstBarHeaderReserve?: number;
+	subsequentBarReserve?: number;
+	minNoteWidth?: number;
+}
+
 /**
  * Convert our key signature format to VexFlow format
  */
@@ -189,7 +197,8 @@ export function renderVexFlowStaff(
 	width: number,
 	barLengthSixteenths?: number,
 	showTimeSignature: boolean = true,
-	noteColors?: string[]
+	noteColors?: string[],
+	layoutOptions: VexFlowLayoutOptions = {}
 ): VexFlowRenderResult {
 	// Clear container
 	container.innerHTML = '';
@@ -239,8 +248,12 @@ export function renderVexFlowStaff(
 		}
 	}
 
+	const staveInsetX = Math.max(0, Math.floor(layoutOptions.staveInsetX ?? 10));
+	const staveY = Math.max(0, Math.floor(layoutOptions.staveY ?? 20));
+	const staveWidth = Math.max(60, width - staveInsetX * 2);
+
 	// Create and configure stave
-	const stave = vf.Stave({ x: 10, y: 20, width: width - 20 });
+	const stave = vf.Stave({ x: staveInsetX, y: staveY, width: staveWidth });
 	stave.addClef(clef).addKeySignature(keySignatureToVexFlow(keySignature));
 	if (showTimeSignature) {
 		stave.addTimeSignature(timeSignature);
@@ -319,13 +332,18 @@ export function renderVexFlowStaff(
 
 	if (allNotes.length > 0) {
 		// Set proportional widths based on note duration within each bar
-		const minWidth = 20; // Minimum width for any note
+		const minWidth = Math.max(10, Math.floor(layoutOptions.minNoteWidth ?? 20));
 		let noteIndex = 0;
 		let totalComputedWidth = 0;
+		const firstBarHeaderReserve = Math.max(
+			0,
+			Math.floor(layoutOptions.firstBarHeaderReserve ?? 150)
+		);
+		const subsequentBarReserve = Math.max(0, Math.floor(layoutOptions.subsequentBarReserve ?? 20));
 
 		for (const bar of displayBars) {
 			const barSixteenths = bar.reduce((sum, item) => sum + item.length, 0);
-			const reserveForClefAndKey = noteIndex === 0 ? 150 : 20; // Only first bar needs space for clef/key
+			const reserveForClefAndKey = noteIndex === 0 ? firstBarHeaderReserve : subsequentBarReserve; // Only first bar needs full clef/key reserve
 			const barAvailableWidth = (width / totalSixteenths) * barSixteenths - reserveForClefAndKey;
 			const barPixelsPerSixteenth = barAvailableWidth / barSixteenths;
 

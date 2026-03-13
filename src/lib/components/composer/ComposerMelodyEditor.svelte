@@ -53,6 +53,7 @@
 	let editorError = $state('');
 	let selectedNoteIndex = $state(-1);
 	let noteContextMenu = $state<{ index: number; x: number; y: number } | null>(null);
+	let isSmallScreen = $state(false);
 	let contextMenuRestoreNote = $state<string | null>(null);
 	let contextMenuRestoreIndex = $state<number | null>(null);
 	type StaffContextMenuAnchorProvider = {
@@ -67,6 +68,22 @@
 	const selectedSequenceItem = $derived(
 		selectedNoteIndex >= 0 ? (sequence[selectedNoteIndex] ?? null) : null
 	);
+
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+
+		const mediaQuery = window.matchMedia('(max-width: 640px)');
+		const syncSmallScreen = () => {
+			isSmallScreen = mediaQuery.matches;
+		};
+
+		syncSmallScreen();
+		mediaQuery.addEventListener('change', syncSmallScreen);
+
+		return () => {
+			mediaQuery.removeEventListener('change', syncSmallScreen);
+		};
+	});
 
 	$effect(() => {
 		if (selectedNoteIndex >= sequence.length) {
@@ -737,12 +754,14 @@
 	onscroll={closeNoteContextMenu}
 />
 
-<div class="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+<div
+	class="relative rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-5"
+>
 	<button
 		type="button"
 		title={isMelodyPreviewMuted ? 'Unmute synth preview' : 'Mute synth preview'}
 		onclick={onToggleMelodyMute}
-		class={`absolute top-4 right-16 flex h-10 w-10 items-center justify-center rounded-full border transition hover:-translate-y-px hover:shadow ${
+		class={`absolute top-2 right-12 flex h-9 w-9 items-center justify-center rounded-full border transition hover:-translate-y-px hover:shadow sm:top-4 sm:right-16 sm:h-10 sm:w-10 ${
 			isMelodyPreviewMuted
 				? 'border-slate-300 bg-slate-200 text-slate-700 hover:bg-slate-300'
 				: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
@@ -783,7 +802,7 @@
 		type="button"
 		title={isPlayingMelodyPreview ? 'Stop melody preview' : 'Play melody preview'}
 		onclick={onToggleMelodyPlayback}
-		class={`absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-px hover:shadow ${
+		class={`absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-full transition hover:-translate-y-px hover:shadow sm:top-4 sm:right-4 sm:h-10 sm:w-10 ${
 			isMelodyPreviewMuted
 				? 'bg-slate-300 text-slate-600 hover:bg-slate-300'
 				: 'bg-dark-blue text-off-white hover:bg-dark-blue-highlight'
@@ -802,10 +821,10 @@
 		{/if}
 	</button>
 
-	<h2 class="text-xl font-semibold text-slate-900">Melody editor</h2>
+	<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Melody editor</h2>
 
-	<div class="mt-6 rounded-lg border border-slate-100 bg-slate-50 p-3">
-		<div class="mb-3 flex justify-center">
+	<div class="mt-3 p-1 sm:mt-6 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50 sm:p-3">
+		<div class="mb-2 flex justify-center sm:mb-3">
 			<Button
 				type="button"
 				size="medium"
@@ -823,7 +842,9 @@
 			{keySignature}
 			{clef}
 			{barLength}
-			minBarWidth={280}
+			minWidth={isSmallScreen ? 200 : 400}
+			minBarWidth={isSmallScreen ? 190 : 240}
+			compactMode={isSmallScreen}
 			pitchPalette={availablePitches}
 			{selectedNoteIndex}
 			isContextMenuOpen={noteContextMenu !== null}
@@ -833,7 +854,7 @@
 			onOpenNoteContextMenu={handleOpenNoteContextMenu}
 		/>
 
-		<div class="mt-4 flex justify-center gap-3">
+		<div class="mt-3 flex justify-center gap-2 sm:mt-4 sm:gap-3">
 			<Button
 				type="button"
 				size="medium"
