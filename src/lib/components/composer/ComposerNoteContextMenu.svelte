@@ -22,6 +22,7 @@
 		onMoveUpSemitone: () => void;
 		canMoveDownSemitone: boolean;
 		canMoveUpSemitone: boolean;
+		onRequestScrollIntoView?: (deltaY: number) => void;
 	}
 
 	type FingerOption = 'empty' | '0' | '1' | '2' | '3' | '4';
@@ -42,7 +43,8 @@
 		onMoveDownSemitone,
 		onMoveUpSemitone,
 		canMoveDownSemitone,
-		canMoveUpSemitone
+		canMoveUpSemitone,
+		onRequestScrollIntoView
 	}: Props = $props();
 
 	let menuElement = $state<HTMLDivElement | null>(null);
@@ -91,10 +93,8 @@
 		const desiredTop = y - height - MENU_ARROW_GAP;
 
 		const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN);
-		const maxTop = Math.max(VIEWPORT_MARGIN, window.innerHeight - height - VIEWPORT_MARGIN);
 
 		const clampedLeft = clamp(desiredLeft, VIEWPORT_MARGIN, maxLeft);
-		const clampedTop = clamp(desiredTop, VIEWPORT_MARGIN, maxTop);
 		const clampedArrowLeft = clamp(
 			x - clampedLeft,
 			ARROW_EDGE_PADDING,
@@ -102,8 +102,22 @@
 		);
 
 		menuLeft = clampedLeft;
-		menuTop = clampedTop;
+		menuTop = desiredTop;
 		arrowLeft = clampedArrowLeft;
+	}
+
+	export function scrollIntoViewIfNeeded() {
+		if (!menuElement || !onRequestScrollIntoView || typeof window === 'undefined') return;
+
+		const rect = menuElement.getBoundingClientRect();
+		const hiddenTop = VIEWPORT_MARGIN - rect.top;
+		const hiddenBottom = rect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
+
+		if (hiddenTop > 0) {
+			onRequestScrollIntoView(-Math.ceil(hiddenTop));
+		} else if (hiddenBottom > 0) {
+			onRequestScrollIntoView(Math.ceil(hiddenBottom));
+		}
 	}
 
 	function queueContextMenuPositionUpdate(

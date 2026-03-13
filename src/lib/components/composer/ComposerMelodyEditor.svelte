@@ -10,6 +10,10 @@
 	import ComposerNoteContextMenu from '$lib/components/composer/ComposerNoteContextMenu.svelte';
 	import type { InstrumentId } from '$lib/config/types';
 
+	type NoteContextMenuHandle = {
+		scrollIntoViewIfNeeded: () => void;
+	};
+
 	const LENGTH_SHORTCUT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
 	const REST_CHUNK_LENGTHS: NoteLength[] = [16, 12, 8, 6, 4, 3, 2, 1];
 	const MAX_MELODY_BARS = 16;
@@ -28,8 +32,10 @@
 		availablePitches: string[];
 		isPlayingMelodyPreview: boolean;
 		isMelodyPreviewMuted: boolean;
+		melodyPlayheadPosition?: number | null;
 		lengthOptions: NoteLength[];
-		onToggleMelodyPlayback: () => void;
+		onToggleMelodyPlayback: (startIndex?: number) => void;
+		onPlayMelodyFromStart: () => void;
 		onToggleMelodyMute: () => void;
 		onPreviewItem?: (item: MelodyItem) => void | Promise<void>;
 		onEdit?: () => void;
@@ -44,8 +50,10 @@
 		availablePitches,
 		isPlayingMelodyPreview,
 		isMelodyPreviewMuted,
+		melodyPlayheadPosition = null,
 		lengthOptions,
 		onToggleMelodyPlayback,
+		onPlayMelodyFromStart,
 		onToggleMelodyMute,
 		onPreviewItem,
 		onEdit
@@ -53,10 +61,16 @@
 
 	let editorError = $state('');
 	let selectedNoteIndex = $state(-1);
-	let noteContextMenu = $state<{ index: number; x: number; y: number } | null>(null);
+	let noteContextMenu = $state<{
+		index: number;
+		x: number;
+		y: number;
+	} | null>(null);
 	let isSmallScreen = $state(false);
 	let contextMenuRestoreNote = $state<string | null>(null);
 	let contextMenuRestoreIndex = $state<number | null>(null);
+	let noteContextMenuRef = $state<NoteContextMenuHandle | null>(null);
+	let pendingContextMenuVisibilityCheck = $state(false);
 	const hasReachedMaxBars = $derived(melody.length >= MAX_MELODY_BARS);
 	type StaffContextMenuAnchorProvider = {
 		getContextMenuAnchorForNote: (
@@ -320,6 +334,10 @@
 		selectedNoteIndex = payload.index;
 		noteContextMenu = payload;
 		seedContextMenuRestore(payload.index);
+	}
+
+	function handleStaffInteractionRelease() {
+		pendingContextMenuVisibilityCheck = true;
 	}
 
 	function updateSelectedNoteInBar(
@@ -646,6 +664,30 @@
 		closeNoteContextMenu();
 	}
 
+	function handleWindowScroll() {
+		if (!noteContextMenu) return;
+		syncContextMenuToSelection(noteContextMenu.index);
+	}
+
+	function handleContextMenuScrollIntoView(deltaY: number) {
+		if (typeof window === 'undefined' || deltaY === 0) return;
+		window.scrollBy({ top: deltaY, behavior: 'smooth' });
+	}
+
+	$effect(() => {
+		if (!pendingContextMenuVisibilityCheck) return;
+		if (!noteContextMenu) {
+			pendingContextMenuVisibilityCheck = false;
+			return;
+		}
+		if (!noteContextMenuRef) return;
+
+		requestAnimationFrame(() => {
+			noteContextMenuRef?.scrollIntoViewIfNeeded();
+			pendingContextMenuVisibilityCheck = false;
+		});
+	});
+
 	function chunkRestLength(totalLength: number): MelodyItem[] {
 		const chunks: MelodyItem[] = [];
 		let remaining = Math.max(0, Math.floor(totalLength));
@@ -762,7 +804,7 @@
 	onkeydown={handleEditorKeyDown}
 	onkeyup={handleEditorKeyUp}
 	onpointerdown={handleWindowPointerDown}
-	onscroll={closeNoteContextMenu}
+	onscroll={handleWindowScroll}
 />
 
 <div
@@ -772,7 +814,7 @@
 		type="button"
 		title={isMelodyPreviewMuted ? 'Unmute synth preview' : 'Mute synth preview'}
 		onclick={onToggleMelodyMute}
-		class={`absolute top-2 right-12 flex h-9 w-9 items-center justify-center rounded-full border transition hover:-translate-y-px hover:shadow sm:top-4 sm:right-16 sm:h-10 sm:w-10 ${
+		class={`absolute top-2 right-22 flex h-9 w-9 items-center justify-center rounded-full border transition hover:-translate-y-px hover:shadow sm:top-4 sm:right-28 sm:h-10 sm:w-10 ${
 			isMelodyPreviewMuted
 				? 'border-slate-300 bg-slate-200 text-slate-700 hover:bg-slate-300'
 				: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
@@ -811,8 +853,22 @@
 
 	<button
 		type="button"
+		title="Play melody preview from start"
+		onclick={onPlayMelodyFromStart}
+		class="absolute top-2 right-12 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-500 transition hover:-translate-y-px hover:bg-slate-200 hover:text-dark-blue hover:shadow sm:top-4 sm:right-16 sm:h-10 sm:w-10"
+		aria-label="Play melody preview from start"
+		aria-disabled={isMelodyPreviewMuted}
+	>
+		<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+			<rect x="6" y="5" width="2" height="14" />
+			<path d="M10 5v14l10-7z" />
+		</svg>
+	</button>
+
+	<button
+		type="button"
 		title={isPlayingMelodyPreview ? 'Stop melody preview' : 'Play melody preview'}
-		onclick={onToggleMelodyPlayback}
+		onclick={() => onToggleMelodyPlayback(selectedNoteIndex)}
 		class={`absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-full transition hover:-translate-y-px hover:shadow sm:top-4 sm:right-4 sm:h-10 sm:w-10 ${
 			isMelodyPreviewMuted
 				? 'bg-slate-300 text-slate-600 hover:bg-slate-300'
@@ -832,7 +888,23 @@
 		{/if}
 	</button>
 
-	<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Melody editor</h2>
+	<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Edit</h2>
+
+	<details class="mt-2 text-sm text-slate-600">
+		<summary class="cursor-pointer font-medium text-slate-500 hover:text-slate-700"
+			>How to use the editor</summary
+		>
+		<ul class="mt-2 list-disc space-y-1 pl-4">
+			<li>Click or drag on the staff to add or move notes.</li>
+			<li>
+				Click a note or rest to select it, then use the context menu to change its length, toggle
+				between note and rest, or set a finger marking.
+			</li>
+			<li>Use <em>Tidy up rests</em> to merge adjacent rests into longer ones.</li>
+			<li>Use <em>Add/Remove bar</em> to change the number of bars.</li>
+			<li>On desktop, keyboard shortcuts are shown in the context menu when a note is selected.</li>
+		</ul>
+	</details>
 
 	<div class="mt-3 p-1 sm:mt-6 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50 sm:p-3">
 		<div class="mb-2 flex justify-around gap-2 sm:mb-3">
@@ -871,6 +943,7 @@
 		<ComposerStaff
 			bind:this={staffRef}
 			bars={melody}
+			playheadPosition={melodyPlayheadPosition}
 			{keySignature}
 			{clef}
 			{barLength}
@@ -883,6 +956,7 @@
 			onMoveNote={handleMoveNoteFromStaff}
 			onAddNote={handleAddNoteFromStaff}
 			onSelectNote={handleSelectNoteFromStaff}
+			onInteractionRelease={handleStaffInteractionRelease}
 			onOpenNoteContextMenu={handleOpenNoteContextMenu}
 		/>
 
@@ -892,6 +966,7 @@
 
 		{#if noteContextMenu && selectedSequenceItem}
 			<ComposerNoteContextMenu
+				bind:this={noteContextMenuRef}
 				x={noteContextMenu.x}
 				y={noteContextMenu.y}
 				selectedItem={selectedSequenceItem}
@@ -904,6 +979,7 @@
 				onMoveUpSemitone={() => moveSelectedNoteBySemitone(1)}
 				canMoveDownSemitone={canMoveSelectedNoteBySemitone(-1)}
 				canMoveUpSemitone={canMoveSelectedNoteBySemitone(1)}
+				onRequestScrollIntoView={handleContextMenuScrollIntoView}
 			/>
 		{/if}
 	</div>

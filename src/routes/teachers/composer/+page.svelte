@@ -5,6 +5,7 @@
 	import type { Mode, NoteName } from '$lib/config/keys';
 	import type { CustomUnitMaterial, InstrumentId, Piece } from '$lib/config/types';
 	import type { MelodyItem, NoteLength } from '$lib/config/melody';
+	import { lengthToMs } from '$lib/config/melody';
 	import { packCustomUnitMaterialForUrl } from '$lib/util/pieceUrl';
 	import { createSynth } from '$lib/synth/useSynth.svelte';
 
@@ -68,6 +69,8 @@
 	let isPlayingMelodyPreview = $state(false);
 	let isMelodyPreviewMuted = $state(false);
 	let shouldStopMelodyPreview = $state(false);
+	let melodyPreviewPlayheadPosition = $state<number | null>(null);
+	let melodyPreviewSessionId = $state(0);
 
 	const instrumentConfig = $derived(
 		instrumentConfigs.find((instrument) => instrument.id === instrumentId) ?? instrumentConfigs[0]
@@ -186,40 +189,102 @@
 		if (isMelodyPreviewMuted) {
 			melodyPreviewSynth.stopAll();
 			shouldStopMelodyPreview = true;
+			melodyPreviewSessionId += 1;
 			isPlayingMelodyPreview = false;
+			melodyPreviewPlayheadPosition = null;
 		}
 	}
 
-	async function handleToggleMelodyPreview() {
-		if (isMelodyPreviewMuted) return;
+	async function playMelodyPreview(startIndex = 0) {
+		if (isMelodyPreviewMuted || sequence.length === 0) return;
 
-		if (isPlayingMelodyPreview) {
-			shouldStopMelodyPreview = true;
-			melodyPreviewSynth.stopAll();
-			isPlayingMelodyPreview = false;
-			return;
-		}
+		const safeStartIndex =
+			startIndex >= 0 && startIndex < sequence.length ? Math.floor(startIndex) : 0;
+		const playbackSequence = sequence.slice(safeStartIndex);
+		const startSixteenth = sequence
+			.slice(0, safeStartIndex)
+			.reduce((sum, item) => sum + item.length, 0);
 
-		if (sequence.length === 0) return;
+		if (playbackSequence.length === 0) return;
 
 		const parsedFastTempo = Number(fastTempo);
 		const tempoBpm = Number.isFinite(parsedFastTempo) && parsedFastTempo > 0 ? parsedFastTempo : 80;
+		const sessionId = melodyPreviewSessionId + 1;
 
+		melodyPreviewSessionId = sessionId;
 		shouldStopMelodyPreview = false;
 		isPlayingMelodyPreview = true;
+		melodyPreviewPlayheadPosition = startSixteenth;
 
 		try {
-			for (const item of sequence) {
-				if (shouldStopMelodyPreview) break;
+			let currentSixteenth = startSixteenth;
+			for (const item of playbackSequence) {
+				if (shouldStopMelodyPreview || melodyPreviewSessionId !== sessionId) break;
+
+				const noteLength = item.length;
+				const noteDurationMs = lengthToMs(noteLength, tempoBpm);
+				const startTime = performance.now();
+
+				const animatePlayhead = () => {
+					if (melodyPreviewSessionId !== sessionId) return;
+
+					const elapsed = performance.now() - startTime;
+					const progress = noteDurationMs > 0 ? Math.min(elapsed / noteDurationMs, 1) : 1;
+					melodyPreviewPlayheadPosition = currentSixteenth + progress * noteLength;
+
+					if (progress < 1 && !shouldStopMelodyPreview && melodyPreviewSessionId === sessionId) {
+						requestAnimationFrame(animatePlayhead);
+					}
+				};
+				animatePlayhead();
+
 				await melodyPreviewSynth.playNote(item, tempoBpm);
-				if (shouldStopMelodyPreview) break;
+				if (shouldStopMelodyPreview || melodyPreviewSessionId !== sessionId) break;
+
+				currentSixteenth += noteLength;
+				melodyPreviewPlayheadPosition = currentSixteenth;
 			}
 		} catch {
 			shareStatus = 'Unable to play melody preview.';
 		} finally {
-			isPlayingMelodyPreview = false;
-			shouldStopMelodyPreview = false;
+			if (melodyPreviewSessionId === sessionId) {
+				isPlayingMelodyPreview = false;
+				shouldStopMelodyPreview = false;
+
+				setTimeout(() => {
+					if (!isPlayingMelodyPreview && melodyPreviewSessionId === sessionId) {
+						melodyPreviewPlayheadPosition = null;
+					}
+				}, 500);
+			}
 		}
+	}
+
+	async function handleToggleMelodyPreview(startIndex = -1) {
+		if (isMelodyPreviewMuted) return;
+
+		if (isPlayingMelodyPreview) {
+			shouldStopMelodyPreview = true;
+			melodyPreviewSessionId += 1;
+			melodyPreviewSynth.stopAll();
+			isPlayingMelodyPreview = false;
+			melodyPreviewPlayheadPosition = null;
+			return;
+		}
+
+		await playMelodyPreview(startIndex);
+	}
+
+	async function handlePlayMelodyFromStart() {
+		if (isMelodyPreviewMuted || sequence.length === 0) return;
+
+		if (isPlayingMelodyPreview) {
+			shouldStopMelodyPreview = true;
+			melodyPreviewSessionId += 1;
+			melodyPreviewSynth.stopAll();
+		}
+
+		await playMelodyPreview(0);
 	}
 
 	function buildPracticeTempi(): Piece['practiceTempi'] | undefined {
@@ -378,8 +443,10 @@
 				{availablePitches}
 				{isPlayingMelodyPreview}
 				{isMelodyPreviewMuted}
+				melodyPlayheadPosition={melodyPreviewPlayheadPosition}
 				lengthOptions={LENGTH_OPTIONS}
 				onToggleMelodyPlayback={handleToggleMelodyPreview}
+				onPlayMelodyFromStart={handlePlayMelodyFromStart}
 				onToggleMelodyMute={handleToggleMelodyMute}
 				onPreviewItem={previewMelodyItem}
 				onEdit={handleMelodyEdited}

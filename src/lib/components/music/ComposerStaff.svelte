@@ -5,6 +5,7 @@
 	import { type MelodyItem } from '$lib/config/melody';
 	import { getNoteYPosition, renderVexFlowStaff, type VexFlowLayoutOptions } from './vexflowHelper';
 	import type { Stave } from 'vexflow';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	interface Props {
 		bars?: MelodyItem[][];
@@ -17,17 +18,19 @@
 		minBarWidth?: number;
 		compactMode?: boolean;
 		pitchPalette?: string[];
+		playheadPosition?: number | null;
 		selectedNoteIndex?: number;
 		onMoveNote?: (index: number, note: string) => void;
 		onAddNote?: (note: string) => void;
 		onSelectNote?: (index: number) => void;
+		onInteractionRelease?: () => void;
 		onOpenNoteContextMenu?: (payload: { index: number; x: number; y: number }) => void;
 		isContextMenuOpen?: boolean;
 	}
 
 	const ROW_HEIGHT = 150;
 	const ROW_GAP = 16;
-	const SELECT_NOTE_THRESHOLD = 20;
+	const SELECT_NOTE_THRESHOLD = 40;
 	const SMALL_SCREEN_BREAKPOINT = 640;
 	const DRAG_START_THRESHOLD = 8;
 	const LONG_PRESS_MS = 420;
@@ -82,10 +85,12 @@
 		minBarWidth = 240,
 		compactMode = false,
 		pitchPalette = [],
+		playheadPosition = null,
 		selectedNoteIndex = -1,
 		onMoveNote,
 		onAddNote,
 		onSelectNote,
+		onInteractionRelease,
 		onOpenNoteContextMenu,
 		isContextMenuOpen = false
 	}: Props = $props();
@@ -156,6 +161,58 @@
 		Math.max(1, rowSpecs.length) * ROW_HEIGHT + Math.max(0, rowSpecs.length - 1) * ROW_GAP
 	);
 
+	const rowPlayheads = $derived.by(() => {
+		const playheads: Record<number, { x: number; visible: boolean }> = {};
+
+		if (playheadPosition === null) {
+			return playheads;
+		}
+
+		let cumulativeSixteenths = 0;
+
+		for (const row of rowSpecs) {
+			const rowLength = row.notes.reduce((sum, item) => sum + item.length, 0);
+			const rowStart = cumulativeSixteenths;
+			const rowEnd = rowStart + rowLength;
+			const noteXs = rowRenderData[row.rowIndex]?.noteXPositions ?? [];
+
+			if (
+				!noteXs.length ||
+				!row.notes.length ||
+				playheadPosition < rowStart ||
+				playheadPosition > rowEnd
+			) {
+				playheads[row.rowIndex] = { x: 0, visible: false };
+				cumulativeSixteenths = rowEnd;
+				continue;
+			}
+
+			const rowLocalPlayhead = playheadPosition - rowStart;
+			let localCumulative = 0;
+			let playheadX = noteXs[noteXs.length - 1] ?? 0;
+
+			for (let i = 0; i < row.notes.length; i++) {
+				const noteLength = row.notes[i].length ?? 4;
+				const nextCumulative = localCumulative + noteLength;
+
+				if (rowLocalPlayhead >= localCumulative && rowLocalPlayhead <= nextCumulative) {
+					const noteProgress = (rowLocalPlayhead - localCumulative) / noteLength;
+					const currentNoteX = noteXs[i] ?? 0;
+					const nextNoteX = noteXs[i + 1] ?? currentNoteX + noteLength * 15;
+					playheadX = currentNoteX + (nextNoteX - currentNoteX) * noteProgress;
+					break;
+				}
+
+				localCumulative = nextCumulative;
+			}
+
+			playheads[row.rowIndex] = { x: playheadX, visible: true };
+			cumulativeSixteenths = rowEnd;
+		}
+
+		return playheads;
+	});
+
 	$effect(() => {
 		if (!hostElement) return;
 
@@ -220,7 +277,7 @@
 				vexLayoutOptions
 			);
 
-			const seenNaturalNotes = new Set<string>();
+			const seenNaturalNotes = new SvelteSet<string>();
 
 			const snapPoints = pitchPalette
 				.filter((note) => note !== 'rest')
@@ -502,6 +559,7 @@
 		}
 
 		dragState = null;
+		onInteractionRelease?.();
 	}
 
 	function emitContextMenuForNote(row: RowSpec, noteIndex: number, fallbackX: number) {
@@ -644,6 +702,12 @@
 				role="button"
 				tabindex="0"
 			>
+				<div
+					class="playhead"
+					class:visible={rowPlayheads[row.rowIndex]?.visible ?? false}
+					style="left: {rowPlayheads[row.rowIndex]?.x ?? 0}px;"
+				></div>
+
 				<div bind:this={rowContainers[row.rowIndex]} class="vexflow-container"></div>
 
 				<svg class="feedback-overlay" width={effectiveWidth} height={ROW_HEIGHT}>
@@ -680,6 +744,9 @@
 		width: 100%;
 		margin-bottom: 16px;
 		touch-action: none;
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
 	}
 
 	.row.row-compact {
@@ -705,6 +772,13 @@
 
 	.vexflow-container :global(svg) {
 		overflow: visible;
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	.vexflow-container :global(*) {
+		user-select: none;
+		-webkit-user-select: none;
 	}
 
 	.feedback-overlay {
@@ -712,6 +786,22 @@
 		inset: 0;
 		pointer-events: none;
 		overflow: visible;
+	}
+
+	.playhead {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 2px;
+		background: var(--color-brand-green);
+		opacity: 0;
+		z-index: 5;
+		pointer-events: none;
+		transition: opacity 0.5s ease;
+	}
+
+	.playhead.visible {
+		opacity: 0.3;
 	}
 
 	.hover-move {

@@ -49,7 +49,8 @@
 	let imageActionStatus = $state('');
 	let pdfActionStatus = $state('');
 	let isPreparingImage = $state(false);
-	let printableSheet = $state<{ printSheet: () => Promise<void> } | null>(null);
+	let isPreparingPdf = $state(false);
+	let printableSheet = $state<{ exportPdf: () => Promise<void> } | null>(null);
 
 	const trimmedPieceLabel = $derived(pieceLabel.trim() || 'Untitled piece');
 	const trimmedTeacherShareNote = $derived(teacherShareNote.trim());
@@ -64,6 +65,7 @@
 			qrCodeDataUrl = '';
 			qrCodeError = '';
 			pdfActionStatus = '';
+			isPreparingPdf = false;
 			return;
 		}
 
@@ -367,16 +369,26 @@
 		}
 	}
 
-	async function handlePrintPdf() {
-		if (!canCreateShareImage || isPreparingImage || isPreparingShareUrl || !printableSheet) return;
+	async function handleDownloadPdf() {
+		if (
+			!canCreateShareImage ||
+			isPreparingImage ||
+			isPreparingPdf ||
+			isPreparingShareUrl ||
+			!printableSheet
+		)
+			return;
 
+		isPreparingPdf = true;
 		pdfActionStatus = '';
 
 		try {
-			await printableSheet.printSheet();
-			pdfActionStatus = 'Print dialog opened.';
+			await printableSheet.exportPdf();
+			pdfActionStatus = 'PDF downloaded.';
 		} catch (error) {
-			pdfActionStatus = error instanceof Error ? error.message : 'Unable to open print view.';
+			pdfActionStatus = error instanceof Error ? error.message : 'Unable to generate PDF.';
+		} finally {
+			isPreparingPdf = false;
 		}
 	}
 </script>
@@ -556,17 +568,20 @@
 				</div>
 
 				<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Print</p>
+					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">PDF</p>
 					<div class="flex flex-wrap gap-2">
 						<Button
 							type="button"
 							size="medium"
 							color="secondary"
-							onclick={handlePrintPdf}
-							disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
+							onclick={handleDownloadPdf}
+							disabled={!canCreateShareImage ||
+								isPreparingImage ||
+								isPreparingPdf ||
+								isPreparingShareUrl}
 						>
 							<img src={printIcon} alt="Print icon" class="h-8 w-8 flex-none" />
-							Print Sheet music and QR code
+							{isPreparingPdf ? 'Preparing PDF...' : 'Download Sheet music PDF'}
 						</Button>
 					</div>
 					{#if pdfActionStatus}

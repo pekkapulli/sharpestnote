@@ -11,7 +11,9 @@
 	const COMPACT_BARS_PER_ROW = 2;
 	const MAX_BARS_FOR_COMPACT_LAYOUT = 8;
 	const ROWS_PER_PAGE = 4;
-	const PRINT_MODE_CLASS = 'composer-print-active';
+	const STAFF_ROW_HEIGHT = 150;
+	const A4_WIDTH_MM = 210;
+	const A4_HEIGHT_MM = 297;
 
 	interface Props {
 		pieceLabel: string;
@@ -146,44 +148,293 @@
 		});
 	}
 
-	export async function printSheet(): Promise<void> {
-		if (!sheetElement || !hostElement) {
+	async function waitForNotationReady(timeoutMs = 2000): Promise<void> {
+		const start = performance.now();
+
+		while (performance.now() - start < timeoutMs) {
+			const isReady =
+				notationWidth > 0 &&
+				rowSpecs.every((row) => {
+					const rowData = rowRenderData[row.rowIndex];
+					return !!rowData && rowData.noteXPositions.length >= row.notes.length;
+				});
+
+			if (isReady) {
+				return;
+			}
+
+			await tick();
+			await new Promise<void>((resolve) => setTimeout(resolve, 30));
+		}
+	}
+
+	function sanitizeFileName(label: string): string {
+		const fallback = 'sharpest-note-sheet';
+		const normalized = label
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '');
+
+		return normalized || fallback;
+	}
+
+	function parseRgbColor(color: string): [number, number, number] {
+		const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+		if (!match) {
+			return [15, 23, 42];
+		}
+
+		return [Number(match[1]), Number(match[2]), Number(match[3])];
+	}
+
+	function getLineHeightPx(styles: CSSStyleDeclaration, fontSizePx: number): number {
+		const lineHeightValue = styles.lineHeight;
+		if (lineHeightValue.endsWith('px')) {
+			return Number.parseFloat(lineHeightValue);
+		}
+
+		return fontSizePx * 1.2;
+	}
+
+	function pxToPt(px: number): number {
+		return px * 0.75;
+	}
+
+	function imageToDataUrl(image: HTMLImageElement): string {
+		const canvas = document.createElement('canvas');
+		const width = image.naturalWidth || Math.ceil(image.width) || 1;
+		const height = image.naturalHeight || Math.ceil(image.height) || 1;
+		canvas.width = width;
+		canvas.height = height;
+
+		const context = canvas.getContext('2d');
+		if (!context) {
+			throw new Error('Canvas is not available in this browser.');
+		}
+
+		context.drawImage(image, 0, 0, width, height);
+		return canvas.toDataURL('image/png');
+	}
+
+	function arrayBufferToBase64(buffer: ArrayBuffer): string {
+		const bytes = new Uint8Array(buffer);
+		let binary = '';
+		const chunkSize = 0x8000;
+
+		for (let index = 0; index < bytes.length; index += chunkSize) {
+			const chunk = bytes.subarray(index, index + chunkSize);
+			binary += String.fromCharCode(...chunk);
+		}
+
+		return btoa(binary);
+	}
+
+	async function registerSpectralFont(pdf: import('jspdf').jsPDF): Promise<void> {
+		const fontList = pdf.getFontList();
+		if (fontList.Spectral) {
+			return;
+		}
+
+		try {
+			const [regularResponse, boldResponse] = await Promise.all([
+				fetch('/fonts/Spectral-Regular.ttf'),
+				fetch('/fonts/Spectral-Bold.ttf')
+			]);
+
+			if (!regularResponse.ok || !boldResponse.ok) {
+				return;
+			}
+
+			const [regularBuffer, boldBuffer] = await Promise.all([
+				regularResponse.arrayBuffer(),
+				boldResponse.arrayBuffer()
+			]);
+
+			pdf.addFileToVFS('Spectral-Regular.ttf', arrayBufferToBase64(regularBuffer));
+			pdf.addFileToVFS('Spectral-Bold.ttf', arrayBufferToBase64(boldBuffer));
+			pdf.addFont('Spectral-Regular.ttf', 'Spectral', 'normal');
+			pdf.addFont('Spectral-Bold.ttf', 'Spectral', 'bold');
+		} catch {
+			// Fall back to built-in PDF fonts if custom font loading fails.
+		}
+	}
+
+	export async function exportPdf(): Promise<void> {
+		if (!sheetElement) {
 			throw new Error('Printable sheet is not ready yet.');
 		}
 
 		await tick();
-
-		// Move host to a direct body child so our display:none sibling rule
-		// collapses the rest of the page and avoids extra printed pages.
-		const originalParent = hostElement.parentElement;
-		document.body.appendChild(hostElement);
-
-		document.documentElement.classList.add(PRINT_MODE_CLASS);
-		document.body.classList.add(PRINT_MODE_CLASS);
-		const originalTitle = document.title;
-		document.title = trimmedPieceLabel;
-
+		await waitForNotationReady();
 		await waitForAssets();
 
-		const cleanup = () => {
-			document.documentElement.classList.remove(PRINT_MODE_CLASS);
-			document.body.classList.remove(PRINT_MODE_CLASS);
-			document.title = originalTitle;
-			if (originalParent && hostElement) {
-				originalParent.appendChild(hostElement);
-			}
-		};
-
-		const afterprintHandler = () => cleanup();
-		window.addEventListener('afterprint', afterprintHandler, { once: true });
-
-		try {
-			window.print();
-		} catch (error) {
-			window.removeEventListener('afterprint', afterprintHandler);
-			cleanup();
-			throw error;
+		const pageElements = Array.from(sheetElement.querySelectorAll<HTMLDivElement>('.print-page'));
+		if (pageElements.length === 0) {
+			throw new Error('No printable pages were found.');
 		}
+
+		const [{ jsPDF }, { svg2pdf }, { cloneVexFlowSvgWithPathGlyphs }] = await Promise.all([
+			import('jspdf'),
+			import('svg2pdf.js'),
+			import('$lib/util/vexflowSvgToPath')
+		]);
+
+		const pageWidthMm = A4_WIDTH_MM;
+		const pageHeightMm = A4_HEIGHT_MM;
+		const pdf = new jsPDF({
+			orientation: 'portrait',
+			unit: 'mm',
+			format: [pageWidthMm, pageHeightMm],
+			putOnlyUsedFonts: true,
+			compress: true
+		});
+
+		await registerSpectralFont(pdf);
+
+		for (let pageIndex = 0; pageIndex < pageElements.length; pageIndex++) {
+			if (pageIndex > 0) {
+				pdf.addPage([pageWidthMm, pageHeightMm], 'portrait');
+			}
+
+			const pageElement = pageElements[pageIndex];
+			const pageRect = pageElement.getBoundingClientRect();
+			const pxToMmX = pageWidthMm / pageRect.width;
+			const pxToMmY = pageHeightMm / pageRect.height;
+
+			pdf.setFillColor(255, 255, 255);
+			pdf.rect(0, 0, pageWidthMm, pageHeightMm, 'F');
+
+			const imageElements = pageElement.querySelectorAll<HTMLImageElement>('img');
+			for (const image of imageElements) {
+				const imageRect = image.getBoundingClientRect();
+				if (!imageRect.width || !imageRect.height) continue;
+
+				const x = (imageRect.left - pageRect.left) * pxToMmX;
+				const y = (imageRect.top - pageRect.top) * pxToMmY;
+				const width = imageRect.width * pxToMmX;
+				const height = imageRect.height * pxToMmY;
+
+				try {
+					const dataUrl = imageToDataUrl(image);
+					pdf.addImage(dataUrl, 'PNG', x, y, width, height, undefined, 'FAST');
+				} catch {
+					// Skip images that cannot be rasterized.
+				}
+			}
+
+			const textSelectors = [
+				'.sheet-header h1',
+				'.eyebrow',
+				'.teacher-note',
+				'.footer-url',
+				'.footer-cta'
+			];
+			const textElements = pageElement.querySelectorAll<HTMLElement>(textSelectors.join(','));
+			for (const textElement of textElements) {
+				const text = textElement.textContent?.trim();
+				if (!text) continue;
+
+				const textRect = textElement.getBoundingClientRect();
+				if (!textRect.width || !textRect.height) continue;
+
+				const styles = getComputedStyle(textElement);
+				const x = (textRect.left - pageRect.left) * pxToMmX;
+				const y = (textRect.top - pageRect.top) * pxToMmY;
+				const maxWidth = textRect.width * pxToMmX;
+				const fontSizePx = Number.parseFloat(styles.fontSize) || 16;
+				const fontSizePt = pxToPt(fontSizePx);
+				const lineHeightMm = getLineHeightPx(styles, fontSizePx) * pxToMmY;
+				const alignment =
+					styles.textAlign === 'center'
+						? 'center'
+						: styles.textAlign === 'right' || styles.textAlign === 'end'
+							? 'right'
+							: 'left';
+				const anchorX =
+					alignment === 'center' ? x + maxWidth / 2 : alignment === 'right' ? x + maxWidth : x;
+
+				const [r, g, b] = parseRgbColor(styles.color);
+				const fontWeight = Number.parseInt(styles.fontWeight, 10) >= 600 ? 'bold' : 'normal';
+				const prefersSpectral = styles.fontFamily.toLowerCase().includes('spectral');
+				const isFooterUrl = textElement.classList.contains('footer-url');
+				pdf.setTextColor(r, g, b);
+				pdf.setFont(prefersSpectral ? 'Spectral' : 'helvetica', fontWeight);
+
+				if (isFooterUrl) {
+					pdf.setFontSize(fontSizePt);
+					pdf.text(text, anchorX, y + lineHeightMm, { align: alignment });
+					continue;
+				}
+
+				pdf.setFontSize(fontSizePt);
+
+				const lines = pdf.splitTextToSize(text, maxWidth);
+				for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+					pdf.text(lines[lineIndex], anchorX, y + lineHeightMm * (lineIndex + 1), {
+						align: alignment
+					});
+				}
+			}
+
+			const staffVexFlowElements =
+				pageElement.querySelectorAll<SVGSVGElement>('.staff-vexflow svg');
+			for (const svgElement of staffVexFlowElements) {
+				const svgRect = svgElement.getBoundingClientRect();
+				if (!svgRect.width || !svgRect.height) continue;
+
+				const x = (svgRect.left - pageRect.left) * pxToMmX;
+				const y = (svgRect.top - pageRect.top) * pxToMmY;
+				const width = svgRect.width * pxToMmX;
+				const height = svgRect.height * pxToMmY;
+				const exportSvgElement = await cloneVexFlowSvgWithPathGlyphs(svgElement);
+
+				await svg2pdf(exportSvgElement, pdf, {
+					x,
+					y,
+					width,
+					height
+				});
+			}
+
+			const pageSpec = pageSpecs[pageIndex];
+			const staffRows = Array.from(pageElement.querySelectorAll<HTMLDivElement>('.staff-row'));
+			if (pageSpec && staffRows.length > 0) {
+				for (let rowIndex = 0; rowIndex < pageSpec.rows.length; rowIndex++) {
+					const rowSpec = pageSpec.rows[rowIndex];
+					const rowElement = staffRows[rowIndex];
+					if (!rowElement) continue;
+
+					const rowData = rowRenderData[rowSpec.rowIndex];
+					if (!rowData || rowData.noteXPositions.length === 0) continue;
+
+					const rowRect = rowElement.getBoundingClientRect();
+					const rowOriginX = (rowRect.left - pageRect.left) * pxToMmX;
+					const rowOriginY = (rowRect.top - pageRect.top) * pxToMmY;
+					const fingerY = rowOriginY + (STAFF_ROW_HEIGHT - 10) * pxToMmY;
+
+					for (let noteIndex = 0; noteIndex < rowSpec.notes.length; noteIndex++) {
+						const item = rowSpec.notes[noteIndex];
+						if (item.note === null || item.finger === undefined) continue;
+
+						const noteX = rowData.noteXPositions[noteIndex];
+						if (noteX === undefined) continue;
+
+						const fingerX = rowOriginX + noteX * pxToMmX;
+						const fontSizePt = pxToPt(rowData.lineSpacing * 1.5);
+
+						pdf.setFont('helvetica', 'normal');
+						pdf.setTextColor(51, 51, 51);
+						pdf.setFontSize(fontSizePt);
+						pdf.text(String(item.finger), fingerX, fingerY, {
+							align: 'center',
+							baseline: 'middle'
+						});
+					}
+				}
+			}
+		}
+
+		pdf.save(`${sanitizeFileName(trimmedPieceLabel)}.pdf`);
 	}
 </script>
 
@@ -205,14 +456,19 @@
 					{#each page.rows as row (row.rowIndex)}
 						<div class="staff-row">
 							<div bind:this={rowContainers[row.rowIndex]} class="staff-vexflow"></div>
-							<svg class="staff-overlay" width="100%" height="100%" aria-hidden="true">
+							<svg
+								class="staff-overlay"
+								width={notationWidth}
+								height={STAFF_ROW_HEIGHT}
+								aria-hidden="true"
+							>
 								{#if rowRenderData[row.rowIndex]}
-									{#each row.notes as item, noteIndex (noteIndex)}
+									{#each row.notes as item, noteIndex (`${row.rowIndex}-${noteIndex}`)}
 										{#if item.note !== null}
 											<FingerMarking
 												{item}
 												x={rowRenderData[row.rowIndex].noteXPositions[noteIndex] ?? 0}
-												y={140}
+												y={STAFF_ROW_HEIGHT - 10}
 												lineSpacing={rowRenderData[row.rowIndex].lineSpacing}
 											/>
 										{/if}
@@ -272,7 +528,7 @@
 		top: auto !important;
 		width: 100vw !important;
 		height: 100vh !important;
-		padding: 12mm 0 !important;
+		padding: 6mm 0 !important;
 		margin: 0 !important;
 		visibility: visible !important;
 		pointer-events: none !important;
@@ -289,7 +545,7 @@
 	}
 
 	.print-sheet {
-		width: 186mm;
+		width: 210mm;
 		padding: 0;
 		box-sizing: border-box;
 		background: #ffffff;
@@ -300,8 +556,8 @@
 
 	.print-page {
 		width: 100%;
-		min-height: 273mm;
-		padding: 0 0 4mm;
+		min-height: 297mm;
+		padding: 15mm;
 		box-sizing: border-box;
 		background: #ffffff;
 		display: flex;
@@ -319,14 +575,14 @@
 	.sheet-header {
 		display: grid;
 		gap: 5mm;
-		padding-top: 7mm;
+		padding-top: 2mm;
 		text-align: center;
 		justify-items: center;
 	}
 
 	.sheet-header h1 {
 		margin: 0;
-		font-size: 36pt;
+		font-size: 40pt;
 		font-weight: 700;
 		line-height: 1.1;
 		letter-spacing: 0.01em;
@@ -343,7 +599,7 @@
 	.eyebrow {
 		margin: 0 0 2mm;
 		font-family: var(--font-serif, 'Spectral', serif);
-		font-size: 8.5pt;
+		font-size: 10.5pt;
 		font-weight: 700;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
@@ -352,7 +608,7 @@
 
 	.teacher-note {
 		margin: 0;
-		font-size: 12pt;
+		font-size: 14pt;
 		line-height: 1.5;
 		white-space: pre-wrap;
 		text-align: center;
@@ -401,8 +657,8 @@
 	}
 
 	.footer-qr-block {
-		width: 28mm;
-		height: 28mm;
+		width: 32mm;
+		height: 32mm;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -422,37 +678,40 @@
 		min-width: 0;
 		display: grid;
 		justify-items: start;
-		row-gap: 1.25mm;
+		row-gap: 1mm;
 	}
 
 	.footer-url {
 		margin: 0;
 		font-family: var(--font-serif, 'Spectral', serif);
-		font-size: 9pt;
+		font-size: 12pt;
 		font-weight: 700;
 		line-height: 1.4;
-		word-break: break-all;
+		white-space: nowrap;
+		word-break: normal;
+		overflow: visible;
+		text-overflow: clip;
 		color: #0f172a;
 	}
 
 	.footer-cta {
 		margin: 0;
 		font-family: var(--font-serif, 'Spectral', serif);
-		font-size: 9.5pt;
+		font-size: 12pt;
 		line-height: 1.4;
 		color: #334155;
 	}
 
 	.footer-logo {
-		width: 32mm;
-		margin: 0 0 1mm;
+		width: 64mm;
+		margin: 0;
 		height: auto;
 	}
 
 	@media print {
 		@page {
 			size: A4 portrait;
-			margin: 12mm;
+			margin: 0;
 		}
 
 		:global(html.composer-print-active),
@@ -489,7 +748,7 @@
 			min-height: auto !important;
 			padding-bottom: 0;
 			display: block !important;
-			width: 186mm !important;
+			width: 210mm !important;
 			margin: 0 auto !important;
 		}
 

@@ -41,8 +41,11 @@
 	"dependencies": {
 		"@tensorflow/tfjs": "^4.22.0",
 		"fft.js": "^4.0.4",
+		"fonteditor-core": "^2.6.3",
+		"jspdf": "^4.2.0",
 		"qrcode": "^1.5.4",
 		"soundbank-reverb": "^1.1.2",
+		"svg2pdf.js": "^2.7.0",
 		"vexflow": "^5.0.0"
 	}
 }
