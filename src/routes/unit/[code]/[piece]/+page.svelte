@@ -18,8 +18,9 @@
 	import type { Speed } from '$lib/config/types';
 
 	const { data } = $props();
-	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl } =
+	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl, teacherNote } =
 		$derived(data);
+	const trimmedTeacherNote = $derived((teacherNote ?? '').trim());
 	let hasKeyAccess = $state(false);
 	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
 	let badgeTexts = $state<Record<string, string | undefined>>({});
@@ -174,6 +175,13 @@
 					{sheetMusicCta}
 					{teachComplete}
 				/>
+			{/if}
+
+			{#if trimmedTeacherNote}
+				<section class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Teacher note</p>
+					<p class="mt-2 text-sm text-slate-700">{trimmedTeacherNote}</p>
+				</section>
 			{/if}
 
 			{#if piece.tracks && Object.values(piece.tracks).length > 0}

@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { getUnitByCode, normalizeUnitCode } from '$lib/config/units';
-import type { Piece, UnitMaterial } from '$lib/config/types';
+import type { CustomUnitMaterial, Piece, UnitMaterial } from '$lib/config/types';
 import { getImageUrl } from '$lib/util/getImageUrl';
-import { unpackPieceFromUrl } from '$lib/util/pieceUrl';
+import { unpackCustomUnitMaterialFromUrl } from '$lib/util/pieceUrl';
 
 export const CUSTOM_UNIT_CODE = 'custom';
 const CUSTOM_IMAGE_URL = '/og-logo.png';
@@ -10,6 +10,7 @@ const CUSTOM_IMAGE_URL = '/og-logo.png';
 export type UnitPieceRouteData = {
 	unit: UnitMaterial;
 	piece: Piece;
+	teacherNote?: string;
 	previousPiece: Piece | null;
 	nextPiece: Piece | null;
 	code: string;
@@ -26,12 +27,14 @@ export function getUnitPieceRouteData(params: { code: string; piece: string }): 
 	const normalizedCode = normalizeUnitCode(params.code);
 
 	if (isCustomUnitCode(params.code)) {
-		const piece = tryUnpackPiece(params.piece);
-		const unit = createCustomUnitMaterial(piece);
+		const customUnitMaterial = tryUnpackCustomUnitMaterial(params.piece);
+		const unit = createCustomUnitMaterial(customUnitMaterial);
+		const piece = customUnitMaterial.piece;
 
 		return {
 			unit,
 			piece,
+			teacherNote: customUnitMaterial.teacherNote,
 			previousPiece: null,
 			nextPiece: null,
 			code: normalizedCode,
@@ -80,45 +83,24 @@ export function createCustomUnitStub(): UnitMaterial {
 	};
 }
 
-function createCustomUnitMaterial(piece: Piece): UnitMaterial {
+function createCustomUnitMaterial(customUnitMaterial: CustomUnitMaterial): UnitMaterial {
+	const { piece, instrument, teacherNote } = customUnitMaterial;
+	const trimmedTeacherNote = teacherNote.trim();
+	const defaultDescription = `${piece.label} by ${piece.composer || 'Unknown composer'}`;
+	const description = trimmedTeacherNote || defaultDescription;
+
 	return {
 		...createCustomUnitStub(),
-		instrument: inferInstrumentFromPiece(piece),
+		instrument,
 		title: `Custom Piece: ${piece.label}`,
-		description: `${piece.label} by ${piece.composer || 'Unknown composer'}`,
+		description,
 		pieces: [piece]
 	};
 }
 
-function inferInstrumentFromPiece(piece: Piece): UnitMaterial['instrument'] {
-	const notePool = [...piece.scale, ...piece.melody.flat()]
-		.map((item) => item.note)
-		.filter((note): note is string => Boolean(note));
-
-	if (notePool.length === 0) return 'violin';
-
-	let minOctave = Infinity;
-	let maxOctave = -Infinity;
-
-	for (const note of notePool) {
-		const match = /\/(\d+)$/.exec(note);
-		if (!match) continue;
-		const octave = Number(match[1]);
-		if (!Number.isFinite(octave)) continue;
-		minOctave = Math.min(minOctave, octave);
-		maxOctave = Math.max(maxOctave, octave);
-	}
-
-	if (!Number.isFinite(minOctave) || !Number.isFinite(maxOctave)) return 'violin';
-	if (maxOctave <= 4 && minOctave <= 3) return 'cello';
-	if (minOctave >= 4 && maxOctave >= 6) return 'flute';
-	if (minOctave <= 3 && maxOctave <= 6) return 'viola';
-	return 'violin';
-}
-
-function tryUnpackPiece(packedPiece: string): Piece {
+function tryUnpackCustomUnitMaterial(packedPiece: string): CustomUnitMaterial {
 	try {
-		return unpackPieceFromUrl(packedPiece);
+		return unpackCustomUnitMaterialFromUrl(packedPiece);
 	} catch {
 		throw error(400, 'Invalid packed piece payload');
 	}

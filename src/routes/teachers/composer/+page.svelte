@@ -3,9 +3,9 @@
 	import { getKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
 	import type { Mode, NoteName } from '$lib/config/keys';
-	import type { InstrumentId, Piece } from '$lib/config/types';
+	import type { CustomUnitMaterial, InstrumentId, Piece } from '$lib/config/types';
 	import type { MelodyItem, NoteLength } from '$lib/config/melody';
-	import { packPieceForUrl } from '$lib/util/pieceUrl';
+	import { packCustomUnitMaterialForUrl } from '$lib/util/pieceUrl';
 	import { createSynth } from '$lib/synth/useSynth.svelte';
 
 	import {
@@ -112,8 +112,14 @@
 				};
 			}
 
+			const customUnitMaterial: CustomUnitMaterial = {
+				piece: pieceBuildResult.piece,
+				instrument: instrumentId,
+				teacherNote: teacherShareNote.trim()
+			};
+
 			return {
-				longUrl: `${baseUrl}/unit/custom/${packPieceForUrl(pieceBuildResult.piece)}`,
+				longUrl: `${baseUrl}/unit/custom/${packCustomUnitMaterialForUrl(customUnitMaterial)}`,
 				error: ''
 			};
 		} catch {

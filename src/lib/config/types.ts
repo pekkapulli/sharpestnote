@@ -65,3 +65,9 @@ export interface UnitMaterial {
 		credit: string;
 	};
 }
+
+export interface CustomUnitMaterial {
+	piece: Piece;
+	instrument: InstrumentId;
+	teacherNote: string;
+}

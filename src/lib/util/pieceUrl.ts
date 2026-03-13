@@ -1,4 +1,4 @@
-import type { Piece } from '$lib/config/types';
+import type { CustomUnitMaterial, Piece } from '$lib/config/types';
 
 const PIECE_URL_VERSION = 1;
 
@@ -7,10 +7,26 @@ type PieceUrlPayload = {
 	piece: Piece;
 };
 
+type CustomUnitMaterialUrlPayload = {
+	v: number;
+	customUnitMaterial: CustomUnitMaterial;
+};
+
 export function packPieceForUrl(piece: Piece): string {
 	const payload: PieceUrlPayload = {
 		v: PIECE_URL_VERSION,
 		piece
+	};
+
+	const json = JSON.stringify(payload);
+	const bytes = encodeUtf8(json);
+	return toBase64Url(bytes);
+}
+
+export function packCustomUnitMaterialForUrl(customUnitMaterial: CustomUnitMaterial): string {
+	const payload: CustomUnitMaterialUrlPayload = {
+		v: PIECE_URL_VERSION,
+		customUnitMaterial
 	};
 
 	const json = JSON.stringify(payload);
@@ -39,6 +55,36 @@ export function unpackPieceFromUrl(value: string): Piece {
 	return parsed.piece;
 }
 
+export function unpackCustomUnitMaterialFromUrl(value: string): CustomUnitMaterial {
+	const normalized = value.trim();
+	if (!normalized) {
+		throw new Error('Packed custom unit value is empty.');
+	}
+
+	const bytes = fromBase64Url(normalized);
+	const json = decodeUtf8(bytes);
+	const parsed = JSON.parse(json) as unknown;
+
+	if (!parsed || typeof parsed !== 'object') {
+		throw new Error('Invalid packed custom unit payload.');
+	}
+
+	const maybe = parsed as Partial<CustomUnitMaterialUrlPayload & PieceUrlPayload>;
+	if (typeof maybe.v !== 'number') {
+		throw new Error('Invalid packed custom unit payload.');
+	}
+
+	if (maybe.v !== PIECE_URL_VERSION) {
+		throw new Error(`Unsupported packed piece version: ${maybe.v}`);
+	}
+
+	if (isCustomUnitMaterialUrlPayload(parsed)) {
+		return parsed.customUnitMaterial;
+	}
+
+	throw new Error('Invalid packed custom unit payload.');
+}
+
 function isPieceUrlPayload(value: unknown): value is PieceUrlPayload {
 	if (!value || typeof value !== 'object') return false;
 
@@ -61,6 +107,26 @@ function isPieceUrlPayload(value: unknown): value is PieceUrlPayload {
 		typeof piece.notationStartPercent === 'number' &&
 		typeof piece.notationEndPercent === 'number'
 	);
+}
+
+function isCustomUnitMaterialUrlPayload(value: unknown): value is CustomUnitMaterialUrlPayload {
+	if (!value || typeof value !== 'object') return false;
+
+	const maybe = value as Partial<CustomUnitMaterialUrlPayload>;
+	if (typeof maybe.v !== 'number') return false;
+	if (!maybe.customUnitMaterial || typeof maybe.customUnitMaterial !== 'object') return false;
+
+	const material = maybe.customUnitMaterial as Partial<CustomUnitMaterial>;
+	if (typeof material.instrument !== 'string') return false;
+	if (typeof material.teacherNote !== 'string') return false;
+	if (!material.piece || typeof material.piece !== 'object') return false;
+
+	const piecePayloadCandidate: PieceUrlPayload = {
+		v: maybe.v,
+		piece: material.piece as Piece
+	};
+
+	return isPieceUrlPayload(piecePayloadCandidate);
 }
 
 function encodeUtf8(input: string): Uint8Array {
