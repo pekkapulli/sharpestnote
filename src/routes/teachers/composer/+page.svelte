@@ -66,6 +66,7 @@
 	let shortShareError = $state('');
 	let isCreatingShortShareUrl = $state(false);
 	let isPlayingMelodyPreview = $state(false);
+	let isMelodyPreviewMuted = $state(false);
 	let shouldStopMelodyPreview = $state(false);
 
 	const instrumentConfig = $derived(
@@ -161,7 +162,29 @@
 		}
 	});
 
+	async function previewMelodyItem(item: MelodyItem) {
+		if (isMelodyPreviewMuted || item.note === null) return;
+
+		try {
+			await melodyPreviewSynth.playNote(item, 240);
+		} catch {
+			shareStatus = 'Unable to play note preview.';
+		}
+	}
+
+	function handleToggleMelodyMute() {
+		isMelodyPreviewMuted = !isMelodyPreviewMuted;
+
+		if (isMelodyPreviewMuted) {
+			melodyPreviewSynth.stopAll();
+			shouldStopMelodyPreview = true;
+			isPlayingMelodyPreview = false;
+		}
+	}
+
 	async function handleToggleMelodyPreview() {
+		if (isMelodyPreviewMuted) return;
+
 		if (isPlayingMelodyPreview) {
 			shouldStopMelodyPreview = true;
 			melodyPreviewSynth.stopAll();
@@ -346,8 +369,11 @@
 				{barLength}
 				{availablePitches}
 				{isPlayingMelodyPreview}
+				{isMelodyPreviewMuted}
 				lengthOptions={LENGTH_OPTIONS}
 				onToggleMelodyPlayback={handleToggleMelodyPreview}
+				onToggleMelodyMute={handleToggleMelodyMute}
+				onPreviewItem={previewMelodyItem}
 				onEdit={handleMelodyEdited}
 			/>
 

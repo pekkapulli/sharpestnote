@@ -18,6 +18,10 @@
 		onChangeLength: (length: NoteLength) => void;
 		onSetItemKind: (kind: 'note' | 'rest') => void;
 		onSetFinger: (finger: number | undefined) => void;
+		onMoveDownSemitone: () => void;
+		onMoveUpSemitone: () => void;
+		canMoveDownSemitone: boolean;
+		canMoveUpSemitone: boolean;
 	}
 
 	type FingerOption = 'empty' | '0' | '1' | '2' | '3' | '4';
@@ -34,7 +38,11 @@
 		remainingInBar = Infinity,
 		onChangeLength,
 		onSetItemKind,
-		onSetFinger
+		onSetFinger,
+		onMoveDownSemitone,
+		onMoveUpSemitone,
+		canMoveDownSemitone,
+		canMoveUpSemitone
 	}: Props = $props();
 
 	let menuElement = $state<HTMLDivElement | null>(null);
@@ -171,6 +179,34 @@
 				<span class="shortcut">Space</span>
 			</div>
 		{/if}
+	</div>
+	<div class="note-context-menu-actions">
+		<div class="note-context-semitone-row">
+			<button
+				type="button"
+				class="note-context-chip note-context-semitone-button"
+				disabled={!canMoveDownSemitone}
+				onclick={onMoveDownSemitone}
+				title={showShortcutHints ? 'Shortcut: ArrowDown' : undefined}
+			>
+				<span class="note-context-semitone-label">Down</span>
+				{#if showShortcutHints}
+					<span class="shortcut">↓</span>
+				{/if}
+			</button>
+			<button
+				type="button"
+				class="note-context-chip note-context-semitone-button"
+				disabled={!canMoveUpSemitone}
+				onclick={onMoveUpSemitone}
+				title={showShortcutHints ? 'Shortcut: ArrowUp' : undefined}
+			>
+				<span class="note-context-semitone-label">Up</span>
+				{#if showShortcutHints}
+					<span class="shortcut">↑</span>
+				{/if}
+			</button>
+		</div>
 	</div>
 	{#if !isRestItem}
 		<div class="note-context-menu-actions">
@@ -309,6 +345,31 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		margin-top: 10px;
+	}
+
+	.note-context-semitone-row {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 6px;
+	}
+
+	.note-context-semitone-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 7px 10px;
+	}
+
+	.note-context-semitone-button .shortcut {
+		position: static;
+		padding: 0.12rem 0.32rem;
+		font-size: 0.62rem;
+	}
+
+	.note-context-semitone-label {
+		font-size: 0.76rem;
+		font-weight: 700;
 	}
 
 	@media (max-width: 640px) {
