@@ -11,7 +11,6 @@
 		x: number;
 		y: number;
 		selectedItem: MelodyItem;
-		defaultFinger?: number;
 		lengthOptions: NoteLength[];
 		remainingInBar?: number;
 		onChangeLength: (length: NoteLength) => void;
@@ -21,11 +20,14 @@
 
 	type FingerOption = 'empty' | '0' | '1' | '2' | '3' | '4';
 
+	const VIEWPORT_MARGIN = 8;
+	const MENU_ARROW_GAP = 22;
+	const ARROW_EDGE_PADDING = 16;
+
 	let {
 		x,
 		y,
 		selectedItem,
-		defaultFinger,
 		lengthOptions,
 		remainingInBar = Infinity,
 		onChangeLength,
@@ -33,12 +35,17 @@
 		onSetFinger
 	}: Props = $props();
 
+	let menuElement = $state<HTMLDivElement | null>(null);
+	let menuLeft = $state(0);
+	let menuTop = $state(0);
+	let arrowLeft = $state(0);
+
 	const isRestItem = $derived(selectedItem.note === null);
 	const selectedFingerOption = $derived.by((): FingerOption => {
 		if (isRestItem) return 'empty';
+		if (selectedItem.finger === undefined) return 'empty';
 
-		const effectiveFinger = selectedItem.finger ?? defaultFinger;
-		if (effectiveFinger === undefined) return 'empty';
+		const effectiveFinger = selectedItem.finger;
 
 		const normalized = Math.max(0, Math.min(4, effectiveFinger));
 		return String(normalized) as FingerOption;
@@ -59,23 +66,83 @@
 	function handleFingerChange(value: FingerOption) {
 		onSetFinger(value === 'empty' ? undefined : Number(value));
 	}
+
+	function clamp(value: number, min: number, max: number): number {
+		if (max < min) return min;
+		return Math.min(Math.max(value, min), max);
+	}
+
+	function updateContextMenuPosition() {
+		if (!menuElement || typeof window === 'undefined') return;
+
+		const { width, height } = menuElement.getBoundingClientRect();
+		const desiredLeft = x - width / 2;
+		const desiredTop = y - height - MENU_ARROW_GAP;
+
+		const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN);
+		const maxTop = Math.max(VIEWPORT_MARGIN, window.innerHeight - height - VIEWPORT_MARGIN);
+
+		const clampedLeft = clamp(desiredLeft, VIEWPORT_MARGIN, maxLeft);
+		const clampedTop = clamp(desiredTop, VIEWPORT_MARGIN, maxTop);
+		const clampedArrowLeft = clamp(
+			x - clampedLeft,
+			ARROW_EDGE_PADDING,
+			Math.max(ARROW_EDGE_PADDING, width - ARROW_EDGE_PADDING)
+		);
+
+		menuLeft = clampedLeft;
+		menuTop = clampedTop;
+		arrowLeft = clampedArrowLeft;
+	}
+
+	function queueContextMenuPositionUpdate(
+		_note: string | null,
+		_length: NoteLength,
+		_finger: number | undefined,
+		_lengthOptionCount: number,
+		_remainingInBar: number,
+		_anchorX: number,
+		_anchorY: number
+	) {
+		void [_note, _length, _finger, _lengthOptionCount, _remainingInBar, _anchorX, _anchorY];
+		requestAnimationFrame(() => {
+			updateContextMenuPosition();
+		});
+	}
+
+	$effect(() => {
+		queueContextMenuPositionUpdate(
+			selectedItem.note,
+			selectedItem.length,
+			selectedItem.finger,
+			lengthOptions.length,
+			remainingInBar,
+			x,
+			y
+		);
+	});
 </script>
 
+<svelte:window onresize={updateContextMenuPosition} />
+
 <div
+	bind:this={menuElement}
 	class="note-context-menu"
-	style={`left: ${x}px; top: ${y}px;`}
+	style={`left: ${menuLeft}px; top: ${menuTop}px; --arrow-left: ${arrowLeft}px;`}
 	role="presentation"
 	onpointerdown={(event) => event.stopPropagation()}
 >
 	<div class="note-context-menu-lengths">
-		{#each lengthOptions as length (length)}
+		{#each lengthOptions as length, index (length)}
 			<button
 				type="button"
 				class="note-context-chip"
 				class:is-active={selectedItem.length === length}
 				disabled={length > remainingInBar}
 				onclick={() => onChangeLength(length)}
+				title={`Shortcut: ${index + 1}`}
 			>
+				<span class="shortcut">{index + 1}</span>
 				<span class="note">{getLengthGlyph(length)}</span>
 			</button>
 		{/each}
@@ -90,9 +157,12 @@
 			onSelect={onSetItemKind}
 			ariaLabel="Toggle note or rest"
 		/>
+		<div class="note-context-shortcut-overlay" aria-hidden="true">
+			<span class="shortcut">Space</span>
+		</div>
 	</div>
 	{#if !isRestItem}
-		<div>
+		<div class="note-context-menu-actions">
 			<p class="mb-1! text-xs text-slate-500">Finger:</p>
 			<PillSelector
 				options={[
@@ -107,6 +177,9 @@
 				onSelect={handleFingerChange}
 				ariaLabel="Set finger number"
 			/>
+			<div class="note-context-shortcut-overlay-top" aria-hidden="true">
+				<span class="shortcut">F</span>
+			</div>
 		</div>
 	{/if}
 </div>
@@ -116,12 +189,11 @@
 		position: fixed;
 		z-index: 60;
 		min-width: 280px;
-		padding: 10px;
+		padding: 34px 10px 10px;
 		border: 1px solid #cbd5e1;
 		border-radius: 12px;
 		background: #ffffff;
 		box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
-		transform: translate(-50%, calc(-100% - 22px));
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
@@ -130,7 +202,7 @@
 	.note-context-menu::after {
 		content: '';
 		position: absolute;
-		left: 50%;
+		left: var(--arrow-left, 50%);
 		bottom: -7px;
 		width: 12px;
 		height: 12px;
@@ -147,6 +219,7 @@
 	}
 
 	.note-context-chip {
+		position: relative;
 		padding: 3px 4px;
 		border: 1px solid #cbd5e1;
 		border-radius: 8px;
@@ -159,6 +232,48 @@
 	.note-context-chip :global(.note) {
 		font-size: 1.35rem;
 		line-height: 1;
+	}
+
+	.shortcut {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.15rem 0.4rem;
+		border: 1px solid #cbd5e1;
+		border-radius: 999px;
+		background: #f8fafc;
+		font-size: 0.62rem;
+		line-height: 1.1;
+		font-weight: 700;
+		color: #64748b;
+	}
+
+	.note-context-chip .shortcut {
+		position: absolute;
+		top: 2px;
+		right: 4px;
+		padding: 0.05rem 0.3rem;
+		font-size: 0.58rem;
+	}
+
+	.note-context-shortcut-overlay {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		pointer-events: none;
+	}
+
+	.note-context-shortcut-overlay-top {
+		position: absolute;
+		top: 0px;
+		right: 8px;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		pointer-events: none;
 	}
 
 	.note-context-chip:hover:not(:disabled) {
@@ -177,9 +292,9 @@
 	}
 
 	.note-context-menu-actions {
+		position: relative;
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 8px;
 		margin-top: 10px;
 	}
 

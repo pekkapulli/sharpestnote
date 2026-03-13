@@ -6,7 +6,8 @@
 		onclick?: (event: MouseEvent) => void;
 		type?: 'button' | 'submit' | 'reset';
 		size?: 'small' | 'medium' | 'large';
-		color?: 'blue' | 'green';
+		variant?: 'solid' | 'secondary';
+		color?: 'blue' | 'green' | 'secondary';
 		disabled?: boolean;
 		fullWidth?: boolean;
 		title?: string;
@@ -18,12 +19,16 @@
 		onclick,
 		type = 'button',
 		size = 'small',
+		variant = 'solid',
 		color = 'blue',
 		disabled = false,
 		fullWidth = false,
 		title,
 		ariaLabel
 	}: Props = $props();
+
+	const resolvedVariant = $derived(color === 'secondary' ? 'secondary' : variant);
+	const resolvedColor = $derived(color === 'secondary' ? 'blue' : color);
 </script>
 
 <button
@@ -32,7 +37,7 @@
 	{title}
 	{onclick}
 	aria-label={ariaLabel}
-	class={`button-root ${size} ${color} ${fullWidth ? 'block' : 'inline'}`}
+	class={`button-root ${size} ${resolvedVariant} ${resolvedColor} ${fullWidth ? 'block' : 'inline'}`}
 >
 	{@render children()}
 </button>
@@ -76,26 +81,56 @@
 		padding: 0.25rem 0.5rem;
 	}
 
-	.button-root.blue {
+	.button-root.solid.blue {
 		background-color: var(--color-dark-blue);
+		color: var(--color-off-white);
 	}
 
-	.button-root.blue:hover:not(:disabled) {
+	.button-root.solid.blue:hover:not(:disabled) {
 		background-color: var(--color-dark-blue-highlight);
 		color: var(--color-off-white);
 		transform: translateY(-1px);
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
 
-	.button-root.green {
+	.button-root.solid.green {
 		background-color: var(--color-brand-green);
+		color: var(--color-off-white);
 	}
 
-	.button-root.green:hover:not(:disabled) {
+	.button-root.solid.green:hover:not(:disabled) {
 		background-color: var(--color-brand-green-highlight);
 		color: var(--color-off-white);
 		transform: translateY(-1px);
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
+	.button-root.secondary {
+		background-color: #f8fafc;
+		border: 1px solid #cbd5e1;
+	}
+
+	.button-root.secondary.blue {
+		color: var(--color-dark-blue);
+	}
+
+	.button-root.secondary.green {
+		color: #166534;
+	}
+
+	.button-root.secondary:hover:not(:disabled) {
+		background-color: #f1f5f9;
+		border-color: #94a3b8;
+		transform: translateY(-1px);
+		box-shadow: 0 2px 4px rgba(15, 23, 42, 0.1);
+	}
+
+	.button-root.secondary.blue:hover:not(:disabled) {
+		color: var(--color-dark-blue-highlight);
+	}
+
+	.button-root.secondary.green:hover:not(:disabled) {
+		color: var(--color-brand-green-highlight);
 	}
 
 	.button-root:disabled {

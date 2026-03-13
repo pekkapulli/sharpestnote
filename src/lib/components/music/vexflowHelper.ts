@@ -268,6 +268,13 @@ export function renderVexFlowStaff(
 				for (let d = 0; d < dots; d++) {
 					Dot.buildAndAttach([rest], { all: true });
 				}
+
+				// Apply color to rest if provided (used for selected rest highlighting).
+				if (noteColors && noteColors[flatNoteIndex]) {
+					const color = noteColors[flatNoteIndex];
+					rest.setStyle({ strokeStyle: color, fillStyle: color });
+				}
+
 				allNotes.push(rest);
 				allTickables.push(rest);
 			} else {
@@ -330,6 +337,23 @@ export function renderVexFlowStaff(
 			}
 		}
 
+		// Determine available note area (stave.format() is called lazily by getNoteStartX)
+		const availableNoteWidth = stave.getNoteEndX() - stave.getNoteStartX();
+
+		// Scale note widths down if they exceed the available stave area (prevents SVG overflow in print)
+		if (totalComputedWidth > availableNoteWidth) {
+			const scale = (availableNoteWidth - 8) / totalComputedWidth;
+			let idx = 0;
+			for (const bar of displayBars) {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				for (const _item of bar) {
+					allNotes[idx].setWidth(Math.max(12, allNotes[idx].getWidth() * scale));
+					idx++;
+				}
+			}
+			totalComputedWidth = availableNoteWidth - 8;
+		}
+
 		const voice = vf.Voice({ time: { numBeats: totalBeats, beatValue: 4 } });
 		voice.setMode(Voice.Mode.SOFT);
 		voice.addTickables(allTickables);
@@ -389,7 +413,12 @@ export function renderVexFlowStaff(
 		const formatter = vf.Formatter();
 
 		// Pass the computed total width so formatter doesn't expand/compress our proportional widths
-		formatter.joinVoices([voice]).format([voice], Math.max(totalComputedWidth + 100, width - 100), {
+		// Cap formatter width to the actual note area so notes never overflow the SVG viewport
+		const formatterWidth = Math.min(
+			Math.max(totalComputedWidth + 40, availableNoteWidth - 5),
+			availableNoteWidth - 5
+		);
+		formatter.joinVoices([voice]).format([voice], formatterWidth, {
 			context: context
 		});
 

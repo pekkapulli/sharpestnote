@@ -21,6 +21,7 @@
 		onAddNote?: (note: string) => void;
 		onSelectNote?: (index: number) => void;
 		onOpenNoteContextMenu?: (payload: { index: number; x: number; y: number }) => void;
+		isContextMenuOpen?: boolean;
 	}
 
 	const ROW_HEIGHT = 150;
@@ -67,7 +68,8 @@
 		onMoveNote,
 		onAddNote,
 		onSelectNote,
-		onOpenNoteContextMenu
+		onOpenNoteContextMenu,
+		isContextMenuOpen = false
 	}: Props = $props();
 
 	let containerWidth = $state(0);
@@ -89,10 +91,6 @@
 
 		const safeMinBarWidth = Math.max(120, Math.floor(minBarWidth));
 		return Math.max(1, Math.floor(effectiveWidth / safeMinBarWidth));
-	});
-
-	$effect(() => {
-		console.log('Effective width:', effectiveWidth, 'Computed bars per row:', computedBarsPerRow);
 	});
 
 	const rowSpecs = $derived.by(() => {
@@ -171,7 +169,7 @@
 			if (!container || effectiveWidth <= 0) continue;
 
 			const noteColors = row.notes.map((item, i) => {
-				if (item.note !== null && selectedNoteIndex === row.startNoteIndex + i) {
+				if (selectedNoteIndex === row.startNoteIndex + i) {
 					return '#16a34a'; // brand-green
 				}
 				return '#000';
@@ -311,6 +309,36 @@
 		});
 	}
 
+	export function getContextMenuAnchorForNote(
+		noteIndex: number
+	): { index: number; x: number; y: number } | null {
+		const row = rowSpecs.find(
+			(candidate) =>
+				noteIndex >= candidate.startNoteIndex &&
+				noteIndex < candidate.startNoteIndex + candidate.notes.length
+		);
+		if (!row) return null;
+
+		const rowData = rowRenderData[row.rowIndex];
+		if (!rowData) return null;
+
+		const localIndex = noteIndex - row.startNoteIndex;
+		const noteX = rowData.noteXPositions[localIndex];
+		if (noteX === undefined) return null;
+
+		const rowElement = rowContainers[row.rowIndex];
+		if (!rowElement) return null;
+
+		const rect = rowElement.getBoundingClientRect();
+		const menuAnchorY = Math.max(0, rowData.topLineY - rowData.lineSpacing * 1.5);
+
+		return {
+			index: noteIndex,
+			x: rect.left + noteX,
+			y: rect.top + menuAnchorY
+		};
+	}
+
 	function onRowClick() {
 		if (!hoverState) return;
 		if (hoverState.action === 'add') {
@@ -330,6 +358,7 @@
 	}
 
 	function onRowKeyDown(event: KeyboardEvent) {
+		if (isContextMenuOpen) return;
 		if (event.key !== 'Enter' && event.key !== ' ') return;
 		event.preventDefault();
 		onRowClick();

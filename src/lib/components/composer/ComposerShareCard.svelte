@@ -1,10 +1,19 @@
 <script lang="ts">
 	import TheSharpestNoteLogo from '$lib/assets/The Sharpest Note Logo.svg';
+	import type { KeySignature } from '$lib/config/keys';
+	import type { MelodyItem } from '$lib/config/melody';
+	import type { Clef } from '$lib/config/types';
+	import ComposerPrintableSheet from '$lib/components/composer/ComposerPrintableSheet.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import printIcon from '$lib/assets/print.svg';
 
 	interface Props {
 		pieceLabel: string;
+		bars: MelodyItem[][];
+		clef: Clef;
+		keySignature: KeySignature;
+		barLength?: number;
 		teacherShareNote?: string;
 		isShareModalOpen: boolean;
 		onOpenShareModal: () => void;
@@ -19,6 +28,10 @@
 
 	let {
 		pieceLabel,
+		bars,
+		clef,
+		keySignature,
+		barLength,
 		teacherShareNote = $bindable(''),
 		isShareModalOpen,
 		onOpenShareModal,
@@ -34,7 +47,9 @@
 	let qrCodeDataUrl = $state('');
 	let qrCodeError = $state('');
 	let imageActionStatus = $state('');
+	let pdfActionStatus = $state('');
 	let isPreparingImage = $state(false);
+	let printableSheet = $state<{ printSheet: () => Promise<void> } | null>(null);
 
 	const trimmedPieceLabel = $derived(pieceLabel.trim() || 'Untitled piece');
 	const trimmedTeacherShareNote = $derived(teacherShareNote.trim());
@@ -48,6 +63,7 @@
 		if (!isShareModalOpen) {
 			qrCodeDataUrl = '';
 			qrCodeError = '';
+			pdfActionStatus = '';
 			return;
 		}
 
@@ -350,6 +366,19 @@
 			isPreparingImage = false;
 		}
 	}
+
+	async function handlePrintPdf() {
+		if (!canCreateShareImage || isPreparingImage || isPreparingShareUrl || !printableSheet) return;
+
+		pdfActionStatus = '';
+
+		try {
+			await printableSheet.printSheet();
+			pdfActionStatus = 'Print dialog opened.';
+		} catch (error) {
+			pdfActionStatus = error instanceof Error ? error.message : 'Unable to open print view.';
+		}
+	}
 </script>
 
 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -411,6 +440,17 @@
 		title="Share with student"
 		maxWidth="xl"
 	>
+		<ComposerPrintableSheet
+			bind:this={printableSheet}
+			{pieceLabel}
+			{bars}
+			{clef}
+			{keySignature}
+			{barLength}
+			{teacherShareNote}
+			{shareUrl}
+			{qrCodeDataUrl}
+		/>
 		<div class="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
 			<div>
 				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
@@ -462,7 +502,8 @@
 				<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
 					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share link</p>
 					<p class="mt-2 text-sm text-slate-600">Copy the short link or share the QR image.</p>
-					<div class="mt-3 flex flex-wrap gap-2">
+					<div class="mt-3 flex flex-wrap gap-2"></div>
+					<div class="flex flex-wrap gap-2">
 						<Button
 							type="button"
 							size="medium"
@@ -470,6 +511,27 @@
 							disabled={!shareUrl || isPreparingShareUrl}
 						>
 							Copy link
+						</Button>
+						<Button
+							type="button"
+							size="medium"
+							color="green"
+							onclick={handleDownloadImage}
+							disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
+						>
+							{isPreparingImage ? 'Preparing image...' : 'Download QR code'}
+						</Button>
+						<Button
+							type="button"
+							size="medium"
+							color="green"
+							onclick={handleNativeShareImage}
+							disabled={!canCreateShareImage ||
+								!canUseNativeShare ||
+								isPreparingImage ||
+								isPreparingShareUrl}
+						>
+							Share QR code
 						</Button>
 					</div>
 					{#if shareError}
@@ -480,33 +542,28 @@
 					{/if}
 					{#if !canUseNativeShare}
 						<p class="mt-2 text-xs text-slate-500">
-							Native PNG sharing depends on browser support.
+							Native image sharing depends on browser support.
 						</p>
 					{/if}
 				</div>
 
-				<div class="flex flex-wrap gap-2">
-					<Button
-						type="button"
-						size="medium"
-						color="green"
-						onclick={handleDownloadImage}
-						disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
-					>
-						{isPreparingImage ? 'Preparing image...' : 'Download image'}
-					</Button>
-					<Button
-						type="button"
-						size="medium"
-						color="green"
-						onclick={handleNativeShareImage}
-						disabled={!canCreateShareImage ||
-							!canUseNativeShare ||
-							isPreparingImage ||
-							isPreparingShareUrl}
-					>
-						Share image
-					</Button>
+				<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Print</p>
+					<div class="flex flex-wrap gap-2">
+						<Button
+							type="button"
+							size="medium"
+							color="secondary"
+							onclick={handlePrintPdf}
+							disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
+						>
+							<img src={printIcon} alt="Print icon" class="h-8 w-8 flex-none" />
+							Print Sheet music and QR code
+						</Button>
+					</div>
+					{#if pdfActionStatus}
+						<p class="mt-2 text-sm font-medium text-brand-green">{pdfActionStatus}</p>
+					{/if}
 				</div>
 			</div>
 		</div>

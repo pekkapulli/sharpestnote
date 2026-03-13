@@ -51,7 +51,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		sustaining: true,
 		transpositionSemitones: 0,
 		bottomNote: 'G3',
-		topNote: 'G5',
+		topNote: 'B5',
 		strings: ['G3', 'D4', 'A4', 'E5'],
 		detectionConfig: {
 			...genericDetectionConfig,
@@ -91,7 +91,7 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		sustaining: true,
 		transpositionSemitones: 0,
 		bottomNote: 'C3',
-		topNote: 'D5',
+		topNote: 'E5',
 		strings: ['C3', 'G3', 'D4', 'A4'],
 		detectionConfig: {
 			...genericDetectionConfig,

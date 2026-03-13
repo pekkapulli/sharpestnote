@@ -209,13 +209,64 @@ export function resolveBarAfterNoteChange(
 	const startOffset = prefix.reduce((sum, item) => sum + item.length, 0);
 	const remainingInBar = Math.max(1, safeBarLength - startOffset);
 	const tail = barItems.slice(itemIndex + 1).map((item) => ({ ...item }));
+	const originalLength = original.length;
 
 	const replacement =
 		action.type === 'set-length'
 			? [{ ...original, length: fitLengthToRemaining(action.length, remainingInBar) }]
 			: [];
-
+	const replacementLength = action.type === 'set-length' ? (replacement[0]?.length ?? 0) : 0;
 	const reflowTargetLength = Math.max(0, safeBarLength - startOffset);
+	const growBy =
+		action.type === 'set-length' && replacementLength > originalLength
+			? replacementLength - originalLength
+			: 0;
+	const shrinkBy =
+		action.type === 'set-length' && replacementLength < originalLength
+			? originalLength - replacementLength
+			: 0;
+
+	if (growBy > 0) {
+		let remainingGrowth = growBy;
+		const adjustedTail: MelodyItem[] = [];
+
+		for (const item of tail) {
+			if (remainingGrowth > 0 && item.note === null) {
+				const consumed = Math.min(item.length, remainingGrowth);
+				remainingGrowth -= consumed;
+				const nextLength = item.length - consumed;
+
+				if (nextLength > 0) {
+					adjustedTail.push({ ...item, length: nextLength as NoteLength });
+				}
+				continue;
+			}
+
+			adjustedTail.push(item);
+		}
+
+		if (remainingGrowth === 0) {
+			return [...prefix, ...replacement, ...adjustedTail];
+		}
+	}
+
+	if (shrinkBy > 0) {
+		const insertedRests: MelodyItem[] = [];
+		pushChunkedRun(insertedRests, null, undefined, shrinkBy);
+		const stableItems = [...replacement, ...insertedRests, ...tail];
+		const stableLength = stableItems.reduce((sum, item) => sum + item.length, 0);
+
+		if (stableLength === reflowTargetLength) {
+			return [...prefix, ...stableItems];
+		}
+
+		if (stableLength < reflowTargetLength) {
+			const paddedRests: MelodyItem[] = [];
+			pushChunkedRun(paddedRests, null, undefined, reflowTargetLength - stableLength);
+			return [...prefix, ...stableItems, ...paddedRests];
+		}
+	}
+
 	const reflowed = [...replacement, ...tail];
 	let units = expandItemsToUnits(reflowed);
 
