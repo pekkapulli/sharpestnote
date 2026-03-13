@@ -91,27 +91,20 @@
 		return Math.max(1, Math.floor(effectiveWidth / safeMinBarWidth));
 	});
 
+	$effect(() => {
+		console.log('Effective width:', effectiveWidth, 'Computed bars per row:', computedBarsPerRow);
+	});
+
 	const rowSpecs = $derived.by(() => {
-		const safeBarsPerRow = computedBarsPerRow;
-		const evenBarsPerRow =
+		const safeBarsPerRow = Math.max(1, computedBarsPerRow);
+		const normalizedBarsPerRow =
 			safeBarsPerRow <= 1 ? 1 : safeBarsPerRow % 2 === 0 ? safeBarsPerRow : safeBarsPerRow - 1;
 		const rows: RowSpec[] = [];
 		let noteStart = 0;
 
 		for (let i = 0; i < bars.length; ) {
 			const remainingBars = bars.length - i;
-
-			// Prefer even bar counts per row, but allow a final single bar when total is odd.
-			let barsInThisRow =
-				remainingBars === 1 ? 1 : Math.min(evenBarsPerRow > 1 ? evenBarsPerRow : 2, remainingBars);
-
-			if (barsInThisRow > 1 && barsInThisRow % 2 !== 0) {
-				barsInThisRow -= 1;
-			}
-
-			if (barsInThisRow <= 0) {
-				barsInThisRow = Math.min(remainingBars, 1);
-			}
+			const barsInThisRow = Math.min(normalizedBarsPerRow, remainingBars);
 
 			const rowBars = bars.slice(i, i + barsInThisRow);
 			const rowNotes = rowBars.flat();
