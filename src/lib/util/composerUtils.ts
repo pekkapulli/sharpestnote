@@ -1,6 +1,7 @@
 import type { Piece } from '$lib/config/types';
 import type { MelodyItem, NoteLength } from '$lib/config/melody';
 import { noteNameToMidi } from '$lib/util/noteNames';
+import { noteNameFromMidi } from '$lib/tuner/tune';
 
 const CHUNK_LENGTHS: NoteLength[] = [16, 12, 8, 6, 4, 3, 2, 1];
 
@@ -40,13 +41,11 @@ export function slugifyPieceCode(label: string): string {
 		: '';
 }
 
-function midiToVexSharp(midi: number): string {
-	const names = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-	const octave = Math.floor(midi / 12) - 1;
-	return `${names[midi % 12]}/${octave}`;
-}
-
-export function getPitchPalette(bottom: string, top: string): string[] {
+export function getPitchPalette(
+	bottom: string,
+	top: string,
+	accidental: 'sharp' | 'flat' = 'sharp'
+): string[] {
 	const bottomMidi = noteNameToMidi(bottom);
 	const topMidi = noteNameToMidi(top);
 	if (bottomMidi === null || topMidi === null || topMidi < bottomMidi) {
@@ -55,7 +54,7 @@ export function getPitchPalette(bottom: string, top: string): string[] {
 
 	const result: string[] = [];
 	for (let midi = bottomMidi; midi <= topMidi; midi++) {
-		result.push(midiToVexSharp(midi));
+		result.push(noteNameFromMidi(midi, accidental));
 	}
 	return result;
 }

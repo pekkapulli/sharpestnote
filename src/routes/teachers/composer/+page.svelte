@@ -75,7 +75,11 @@
 	const keySignature = $derived(getKeySignature(pieceKey, pieceMode));
 
 	const availablePitches = $derived(
-		getPitchPalette(instrumentConfig.bottomNote, instrumentConfig.topNote)
+		getPitchPalette(
+			instrumentConfig.bottomNote,
+			instrumentConfig.topNote,
+			keySignature.preferredAccidental
+		)
 	);
 	const pieceCode = $derived(slugifyPieceCode(pieceLabel));
 	const barLength = $derived(
