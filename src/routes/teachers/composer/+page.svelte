@@ -12,6 +12,7 @@
 		buildScaleFromMelody,
 		createInitialRests,
 		getPitchPalette,
+		groupBarsToPhrases,
 		inferPracticeTempiFromFastTempo,
 		rearrangeNotesForTimeSignatureChange,
 		slugifyPieceCode
@@ -215,7 +216,7 @@
 			key: pieceKey,
 			mode: pieceMode,
 			barLength,
-			melody,
+			melody: groupBarsToPhrases(melody, 2),
 			scale: buildScaleFromMelody(sequence),
 			notationStartPercent,
 			notationEndPercent

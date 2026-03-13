@@ -92,6 +92,18 @@ export function normalizeMelodyToBars(items: MelodyItem[], barSixteenths: number
 	return bars;
 }
 
+export function groupBarsToPhrases(bars: MelodyItem[][], barsPerPhrase = 2): MelodyItem[][] {
+	if (bars.length === 0) return [];
+	const safeBarsPerPhrase = Math.max(1, Math.floor(barsPerPhrase));
+	const grouped: MelodyItem[][] = [];
+
+	for (let i = 0; i < bars.length; i += safeBarsPerPhrase) {
+		grouped.push(bars.slice(i, i + safeBarsPerPhrase).flat());
+	}
+
+	return grouped;
+}
+
 export function rearrangeNotesForTimeSignatureChange(
 	bars: MelodyItem[][],
 	fromBarLength: NoteLength,
