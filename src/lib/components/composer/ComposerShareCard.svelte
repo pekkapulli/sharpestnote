@@ -451,23 +451,29 @@
 			{shareUrl}
 			{qrCodeDataUrl}
 		/>
-		<div class="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
+		<div class="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-5">
 			<div>
 				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
 
-				<div class="mt-4 w-64 rounded-2xl border border-slate-200 bg-white p-5">
-					<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mx-auto h-5 w-auto" />
+				<div
+					class="mx-auto mt-4 w-full max-w-52 rounded-2xl border border-slate-200 bg-white p-4 sm:max-w-64 sm:p-5"
+				>
+					<img
+						src={TheSharpestNoteLogo}
+						alt="The Sharpest Note"
+						class="mx-auto hidden h-5 w-auto sm:block"
+					/>
 
 					<div class="flex flex-col items-center gap-3">
 						{#if qrCodeDataUrl}
 							<img
 								src={qrCodeDataUrl}
 								alt={`QR code for ${trimmedPieceLabel}`}
-								class="w-full max-w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+								class="w-full max-w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:max-w-64 sm:p-3"
 							/>
 						{:else}
 							<div
-								class="flex h-64 w-full max-w-64 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-sm text-slate-500"
+								class="flex h-44 w-full max-w-44 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-4 text-center text-sm text-slate-500 sm:h-64 sm:max-w-64 sm:px-6"
 							>
 								{#if qrCodeError}
 									{qrCodeError}
@@ -480,21 +486,23 @@
 								{/if}
 							</div>
 						{/if}
-						<p class="text-xs leading-5 text-slate-500">
+						<p class="text-center text-xs leading-5 text-slate-500 sm:text-left">
 							Students can scan this code to open the custom piece directly.
 						</p>
 					</div>
 
-					<h3 class="mt-5 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
-					{#if trimmedTeacherShareNote}
-						<p class="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-700">
-							{trimmedTeacherShareNote}
-						</p>
-					{:else}
-						<p class="mt-3 text-sm leading-6 text-slate-500">
-							Add a note to include practice instructions or reminders for the student.
-						</p>
-					{/if}
+					<div class="hidden sm:block">
+						<h3 class="mt-5 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
+						{#if trimmedTeacherShareNote}
+							<p class="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-700">
+								{trimmedTeacherShareNote}
+							</p>
+						{:else}
+							<p class="mt-3 text-sm leading-6 text-slate-500">
+								Add a note to include practice instructions or reminders for the student.
+							</p>
+						{/if}
+					</div>
 				</div>
 			</div>
 
