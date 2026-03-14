@@ -201,6 +201,8 @@
 	.pill-group {
 		position: relative;
 		display: inline-flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
 		background-color: rgb(255, 255, 255);
 		border: 1px solid rgb(226 232 240);
 		border-radius: 0.75rem;
@@ -338,7 +340,7 @@
 		}
 		.pill-button {
 			flex: 0 0 auto;
-			width: 100%;
+			width: auto;
 		}
 	}
 </style>
