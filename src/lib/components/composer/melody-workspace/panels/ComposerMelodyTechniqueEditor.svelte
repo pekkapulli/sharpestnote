@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ComposerMelodyPreviewControls from '../controls/ComposerMelodyPreviewControls.svelte';
+	import ComposerMelodyTechniqueEditorInstructions from '../controls/ComposerMelodyTechniqueEditorInstructions.svelte';
 	import {
 		type TechniqueContextMenuHandle,
 		type StaffContextMenuAnchorProvider,
@@ -41,12 +42,19 @@
 	const selectedNoteSlurRange = $derived(logic.selectedNoteSlurRange());
 	const pendingSlurStartIndex = $derived(logic.pendingSlurStartIndex());
 	const rangeHasSlur = $derived(logic.rangeHasSlur());
+	const canStartSingleNoteSlur = $derived(logic.canStartSingleNoteSlur());
+	const canAddSlurToSelectedRange = $derived(logic.canAddSlurToSelectedRange());
 	const noteContextMenu = $derived(logic.noteContextMenu());
 	const isSmallScreen = $derived(logic.isSmallScreen());
 	const selectedSequenceItem = $derived(logic.selectedSequenceItem());
 </script>
 
-<svelte:window onpointerdown={logic.handleWindowPointerDown} onscroll={logic.handleWindowScroll} />
+<svelte:window
+	onkeydown={logic.handleEditorKeyDown}
+	onkeyup={logic.handleEditorKeyUp}
+	onpointerdown={logic.handleWindowPointerDown}
+	onscroll={logic.handleWindowScroll}
+/>
 
 <div
 	class="relative rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-5"
@@ -65,12 +73,14 @@
 			<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Technique</h2>
 			<p class="mt-1 text-sm text-slate-600">Set up playing details for the melody.</p>
 		</div>
+
+		<ComposerMelodyTechniqueEditorInstructions />
 	</div>
 
 	<div class="mt-6 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
 		{#if pendingSlurStartIndex !== null}
 			<p class="mb-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
-				⌢ Tap the last note of the slur
+				⌢ Tap the last note of the slur (in the same bar).
 			</p>
 		{/if}
 		<ComposerStaff
@@ -99,6 +109,8 @@
 				{selectedNoteRange}
 				{selectedNoteSlurRange}
 				{rangeHasSlur}
+				{canStartSingleNoteSlur}
+				{canAddSlurToSelectedRange}
 				onSetFinger={logic.handleSetFingerFromMenu}
 				onStartSlur={logic.handleSingleNoteSlurAction}
 				onToggleSlur={logic.handleToggleSlurFromMenu}

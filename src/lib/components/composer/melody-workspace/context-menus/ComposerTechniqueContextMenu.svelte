@@ -12,6 +12,8 @@
 		selectedNoteRange?: { from: number; to: number } | null;
 		selectedNoteSlurRange?: { from: number; to: number } | null;
 		rangeHasSlur?: boolean;
+		canStartSingleNoteSlur?: boolean;
+		canAddSlurToSelectedRange?: boolean;
 		onSetFinger: (finger: number | undefined) => void;
 		onStartSlur?: () => void;
 		onToggleSlur?: () => void;
@@ -30,6 +32,8 @@
 		selectedNoteRange = null,
 		selectedNoteSlurRange = null,
 		rangeHasSlur = false,
+		canStartSingleNoteSlur = false,
+		canAddSlurToSelectedRange = false,
 		onSetFinger,
 		onStartSlur,
 		onToggleSlur,
@@ -42,6 +46,8 @@
 	const isRangeMode = $derived(selectedNoteRange !== null);
 	const isRestItem = $derived(!isRangeMode && selectedItem?.note === null);
 	const isSelectedNoteInSlur = $derived(selectedNoteSlurRange !== null);
+	const isRangeSlurToggleDisabled = $derived(!rangeHasSlur && !canAddSlurToSelectedRange);
+	const isSingleSlurToggleDisabled = $derived(!isSelectedNoteInSlur && !canStartSingleNoteSlur);
 	const selectedFingerOption = $derived.by((): FingerOption => {
 		if (isRangeMode || isRestItem || !selectedItem) return 'empty';
 		if (selectedItem.finger === undefined) return 'empty';
@@ -79,11 +85,19 @@
 				class="slur-toggle"
 				class:slur-toggle--active={rangeHasSlur}
 				onclick={onToggleSlur}
+				disabled={isRangeSlurToggleDisabled}
 				aria-pressed={rangeHasSlur}
+				title={showShortcutHints ? 'Shortcut: S' : undefined}
 			>
 				<span class="slur-icon" aria-hidden="true">⌢</span>
 				Slur
+				{#if showShortcutHints}
+					<span class="shortcut">S</span>
+				{/if}
 			</button>
+			{#if isRangeSlurToggleDisabled}
+				<p class="disabled-help-note">Slur must stay in one bar and cannot include rests.</p>
+			{/if}
 		</div>
 	{:else if isRestItem}
 		<p class="technique-context-info">Technique applies to notes only.</p>
@@ -110,10 +124,23 @@
 			{/if}
 		</div>
 		<hr class="technique-divider" />
-		<button class="slur-toggle" onclick={onStartSlur}>
+		<button
+			class="slur-toggle"
+			onclick={onStartSlur}
+			disabled={isSingleSlurToggleDisabled}
+			title={showShortcutHints ? 'Shortcut: S' : undefined}
+		>
 			<span class="slur-icon" aria-hidden="true">⌢</span>
 			{isSelectedNoteInSlur ? 'Remove slur' : 'Start slur'}
+			{#if showShortcutHints}
+				<span class="shortcut">S</span>
+			{/if}
 		</button>
+		{#if isSingleSlurToggleDisabled}
+			<p class="disabled-help-note">
+				Choose a note with another note right after it in the same bar.
+			</p>
+		{/if}
 	{/if}
 </ComposerContextMenuShell>
 
@@ -172,6 +199,19 @@
 		color: #16a34a;
 	}
 
+	.slur-toggle:disabled {
+		cursor: not-allowed;
+		opacity: 0.45;
+		border-color: #cbd5e1;
+		color: #94a3b8;
+		background: #f8fafc;
+	}
+
+	.slur-toggle:disabled:hover {
+		border-color: #cbd5e1;
+		color: #94a3b8;
+	}
+
 	.slur-toggle--active {
 		background: #dcfce7;
 		border-color: #16a34a;
@@ -194,6 +234,13 @@
 		font-size: 0.62rem;
 		line-height: 1.1;
 		font-weight: 700;
+		color: #64748b;
+	}
+
+	.disabled-help-note {
+		margin: 0.45rem 0 0;
+		font-size: 0.74rem;
+		line-height: 1.25;
 		color: #64748b;
 	}
 

@@ -9,8 +9,8 @@ export const COMPOSER_MELODY_MODE_OPTIONS: Array<{
 	label: string;
 }> = [
 	{ value: 'edit', label: 'Edit' },
-	{ value: 'technique', label: 'Technique' },
-	{ value: 'test', label: 'Test' }
+	{ value: 'technique', label: 'Technique' }
+	// { value: 'test', label: 'Test' }
 ];
 
 export interface ComposerMelodyPanelProps {

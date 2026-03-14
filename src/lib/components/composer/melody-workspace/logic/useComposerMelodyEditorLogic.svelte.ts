@@ -408,23 +408,6 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 		markEdited();
 	}
 
-	function cycleFingerMarkingAtFlatIndex(flatIndex: number) {
-		const melody = config.getMelody();
-		const mapped = toBarAndItemIndex(melody, flatIndex);
-		if (!mapped) return;
-
-		const currentItem = melody[mapped.barIndex]?.[mapped.itemIndex];
-		if (!currentItem || currentItem.note === null) return;
-
-		const fingerCycle: Array<number | undefined> = [0, 1, 2, 3, 4, undefined];
-		const currentFinger = currentItem.finger;
-		const currentCycleIndex = fingerCycle.findIndex((value) => value === currentFinger);
-		const nextFinger =
-			currentCycleIndex === -1 ? 0 : fingerCycle[(currentCycleIndex + 1) % fingerCycle.length];
-
-		handleSetFingerFromMenu(nextFinger);
-	}
-
 	function moveSelectedNoteBySemitone(direction: 1 | -1) {
 		if (selectedNoteIndex < 0) return;
 
@@ -560,12 +543,6 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 		}
 
 		if (isContextMenuShortcut) {
-			if (event.key === 'f' || event.key === 'F') {
-				event.preventDefault();
-				cycleFingerMarkingAtFlatIndex(contextMenu.index);
-				return;
-			}
-
 			const shortcutIndex = LENGTH_SHORTCUT_KEYS.indexOf(
 				event.key as (typeof LENGTH_SHORTCUT_KEYS)[number]
 			);
