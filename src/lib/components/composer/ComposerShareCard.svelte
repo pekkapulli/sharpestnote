@@ -54,7 +54,9 @@
 
 	const trimmedPieceLabel = $derived(pieceLabel.trim() || 'Untitled piece');
 	const trimmedTeacherShareNote = $derived(teacherShareNote.trim());
-	const canCreateShareImage = $derived(shareUrl.trim().length > 0 && qrCodeDataUrl.length > 0);
+	const canCreateShareImage = $derived(
+		shareUrl.trim().length > 0 && qrCodeDataUrl.length > 0 && !qrCodeError
+	);
 	const canUseNativeShare = $derived.by(() => {
 		if (typeof navigator === 'undefined') return false;
 		return typeof navigator.share === 'function';
@@ -465,11 +467,10 @@
 		/>
 		<div class="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-5">
 			<div>
-				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
-
-				<div
-					class="mx-auto mt-4 w-full max-w-52 rounded-2xl border border-slate-200 bg-white p-4 sm:max-w-64 sm:p-5"
+				<!-- <div
+					class="mx-auto mt-0 w-full max-w-52 rounded-2xl border border-slate-200 bg-white p-4 sm:max-w-64 sm:p-5"
 				>
+					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
 					<img
 						src={TheSharpestNoteLogo}
 						alt="The Sharpest Note"
@@ -504,9 +505,9 @@
 					</div>
 
 					<div class="hidden sm:block">
-						<h3 class="mt-5 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
+						<h3 class="mt-0 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
 						{#if trimmedTeacherShareNote}
-							<p class="mt-3 text-sm leading-6 whitespace-pre-wrap text-slate-700">
+							<p class="mt-0 text-sm leading-6 whitespace-pre-wrap text-slate-700">
 								{trimmedTeacherShareNote}
 							</p>
 						{:else}
@@ -516,79 +517,82 @@
 						{/if}
 					</div>
 				</div>
-			</div>
+			</div> -->
 
-			<div class="space-y-4">
-				<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share link</p>
-					<p class="mt-2 text-sm text-slate-600">Copy the short link or share the QR image.</p>
-					<div class="mt-3 flex flex-wrap gap-2"></div>
-					<div class="flex flex-wrap gap-2">
-						<Button
-							type="button"
-							size="medium"
-							onclick={onCopyUrl}
-							disabled={!shareUrl || isPreparingShareUrl}
-						>
-							Copy link
-						</Button>
-						<Button
-							type="button"
-							size="medium"
-							color="green"
-							onclick={handleDownloadImage}
-							disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
-						>
-							{isPreparingImage ? 'Preparing image...' : 'Download QR code'}
-						</Button>
-						<Button
-							type="button"
-							size="medium"
-							color="green"
-							onclick={handleNativeShareImage}
-							disabled={!canCreateShareImage ||
-								!canUseNativeShare ||
-								isPreparingImage ||
-								isPreparingShareUrl}
-						>
-							Share QR code
-						</Button>
+				<div class="space-y-4">
+					<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+						<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share link</p>
+						<p class="mt-2 text-sm text-slate-600">Copy the short link or share the QR image.</p>
+						<div class="mt-3 flex flex-wrap gap-2"></div>
+						<div class="flex flex-wrap gap-2">
+							<Button
+								type="button"
+								size="medium"
+								onclick={onCopyUrl}
+								disabled={!shareUrl || isPreparingShareUrl}
+							>
+								Copy link
+							</Button>
+							<Button
+								type="button"
+								size="medium"
+								color="green"
+								onclick={handleDownloadImage}
+								disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
+							>
+								{isPreparingImage ? 'Preparing image...' : 'Download QR code'}
+							</Button>
+							<Button
+								type="button"
+								size="medium"
+								color="green"
+								onclick={handleNativeShareImage}
+								disabled={!canCreateShareImage ||
+									!canUseNativeShare ||
+									isPreparingImage ||
+									isPreparingShareUrl}
+							>
+								Share QR code
+							</Button>
+							{#if qrCodeError}
+								<p class="text-sm text-amber-800">{qrCodeError}</p>
+							{/if}
+						</div>
+						{#if shareError}
+							<p class="mt-2 text-sm text-amber-800">{shareError}</p>
+						{/if}
+						{#if imageActionStatus}
+							<p class="mt-2 text-sm font-medium text-brand-green">{imageActionStatus}</p>
+						{/if}
+						{#if !canUseNativeShare}
+							<p class="mt-2 text-xs text-slate-500">
+								Native image sharing depends on browser support.
+							</p>
+						{/if}
 					</div>
-					{#if shareError}
-						<p class="mt-2 text-sm text-amber-800">{shareError}</p>
-					{/if}
-					{#if imageActionStatus}
-						<p class="mt-2 text-sm font-medium text-brand-green">{imageActionStatus}</p>
-					{/if}
-					{#if !canUseNativeShare}
-						<p class="mt-2 text-xs text-slate-500">
-							Native image sharing depends on browser support.
-						</p>
-					{/if}
-				</div>
-
-				<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">PDF</p>
-					<div class="flex flex-wrap gap-2">
-						<Button
-							type="button"
-							size="medium"
-							color="secondary"
-							onclick={handleDownloadPdf}
-							disabled={!canCreateShareImage ||
-								isPreparingImage ||
-								isPreparingPdf ||
-								isPreparingShareUrl}
-						>
-							<img src={printIcon} alt="Print icon" class="h-8 w-8 flex-none" />
-							{isPreparingPdf ? 'Preparing PDF...' : 'Download Sheet music PDF'}
-						</Button>
-					</div>
-					{#if pdfActionStatus}
-						<p class="mt-2 text-sm font-medium text-brand-green">{pdfActionStatus}</p>
-					{/if}
 				</div>
 			</div>
-		</div>
-	</Modal>
+			<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">PDF</p>
+				<div class="flex flex-wrap gap-2">
+					<Button
+						type="button"
+						size="medium"
+						color="secondary"
+						onclick={handleDownloadPdf}
+						disabled={!canCreateShareImage ||
+							isPreparingImage ||
+							isPreparingPdf ||
+							isPreparingShareUrl}
+					>
+						<img src={printIcon} alt="Print icon" class="h-8 w-8 flex-none" />
+						{isPreparingPdf ? 'Preparing PDF...' : 'Download Sheet music PDF'}
+					</Button>
+				</div>
+				{#if pdfActionStatus}
+					<p class="mt-2 text-sm font-medium text-brand-green">{pdfActionStatus}</p>
+				{/if}
+			</div>
+		</div></Modal
+	>
 </div>
