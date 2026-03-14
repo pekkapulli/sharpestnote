@@ -35,7 +35,7 @@
 	class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-4"
 >
 	<label class="flex flex-col gap-1 text-sm font-medium text-slate-700">
-		Label
+		Title
 		<input bind:value={pieceLabel} class="rounded-md border border-slate-300 px-3 py-2" />
 	</label>
 

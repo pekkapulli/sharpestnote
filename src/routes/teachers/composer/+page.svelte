@@ -470,9 +470,17 @@
 		<header class="space-y-4">
 			<div>
 				<p class="text-sm font-semibold tracking-wide text-brand-green uppercase">Teacher tools</p>
-				<h1 class="mt-2 text-3xl font-semibold text-slate-900">
+				<h1 class="mt-2 mb-4 text-3xl font-semibold text-slate-900">
 					Compose your own Sharpest Note piece
 				</h1>
+				<p class="mt-8 max-w-xl text-lg text-slate-700">
+					Use the tool below to create a custom piece that you can share with your students. Once
+					you're done, generate a share link that your students can use to practice the piece.
+				</p>
+				<p class="max-w-xl text-lg text-slate-700">
+					This tool is great for teachers who want to use the Sharpest Note practice experience with
+					their own material!
+				</p>
 			</div>
 		</header>
 
