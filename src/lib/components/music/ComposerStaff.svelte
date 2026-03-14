@@ -17,6 +17,7 @@
 		barsPerRow?: number;
 		minBarWidth?: number;
 		compactMode?: boolean;
+		allowNoteMove?: boolean;
 		pitchPalette?: string[];
 		playheadPosition?: number | null;
 		selectedNoteIndex?: number;
@@ -84,6 +85,7 @@
 		barsPerRow,
 		minBarWidth = 240,
 		compactMode = false,
+		allowNoteMove = true,
 		pitchPalette = [],
 		playheadPosition = null,
 		selectedNoteIndex = -1,
@@ -105,6 +107,9 @@
 	let hoverState = $state<HoverState | null>(null);
 	let dragState = $state<DragState | null>(null);
 	let suppressNextClick = $state(false);
+	const isInteractive = $derived(
+		Boolean(onMoveNote || onAddNote || onSelectNote || onOpenNoteContextMenu)
+	);
 	const computedBarsPerRow = $derived.by(() => {
 		if (effectiveWidth > 0 && effectiveWidth <= SMALL_SCREEN_BREAKPOINT) {
 			return 1;
@@ -396,7 +401,7 @@
 			x: nearest.noteX,
 			y: closestPitch.y,
 			note: closestPitch.note,
-			action: nearest.distance <= SELECT_NOTE_THRESHOLD ? 'move' : 'add',
+			action: allowNoteMove && nearest.distance <= SELECT_NOTE_THRESHOLD ? 'move' : 'add',
 			noteIndex: nearest.noteIndex
 		};
 	}
@@ -480,6 +485,10 @@
 			return;
 		}
 
+		if (!allowNoteMove) {
+			return;
+		}
+
 		if (dragState.longPressTriggered) {
 			event.preventDefault();
 			return;
@@ -546,7 +555,13 @@
 		}
 
 		if (!currentDrag.didDrag && !currentDrag.longPressTriggered) {
-			performHoverAction();
+			const row = rowSpecs[currentDrag.rowIndex];
+			if (!allowNoteMove && currentDrag.longPressEligible && row && onOpenNoteContextMenu) {
+				onSelectNote?.(currentDrag.noteIndex);
+				emitContextMenuForNote(row, currentDrag.noteIndex, currentDrag.noteX);
+			} else {
+				performHoverAction();
+			}
 			suppressNextClick = true;
 		}
 
@@ -689,6 +704,7 @@
 			<div
 				class="row"
 				class:row-compact={compactMode}
+				class:row-interactive={isInteractive}
 				style="height: {ROW_HEIGHT}px;"
 				onmousemove={(e) => onRowMouseMove(e, row)}
 				onmouseleave={onRowMouseLeave}
@@ -743,10 +759,15 @@
 		position: relative;
 		width: 100%;
 		margin-bottom: 16px;
+		cursor: default;
 		touch-action: none;
 		user-select: none;
 		-webkit-user-select: none;
 		-webkit-touch-callout: none;
+	}
+
+	.row.row-interactive {
+		cursor: pointer;
 	}
 
 	.row.row-compact {

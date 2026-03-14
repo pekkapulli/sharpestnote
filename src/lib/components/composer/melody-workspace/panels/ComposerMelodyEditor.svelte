@@ -1,16 +1,16 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import { MAX_MELODY_BARS } from './composerMelodyEditorLogic';
-	import ComposerMelodyPreviewControls from './ComposerMelodyPreviewControls.svelte';
-	import ComposerMelodyEditorInstructions from './ComposerMelodyEditorInstructions.svelte';
+	import { MAX_MELODY_BARS } from '../logic/composerMelodyEditorLogic';
+	import ComposerMelodyPreviewControls from '../controls/ComposerMelodyPreviewControls.svelte';
+	import ComposerMelodyEditorInstructions from '../controls/ComposerMelodyEditorInstructions.svelte';
 	import {
 		type NoteContextMenuHandle,
 		type StaffContextMenuAnchorProvider,
 		useComposerMelodyEditorLogic
-	} from './useComposerMelodyEditorLogic.svelte';
+	} from '../logic/useComposerMelodyEditorLogic.svelte';
 	import ComposerStaff from '$lib/components/music/ComposerStaff.svelte';
-	import ComposerNoteContextMenu from '$lib/components/composer/ComposerNoteContextMenu.svelte';
-	import type { ComposerMelodyPanelProps } from './composerMelodyTypes';
+	import ComposerNoteContextMenu from '../context-menus/ComposerNoteContextMenu.svelte';
+	import type { ComposerMelodyPanelProps } from '../types/composerMelodyTypes';
 
 	let {
 		clef,

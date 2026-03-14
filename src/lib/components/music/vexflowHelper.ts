@@ -333,6 +333,7 @@ export function renderVexFlowStaff(
 	if (allNotes.length > 0) {
 		// Set proportional widths based on note duration within each bar
 		const minWidth = Math.max(10, Math.floor(layoutOptions.minNoteWidth ?? 20));
+		const assignedNoteWidths: number[] = [];
 		let noteIndex = 0;
 		let totalComputedWidth = 0;
 		const firstBarHeaderReserve = Math.max(
@@ -350,6 +351,7 @@ export function renderVexFlowStaff(
 			for (const item of bar) {
 				const noteWidth = Math.max(minWidth, item.length * barPixelsPerSixteenth);
 				allNotes[noteIndex].setWidth(noteWidth);
+				assignedNoteWidths[noteIndex] = noteWidth;
 				totalComputedWidth += noteWidth;
 				noteIndex++;
 			}
@@ -365,7 +367,9 @@ export function renderVexFlowStaff(
 			for (const bar of displayBars) {
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				for (const _item of bar) {
-					allNotes[idx].setWidth(Math.max(12, allNotes[idx].getWidth() * scale));
+					const scaledWidth = Math.max(12, (assignedNoteWidths[idx] ?? minWidth) * scale);
+					allNotes[idx].setWidth(scaledWidth);
+					assignedNoteWidths[idx] = scaledWidth;
 					idx++;
 				}
 			}

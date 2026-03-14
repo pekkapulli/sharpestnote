@@ -1,13 +1,13 @@
 <script lang="ts">
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
-	import ComposerMelodyEditor from './ComposerMelodyEditor.svelte';
-	import ComposerMelodyTechniqueEditor from './ComposerMelodyTechniqueEditor.svelte';
-	import ComposerMelodyTestEditor from './ComposerMelodyTestEditor.svelte';
+	import ComposerMelodyEditor from './panels/ComposerMelodyEditor.svelte';
+	import ComposerMelodyTechniqueEditor from './panels/ComposerMelodyTechniqueEditor.svelte';
+	import ComposerMelodyTestEditor from './panels/ComposerMelodyTestEditor.svelte';
 	import {
 		COMPOSER_MELODY_MODE_OPTIONS,
 		type ComposerMelodyMode,
 		type ComposerMelodyPanelProps
-	} from './composerMelodyTypes';
+	} from './types/composerMelodyTypes';
 
 	let {
 		clef,
@@ -71,7 +71,23 @@
 			{onEdit}
 		/>
 	{:else if editorMode === 'technique'}
-		<ComposerMelodyTechniqueEditor />
+		<ComposerMelodyTechniqueEditor
+			{clef}
+			bind:melody
+			{instrumentId}
+			{keySignature}
+			{barLength}
+			{availablePitches}
+			{isPlayingMelodyPreview}
+			{isMelodyPreviewMuted}
+			{melodyPlayheadPosition}
+			{lengthOptions}
+			{onToggleMelodyPlayback}
+			{onPlayMelodyFromStart}
+			{onToggleMelodyMute}
+			{onPreviewItem}
+			{onEdit}
+		/>
 	{:else}
 		<ComposerMelodyTestEditor />
 	{/if}
