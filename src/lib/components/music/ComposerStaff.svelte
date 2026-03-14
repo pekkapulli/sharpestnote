@@ -25,6 +25,7 @@
 		pitchPalette?: string[];
 		playheadPosition?: number | null;
 		selectedNoteIndex?: number;
+		selectedNoteRange?: { from: number; to: number } | null;
 		onInteraction?: (interaction: ComposerStaffInteraction) => void;
 		isContextMenuOpen?: boolean;
 	}
@@ -89,6 +90,7 @@
 		pitchPalette = [],
 		playheadPosition = null,
 		selectedNoteIndex = -1,
+		selectedNoteRange = null,
 		onInteraction,
 		isContextMenuOpen = false
 	}: Props = $props();
@@ -480,6 +482,33 @@
 		}
 
 		if (!enablePitchDrag) {
+			// Range selection drag when pitch editing is disabled
+			if (dragState.longPressTriggered) return;
+
+			if (!dragState.didDrag) {
+				const deltaX = localX - dragState.startX;
+				const deltaY = localY - dragState.startY;
+				const distance = Math.hypot(deltaX, deltaY);
+				if (distance < DRAG_START_THRESHOLD) return;
+				// Require horizontal movement to dominate (not a scroll gesture)
+				if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+				if (dragState.longPressTimer) {
+					clearTimeout(dragState.longPressTimer);
+				}
+				dragState = { ...dragState, didDrag: true, longPressTimer: null };
+			}
+
+			const nearest = getNearestNoteAtX(row, localX);
+			if (!nearest) return;
+
+			const from = Math.min(dragState.noteIndex, nearest.noteIndex);
+			const to = Math.max(dragState.noteIndex, nearest.noteIndex);
+
+			if (from !== to) {
+				onInteraction?.({ type: 'note-range-select', fromIndex: from, toIndex: to });
+			}
+			event.preventDefault();
 			return;
 		}
 
@@ -725,6 +754,30 @@
 				<div bind:this={rowContainers[row.rowIndex]} class="vexflow-container"></div>
 
 				<svg class="feedback-overlay" width={effectiveWidth} height={ROW_HEIGHT}>
+					{#if selectedNoteRange}
+						{@const rangeFirst = Math.max(row.startNoteIndex, selectedNoteRange.from)}
+						{@const rangeLast = Math.min(
+							row.startNoteIndex + row.notes.length - 1,
+							selectedNoteRange.to
+						)}
+						{#if rangeFirst <= rangeLast}
+							{@const rd = rowRenderData[row.rowIndex]}
+							{@const noteXs = rd?.noteXPositions ?? []}
+							{@const x1 = noteXs[rangeFirst - row.startNoteIndex] ?? 0}
+							{@const x2 = noteXs[rangeLast - row.startNoteIndex] ?? x1}
+							{#if rd}
+								<rect
+									x={x1 - 14}
+									y={rd.topLineY - rd.lineSpacing}
+									width={x2 - x1 + 28}
+									height={rd.lineSpacing * 6}
+									rx="4"
+									class="range-highlight"
+								/>
+							{/if}
+						{/if}
+					{/if}
+
 					{#if row.notes.length}
 						{#each row.notes as item, i (`${row.rowIndex}-${i}`)}
 							{#if item.note !== null}
@@ -833,5 +886,11 @@
 		fill: rgba(59, 130, 246, 0.2);
 		stroke: #2563eb;
 		stroke-width: 2;
+	}
+
+	.range-highlight {
+		fill: rgba(22, 163, 74, 0.12);
+		stroke: rgba(22, 163, 74, 0.45);
+		stroke-width: 1.5;
 	}
 </style>

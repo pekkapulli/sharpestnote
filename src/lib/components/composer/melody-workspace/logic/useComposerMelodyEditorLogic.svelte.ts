@@ -50,6 +50,7 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 
 	let editorError = $state('');
 	let selectedNoteIndex = $state(-1);
+	let interactionHadDrag = false;
 	let noteContextMenu = $state<{
 		index: number;
 		x: number;
@@ -227,11 +228,16 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 		const normalizedNote = applyKeySignatureToNaturalNote(config.getKeySignature(), note);
 		const didAppend = appendNote(normalizedNote);
 		if (didAppend) {
-			selectedNoteIndex = previousLength;
+			const newIndex = previousLength;
+			selectedNoteIndex = newIndex;
 			previewItem({
 				note: normalizedNote,
 				length: selectedLength,
 				finger: resolveFingerAfterPitchChange(normalizedNote)
+			});
+			requestAnimationFrame(() => {
+				syncContextMenuToSelection(newIndex);
+				pendingContextMenuVisibilityCheck = true;
 			});
 		}
 	}
@@ -272,6 +278,7 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 				return;
 			case 'note-drag':
 				handleMoveNoteFromStaff(interaction.index, interaction.note);
+				interactionHadDrag = true;
 				return;
 			case 'note-activate':
 				if (interaction.trigger === 'tap' && interaction.note) {
@@ -286,9 +293,19 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 			case 'add-note':
 				handleAddNoteFromStaff(interaction.note);
 				return;
-			case 'interaction-end':
+			case 'interaction-end': {
+				const hadDrag = interactionHadDrag;
+				interactionHadDrag = false;
+				if (hadDrag) {
+					const indexToOpen = selectedNoteIndex;
+					requestAnimationFrame(() => {
+						syncContextMenuToSelection(indexToOpen);
+						pendingContextMenuVisibilityCheck = true;
+					});
+				}
 				handleStaffInteractionRelease();
 				return;
+			}
 		}
 	}
 
@@ -659,6 +676,16 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 		}
 	}
 
+	function clearMelody() {
+		markEdited();
+		closeNoteContextMenu();
+
+		const barCount = Math.max(1, config.getMelody().length);
+		const resetMelody = createInitialRests(config.getBarLength() as NoteLength, barCount);
+		config.setMelody(resetMelody);
+		selectedNoteIndex = -1;
+	}
+
 	const remainingInBarForSelected = $derived.by(() => {
 		if (!noteContextMenu) return config.getBarLength();
 		return getRemainingInBarAtFlatIndex(
@@ -694,6 +721,7 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 		handleWindowScroll,
 		tidyUpRests,
 		addBar,
-		removeLastBar
+		removeLastBar,
+		clearMelody
 	};
 }

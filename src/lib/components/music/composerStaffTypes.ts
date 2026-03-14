@@ -24,5 +24,10 @@ export type ComposerStaffInteraction =
 			note: string;
 	  }
 	| {
+			type: 'note-range-select';
+			fromIndex: number;
+			toIndex: number;
+	  }
+	| {
 			type: 'interaction-end';
 	  };

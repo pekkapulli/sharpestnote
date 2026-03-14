@@ -88,17 +88,19 @@
 	</div>
 
 	<div class="mt-6 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
-		<div class="mb-2 flex justify-around gap-2 sm:mb-3">
+		<div
+			class="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-6 sm:mb-3 sm:flex-nowrap sm:justify-around sm:gap-y-2"
+		>
 			<Button
 				type="button"
 				size="medium"
 				variant="secondary"
-				title="Merge adjacent rests"
-				onclick={logic.tidyUpRests}
+				title="Clear melody and restore initial rests"
+				onclick={logic.clearMelody}
 			>
-				Tidy up rests
+				Clear melody
 			</Button>
-			<div class="flex gap-2">
+			<div class="order-3 flex w-full justify-center gap-2 sm:order-0 sm:w-auto">
 				<Button
 					type="button"
 					size="medium"
@@ -117,6 +119,17 @@
 					disabled={hasReachedMaxBars}
 				>
 					+ Add bar
+				</Button>
+			</div>
+			<div class="order-2 sm:order-0">
+				<Button
+					type="button"
+					size="medium"
+					variant="secondary"
+					title="Merge adjacent rests"
+					onclick={logic.tidyUpRests}
+				>
+					Tidy up rests
 				</Button>
 			</div>
 		</div>
@@ -151,7 +164,6 @@
 				remainingInBar={remainingInBarForSelected}
 				onChangeLength={logic.handleChangeLengthFromMenu}
 				onSetItemKind={logic.handleSetItemKindFromMenu}
-				onSetFinger={logic.handleSetFingerFromMenu}
 				onMoveDownSemitone={() => logic.moveSelectedNoteBySemitone(-1)}
 				onMoveUpSemitone={() => logic.moveSelectedNoteBySemitone(1)}
 				canMoveDownSemitone={logic.canMoveSelectedNoteBySemitone(-1)}

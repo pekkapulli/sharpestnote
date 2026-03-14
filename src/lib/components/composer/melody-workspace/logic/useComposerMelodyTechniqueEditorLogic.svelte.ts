@@ -22,7 +22,30 @@ interface UseComposerMelodyTechniqueEditorLogicConfig {
 export function useComposerMelodyTechniqueEditorLogic(
 	config: UseComposerMelodyTechniqueEditorLogicConfig
 ) {
+	function findSlurRangeAtIndex(items: MelodyItem[], index: number) {
+		if (index < 0 || index >= items.length) return null;
+
+		let slurStartIndex: number | null = null;
+		for (let idx = 0; idx < items.length; idx += 1) {
+			if (items[idx]?.slurStart === true) {
+				slurStartIndex = idx;
+			}
+
+			if (slurStartIndex !== null && items[idx]?.slurEnd === true && idx >= slurStartIndex) {
+				if (index >= slurStartIndex && index <= idx) {
+					return { from: slurStartIndex, to: idx };
+				}
+				slurStartIndex = null;
+			}
+		}
+
+		return null;
+	}
+
 	let selectedNoteIndex = $state(-1);
+	let selectedNoteRange = $state<{ from: number; to: number } | null>(null);
+	let pendingSlurStartIndex = $state<number | null>(null);
+	let isStaffPointerActive = false;
 	let noteContextMenu = $state<{ index: number; x: number; y: number } | null>(null);
 	let isSmallScreen = $state(false);
 	let pendingContextMenuVisibilityCheck = $state(false);
@@ -30,6 +53,17 @@ export function useComposerMelodyTechniqueEditorLogic(
 	const sequence = $derived(config.getMelody().flat());
 	const selectedSequenceItem = $derived(
 		selectedNoteIndex >= 0 ? (sequence[selectedNoteIndex] ?? null) : null
+	);
+	const selectedRangeItems = $derived(
+		selectedNoteRange ? sequence.slice(selectedNoteRange.from, selectedNoteRange.to + 1) : []
+	);
+	const selectedNoteSlurRange = $derived(
+		selectedNoteRange === null ? findSlurRangeAtIndex(sequence, selectedNoteIndex) : null
+	);
+	const rangeHasSlur = $derived(
+		selectedNoteRange !== null &&
+			sequence[selectedNoteRange.from]?.slurStart === true &&
+			sequence[selectedNoteRange.to]?.slurEnd === true
 	);
 
 	$effect(() => {
@@ -53,7 +87,7 @@ export function useComposerMelodyTechniqueEditorLogic(
 			selectedNoteIndex = sequence.length - 1;
 		}
 
-		if (noteContextMenu && selectedNoteIndex !== noteContextMenu.index) {
+		if (noteContextMenu && !selectedNoteRange && selectedNoteIndex !== noteContextMenu.index) {
 			noteContextMenu = null;
 		}
 	});
@@ -80,6 +114,7 @@ export function useComposerMelodyTechniqueEditorLogic(
 
 	function closeNoteContextMenu() {
 		noteContextMenu = null;
+		selectedNoteRange = null;
 	}
 
 	function syncContextMenuToSelection(index: number) {
@@ -94,9 +129,26 @@ export function useComposerMelodyTechniqueEditorLogic(
 		}
 	}
 
+	function syncContextMenuToRange(from: number, to: number) {
+		const fromAnchor = config.getStaffRef()?.getContextMenuAnchorForNote(from);
+		const toAnchor = config.getStaffRef()?.getContextMenuAnchorForNote(to);
+		if (fromAnchor && toAnchor) {
+			noteContextMenu = {
+				index: from,
+				x: (fromAnchor.x + toAnchor.x) / 2,
+				y: Math.min(fromAnchor.y, toAnchor.y)
+			};
+		} else if (toAnchor) {
+			noteContextMenu = { ...toAnchor, index: from };
+		} else if (fromAnchor) {
+			noteContextMenu = fromAnchor;
+		}
+	}
+
 	function handleSelectNoteFromStaff(index: number) {
 		selectedNoteIndex = index;
-		syncContextMenuToSelection(index);
+		selectedNoteRange = null;
+		isStaffPointerActive = true;
 	}
 
 	function handleOpenNoteContextMenu(payload: { index: number; x: number; y: number }) {
@@ -113,6 +165,10 @@ export function useComposerMelodyTechniqueEditorLogic(
 			case 'note-select':
 				handleSelectNoteFromStaff(interaction.index);
 				return;
+			case 'note-range-select':
+				selectedNoteRange = { from: interaction.fromIndex, to: interaction.toIndex };
+				noteContextMenu = null;
+				return;
 			case 'note-activate':
 				handleOpenNoteContextMenu({
 					index: interaction.index,
@@ -120,12 +176,56 @@ export function useComposerMelodyTechniqueEditorLogic(
 					y: interaction.y
 				});
 				return;
-			case 'interaction-end':
+			case 'interaction-end': {
+				isStaffPointerActive = false;
+				if (pendingSlurStartIndex !== null) {
+					if (selectedNoteIndex >= 0 && selectedNoteIndex !== pendingSlurStartIndex) {
+						applySlur(pendingSlurStartIndex, selectedNoteIndex);
+					}
+					pendingSlurStartIndex = null;
+					handleStaffInteractionRelease();
+					return;
+				}
+				if (selectedNoteRange) {
+					syncContextMenuToRange(selectedNoteRange.from, selectedNoteRange.to);
+				} else if (selectedNoteIndex >= 0 && !noteContextMenu) {
+					syncContextMenuToSelection(selectedNoteIndex);
+				}
 				handleStaffInteractionRelease();
 				return;
+			}
 			default:
 				return;
 		}
+	}
+
+	function applySlur(startIndex: number, endIndex: number) {
+		const from = Math.min(startIndex, endIndex);
+		const to = Math.max(startIndex, endIndex);
+
+		let runningIndex = 0;
+		const nextMelody = config.getMelody().map((bar) =>
+			bar.map((item) => {
+				const idx = runningIndex++;
+				if (idx < from || idx > to) return item;
+
+				const updated = { ...item };
+				delete updated.slurStart;
+				delete updated.slurEnd;
+				if (idx === from) updated.slurStart = true;
+				if (idx === to) updated.slurEnd = true;
+				return updated;
+			})
+		);
+
+		config.setMelody(nextMelody);
+		markEdited();
+	}
+
+	function handleStartSlur() {
+		if (selectedNoteIndex < 0) return;
+		pendingSlurStartIndex = selectedNoteIndex;
+		closeNoteContextMenu();
 	}
 
 	function handleSetFingerFromMenu(finger: number | undefined) {
@@ -151,7 +251,70 @@ export function useComposerMelodyTechniqueEditorLogic(
 		markEdited();
 	}
 
+	function clearSlur(from: number, to: number) {
+		let runningIndex = 0;
+		const nextMelody = config.getMelody().map((bar) =>
+			bar.map((item) => {
+				const idx = runningIndex++;
+				if (idx !== from && idx !== to) return item;
+
+				const updated = { ...item };
+				if (idx === from) delete updated.slurStart;
+				if (idx === to) delete updated.slurEnd;
+				return updated;
+			})
+		);
+
+		config.setMelody(nextMelody);
+		markEdited();
+	}
+
+	function handleToggleSlurFromMenu() {
+		if (!selectedNoteRange) return;
+
+		const { from, to } = selectedNoteRange;
+		const shouldAdd = !rangeHasSlur;
+
+		let runningIndex = 0;
+		const nextMelody = config.getMelody().map((bar) =>
+			bar.map((item) => {
+				const idx = runningIndex++;
+				if (idx < from || idx > to) return item;
+
+				const updated = { ...item };
+				// Clear any existing slur markers within the range first
+				delete updated.slurStart;
+				delete updated.slurEnd;
+
+				if (shouldAdd) {
+					if (idx === from) updated.slurStart = true;
+					if (idx === to) updated.slurEnd = true;
+				}
+
+				return updated;
+			})
+		);
+
+		config.setMelody(nextMelody);
+		markEdited();
+	}
+
+	function handleSingleNoteSlurAction() {
+		if (selectedNoteIndex < 0) return;
+
+		const slurRange = findSlurRangeAtIndex(sequence, selectedNoteIndex);
+		if (slurRange) {
+			clearSlur(slurRange.from, slurRange.to);
+			return;
+		}
+
+		handleStartSlur();
+	}
+
 	function handleWindowPointerDown() {
+		if (!isStaffPointerActive && pendingSlurStartIndex !== null) {
+			pendingSlurStartIndex = null;
+		}
 		if (!noteContextMenu) return;
 		closeNoteContextMenu();
 	}
@@ -168,14 +331,22 @@ export function useComposerMelodyTechniqueEditorLogic(
 
 	return {
 		selectedNoteIndex: () => selectedNoteIndex,
+		selectedNoteRange: () => selectedNoteRange,
+		selectedNoteSlurRange: () => selectedNoteSlurRange,
+		pendingSlurStartIndex: () => pendingSlurStartIndex,
+		rangeHasSlur: () => rangeHasSlur,
 		noteContextMenu: () => noteContextMenu,
 		isSmallScreen: () => isSmallScreen,
 		selectedSequenceItem: () => selectedSequenceItem,
+		selectedRangeItems: () => selectedRangeItems,
 		handleStaffInteraction,
 		handleSelectNoteFromStaff,
 		handleOpenNoteContextMenu,
 		handleStaffInteractionRelease,
 		handleSetFingerFromMenu,
+		handleStartSlur,
+		handleSingleNoteSlurAction,
+		handleToggleSlurFromMenu,
 		handleWindowPointerDown,
 		handleWindowScroll,
 		handleContextMenuScrollIntoView

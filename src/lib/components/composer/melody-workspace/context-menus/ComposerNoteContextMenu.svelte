@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import ComposerContextMenuShell from './ComposerContextMenuShell.svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import {
 		lengthRestMap,
@@ -17,7 +18,6 @@
 		remainingInBar?: number;
 		onChangeLength: (length: NoteLength) => void;
 		onSetItemKind: (kind: 'note' | 'rest') => void;
-		onSetFinger: (finger: number | undefined) => void;
 		onMoveDownSemitone: () => void;
 		onMoveUpSemitone: () => void;
 		canMoveDownSemitone: boolean;
@@ -25,11 +25,9 @@
 		onRequestScrollIntoView?: (deltaY: number) => void;
 	}
 
-	type FingerOption = 'empty' | '0' | '1' | '2' | '3' | '4';
-
-	const VIEWPORT_MARGIN = 8;
-	const MENU_ARROW_GAP = 22;
-	const ARROW_EDGE_PADDING = 16;
+	type ContextMenuShellHandle = {
+		scrollIntoViewIfNeeded: () => void;
+	};
 
 	let {
 		x,
@@ -39,7 +37,6 @@
 		remainingInBar = Infinity,
 		onChangeLength,
 		onSetItemKind,
-		onSetFinger,
 		onMoveDownSemitone,
 		onMoveUpSemitone,
 		canMoveDownSemitone,
@@ -47,22 +44,10 @@
 		onRequestScrollIntoView
 	}: Props = $props();
 
-	let menuElement = $state<HTMLDivElement | null>(null);
-	let menuLeft = $state(0);
-	let menuTop = $state(0);
-	let arrowLeft = $state(0);
+	let shellRef = $state<ContextMenuShellHandle | null>(null);
 	let showShortcutHints = $state(false);
 
 	const isRestItem = $derived(selectedItem.note === null);
-	const selectedFingerOption = $derived.by((): FingerOption => {
-		if (isRestItem) return 'empty';
-		if (selectedItem.finger === undefined) return 'empty';
-
-		const effectiveFinger = selectedItem.finger;
-
-		const normalized = Math.max(0, Math.min(4, effectiveFinger));
-		return String(normalized) as FingerOption;
-	});
 
 	function getLengthGlyph(length: NoteLength): string {
 		const glyphMap = isRestItem ? lengthRestMap : lengthToNoteMap;
@@ -76,90 +61,21 @@
 		return String(length);
 	}
 
-	function handleFingerChange(value: FingerOption) {
-		onSetFinger(value === 'empty' ? undefined : Number(value));
-	}
-
-	function clamp(value: number, min: number, max: number): number {
-		if (max < min) return min;
-		return Math.min(Math.max(value, min), max);
-	}
-
-	function updateContextMenuPosition() {
-		if (!menuElement || typeof window === 'undefined') return;
-
-		const { width, height } = menuElement.getBoundingClientRect();
-		const desiredLeft = x - width / 2;
-		const desiredTop = y - height - MENU_ARROW_GAP;
-
-		const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN);
-
-		const clampedLeft = clamp(desiredLeft, VIEWPORT_MARGIN, maxLeft);
-		const clampedArrowLeft = clamp(
-			x - clampedLeft,
-			ARROW_EDGE_PADDING,
-			Math.max(ARROW_EDGE_PADDING, width - ARROW_EDGE_PADDING)
-		);
-
-		menuLeft = clampedLeft;
-		menuTop = desiredTop;
-		arrowLeft = clampedArrowLeft;
-	}
-
 	export function scrollIntoViewIfNeeded() {
-		if (!menuElement || !onRequestScrollIntoView || typeof window === 'undefined') return;
-
-		const rect = menuElement.getBoundingClientRect();
-		const hiddenTop = VIEWPORT_MARGIN - rect.top;
-		const hiddenBottom = rect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
-
-		if (hiddenTop > 0) {
-			onRequestScrollIntoView(-Math.ceil(hiddenTop));
-		} else if (hiddenBottom > 0) {
-			onRequestScrollIntoView(Math.ceil(hiddenBottom));
-		}
+		shellRef?.scrollIntoViewIfNeeded();
 	}
-
-	function queueContextMenuPositionUpdate(
-		_note: string | null,
-		_length: NoteLength,
-		_finger: number | undefined,
-		_lengthOptionCount: number,
-		_remainingInBar: number,
-		_anchorX: number,
-		_anchorY: number
-	) {
-		void [_note, _length, _finger, _lengthOptionCount, _remainingInBar, _anchorX, _anchorY];
-		requestAnimationFrame(() => {
-			updateContextMenuPosition();
-		});
-	}
-
-	$effect(() => {
-		queueContextMenuPositionUpdate(
-			selectedItem.note,
-			selectedItem.length,
-			selectedItem.finger,
-			lengthOptions.length,
-			remainingInBar,
-			x,
-			y
-		);
-	});
 
 	onMount(() => {
 		showShortcutHints = !isTouchDevice();
 	});
 </script>
 
-<svelte:window onresize={updateContextMenuPosition} />
-
-<div
-	bind:this={menuElement}
-	class="note-context-menu"
-	style={`left: ${menuLeft}px; top: ${menuTop}px; --arrow-left: ${arrowLeft}px;`}
-	role="presentation"
-	onpointerdown={(event) => event.stopPropagation()}
+<ComposerContextMenuShell
+	bind:this={shellRef}
+	{x}
+	{y}
+	menuClass="note-context-menu"
+	{onRequestScrollIntoView}
 >
 	<div class="note-context-menu-lengths">
 		{#each lengthOptions as length, index (length)}
@@ -222,57 +138,15 @@
 			</button>
 		</div>
 	</div>
-	{#if !isRestItem}
-		<div class="note-context-menu-actions">
-			<p class="mb-1! text-xs text-slate-500">Finger:</p>
-			<PillSelector
-				options={[
-					{ value: 'empty', label: 'Empty' },
-					{ value: '0', label: '0' },
-					{ value: '1', label: '1' },
-					{ value: '2', label: '2' },
-					{ value: '3', label: '3' },
-					{ value: '4', label: '4' }
-				]}
-				selected={selectedFingerOption}
-				onSelect={handleFingerChange}
-				ariaLabel="Set finger number"
-			/>
-			{#if showShortcutHints}
-				<div class="note-context-shortcut-overlay-top" aria-hidden="true">
-					<span class="shortcut">F</span>
-				</div>
-			{/if}
-		</div>
-	{/if}
-</div>
+</ComposerContextMenuShell>
 
 <style>
-	.note-context-menu {
-		position: fixed;
-		z-index: 60;
+	:global(.note-context-menu) {
 		min-width: 280px;
 		padding: 34px 10px 10px;
-		border: 1px solid #cbd5e1;
-		border-radius: 12px;
-		background: #ffffff;
-		box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
-	}
-
-	.note-context-menu::after {
-		content: '';
-		position: absolute;
-		left: var(--arrow-left, 50%);
-		bottom: -7px;
-		width: 12px;
-		height: 12px;
-		background: #ffffff;
-		border-right: 1px solid #cbd5e1;
-		border-bottom: 1px solid #cbd5e1;
-		transform: translateX(-50%) rotate(45deg);
 	}
 
 	.note-context-menu-lengths {
@@ -329,16 +203,6 @@
 		pointer-events: none;
 	}
 
-	.note-context-shortcut-overlay-top {
-		position: absolute;
-		top: 0px;
-		right: 8px;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		pointer-events: none;
-	}
-
 	.note-context-chip:hover:not(:disabled) {
 		background: #e2e8f0;
 	}
@@ -387,7 +251,7 @@
 	}
 
 	@media (max-width: 640px) {
-		.note-context-menu {
+		:global(.note-context-menu) {
 			min-width: 240px;
 		}
 	}

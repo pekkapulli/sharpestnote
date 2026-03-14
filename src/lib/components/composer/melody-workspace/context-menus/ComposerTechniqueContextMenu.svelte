@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import ComposerContextMenuShell from './ComposerContextMenuShell.svelte';
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
 	import type { MelodyItem } from '$lib/config/melody';
 	import { isTouchDevice } from '$lib/util/isTouchDevice';
@@ -7,28 +8,42 @@
 	interface Props {
 		x: number;
 		y: number;
-		selectedItem: MelodyItem;
+		selectedItem: MelodyItem | null;
+		selectedNoteRange?: { from: number; to: number } | null;
+		selectedNoteSlurRange?: { from: number; to: number } | null;
+		rangeHasSlur?: boolean;
 		onSetFinger: (finger: number | undefined) => void;
+		onStartSlur?: () => void;
+		onToggleSlur?: () => void;
 		onRequestScrollIntoView?: (deltaY: number) => void;
 	}
 
 	type FingerOption = 'empty' | '0' | '1' | '2' | '3' | '4';
+	type ContextMenuShellHandle = {
+		scrollIntoViewIfNeeded: () => void;
+	};
 
-	const VIEWPORT_MARGIN = 8;
-	const MENU_ARROW_GAP = 22;
-	const ARROW_EDGE_PADDING = 16;
+	let {
+		x,
+		y,
+		selectedItem,
+		selectedNoteRange = null,
+		selectedNoteSlurRange = null,
+		rangeHasSlur = false,
+		onSetFinger,
+		onStartSlur,
+		onToggleSlur,
+		onRequestScrollIntoView
+	}: Props = $props();
 
-	let { x, y, selectedItem, onSetFinger, onRequestScrollIntoView }: Props = $props();
-
-	let menuElement = $state<HTMLDivElement | null>(null);
-	let menuLeft = $state(0);
-	let menuTop = $state(0);
-	let arrowLeft = $state(0);
+	let shellRef = $state<ContextMenuShellHandle | null>(null);
 	let showShortcutHints = $state(false);
 
-	const isRestItem = $derived(selectedItem.note === null);
+	const isRangeMode = $derived(selectedNoteRange !== null);
+	const isRestItem = $derived(!isRangeMode && selectedItem?.note === null);
+	const isSelectedNoteInSlur = $derived(selectedNoteSlurRange !== null);
 	const selectedFingerOption = $derived.by((): FingerOption => {
-		if (isRestItem) return 'empty';
+		if (isRangeMode || isRestItem || !selectedItem) return 'empty';
 		if (selectedItem.finger === undefined) return 'empty';
 
 		const normalized = Math.max(0, Math.min(4, selectedItem.finger));
@@ -39,77 +54,39 @@
 		onSetFinger(value === 'empty' ? undefined : Number(value));
 	}
 
-	function clamp(value: number, min: number, max: number): number {
-		if (max < min) return min;
-		return Math.min(Math.max(value, min), max);
-	}
-
-	function updateContextMenuPosition() {
-		if (!menuElement || typeof window === 'undefined') return;
-
-		const { width, height } = menuElement.getBoundingClientRect();
-		const desiredLeft = x - width / 2;
-		const desiredTop = y - height - MENU_ARROW_GAP;
-		const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN);
-
-		const clampedLeft = clamp(desiredLeft, VIEWPORT_MARGIN, maxLeft);
-		const clampedArrowLeft = clamp(
-			x - clampedLeft,
-			ARROW_EDGE_PADDING,
-			Math.max(ARROW_EDGE_PADDING, width - ARROW_EDGE_PADDING)
-		);
-
-		menuLeft = clampedLeft;
-		menuTop = desiredTop;
-		arrowLeft = clampedArrowLeft;
-	}
-
 	export function scrollIntoViewIfNeeded() {
-		if (!menuElement || !onRequestScrollIntoView || typeof window === 'undefined') return;
-
-		const rect = menuElement.getBoundingClientRect();
-		const hiddenTop = VIEWPORT_MARGIN - rect.top;
-		const hiddenBottom = rect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
-
-		if (hiddenTop > 0) {
-			onRequestScrollIntoView(-Math.ceil(hiddenTop));
-		} else if (hiddenBottom > 0) {
-			onRequestScrollIntoView(Math.ceil(hiddenBottom));
-		}
+		shellRef?.scrollIntoViewIfNeeded();
 	}
-
-	function queueContextMenuPositionUpdate(
-		_note: string | null,
-		_finger: number | undefined,
-		_anchorX: number,
-		_anchorY: number
-	) {
-		void [_note, _finger, _anchorX, _anchorY];
-		requestAnimationFrame(() => {
-			updateContextMenuPosition();
-		});
-	}
-
-	$effect(() => {
-		queueContextMenuPositionUpdate(selectedItem.note, selectedItem.finger, x, y);
-	});
 
 	onMount(() => {
 		showShortcutHints = !isTouchDevice();
 	});
 </script>
 
-<svelte:window onresize={updateContextMenuPosition} />
-
-<div
-	bind:this={menuElement}
-	class="technique-context-menu"
-	style={`left: ${menuLeft}px; top: ${menuTop}px; --arrow-left: ${arrowLeft}px;`}
-	role="presentation"
-	onpointerdown={(event) => event.stopPropagation()}
+<ComposerContextMenuShell
+	bind:this={shellRef}
+	{x}
+	{y}
+	menuClass="technique-context-menu"
+	{onRequestScrollIntoView}
 >
-	{#if isRestItem}
-		<p class="technique-context-info">Finger marking applies to notes only.</p>
+	{#if isRangeMode}
+		<div class="technique-context-actions">
+			<p class="mb-1! text-xs text-slate-500">
+				{selectedNoteRange!.to - selectedNoteRange!.from + 1} notes selected
+			</p>
+			<button
+				class="slur-toggle"
+				class:slur-toggle--active={rangeHasSlur}
+				onclick={onToggleSlur}
+				aria-pressed={rangeHasSlur}
+			>
+				<span class="slur-icon" aria-hidden="true">⌢</span>
+				Slur
+			</button>
+		</div>
+	{:else if isRestItem}
+		<p class="technique-context-info">Technique applies to notes only.</p>
 	{:else}
 		<div class="technique-context-actions">
 			<p class="mb-1! text-xs text-slate-500">Finger:</p>
@@ -132,32 +109,18 @@
 				</div>
 			{/if}
 		</div>
+		<hr class="technique-divider" />
+		<button class="slur-toggle" onclick={onStartSlur}>
+			<span class="slur-icon" aria-hidden="true">⌢</span>
+			{isSelectedNoteInSlur ? 'Remove slur' : 'Start slur'}
+		</button>
 	{/if}
-</div>
+</ComposerContextMenuShell>
 
 <style>
-	.technique-context-menu {
-		position: fixed;
-		z-index: 60;
+	:global(.technique-context-menu) {
 		min-width: 280px;
 		padding: 12px;
-		border: 1px solid #cbd5e1;
-		border-radius: 12px;
-		background: #ffffff;
-		box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
-	}
-
-	.technique-context-menu::after {
-		content: '';
-		position: absolute;
-		left: var(--arrow-left, 50%);
-		bottom: -7px;
-		width: 12px;
-		height: 12px;
-		background: #ffffff;
-		border-right: 1px solid #cbd5e1;
-		border-bottom: 1px solid #cbd5e1;
-		transform: translateX(-50%) rotate(45deg);
 	}
 
 	.technique-context-actions {
@@ -179,6 +142,47 @@
 		color: #64748b;
 	}
 
+	.technique-divider {
+		margin: 10px 0 8px;
+		border: none;
+		border-top: 1px solid #e2e8f0;
+	}
+
+	.slur-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 4px;
+		padding: 6px 14px;
+		border: 1.5px solid #cbd5e1;
+		border-radius: 999px;
+		background: #f8fafc;
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: #475569;
+		cursor: pointer;
+		transition:
+			background 0.15s,
+			border-color 0.15s,
+			color 0.15s;
+	}
+
+	.slur-toggle:hover {
+		border-color: #16a34a;
+		color: #16a34a;
+	}
+
+	.slur-toggle--active {
+		background: #dcfce7;
+		border-color: #16a34a;
+		color: #16a34a;
+	}
+
+	.slur-icon {
+		font-size: 1.1rem;
+		line-height: 1;
+	}
+
 	.shortcut {
 		display: inline-flex;
 		align-items: center;
@@ -194,7 +198,7 @@
 	}
 
 	@media (max-width: 640px) {
-		.technique-context-menu {
+		:global(.technique-context-menu) {
 			min-width: 240px;
 		}
 	}

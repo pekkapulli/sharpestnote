@@ -1,4 +1,4 @@
-import { Factory, Dot, Beam, Voice, Curve, BarNote, type Stave } from 'vexflow';
+import { Factory, Dot, Beam, Voice, Curve, CurvePosition, BarNote, type Stave } from 'vexflow';
 import type { KeySignature } from '$lib/config/keys';
 import type { Clef } from '$lib/config/types';
 import type { MelodyItem } from '$lib/config/melody';
@@ -465,11 +465,17 @@ export function renderVexFlowStaff(
 					// Create a curve from slurStartIndex to noteIndex
 					const fromNote = allNotes[slurStartIndex];
 					const toNote = allNotes[noteIndex];
-					if (fromNote && toNote) {
+					if (fromNote && toNote && !fromNote.isRest() && !toNote.isRest()) {
+						const fromStemDown = fromNote.getStemDirection() < 0;
+						const toStemDown = toNote.getStemDirection() < 0;
 						const curve = new Curve(fromNote, toNote, {
+							position: fromStemDown ? CurvePosition.NEAR_HEAD : CurvePosition.NEAR_TOP,
+							positionEnd: toStemDown ? CurvePosition.NEAR_HEAD : CurvePosition.NEAR_TOP,
+							openingDirection: 'down',
+							yShift: 10,
 							cps: [
-								{ x: 0, y: 10 },
-								{ x: 0, y: 10 }
+								{ x: 0, y: 18 },
+								{ x: 0, y: 18 }
 							]
 						});
 						curves.push(curve);

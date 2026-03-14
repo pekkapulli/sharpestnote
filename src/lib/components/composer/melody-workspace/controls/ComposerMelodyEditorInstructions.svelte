@@ -1,6 +1,6 @@
 <details class="mt-2 text-sm text-slate-600">
 	<summary class="cursor-pointer font-medium text-slate-500 hover:text-slate-700"
-		>How to use the editor</summary
+		>How to use the melody editor</summary
 	>
 	<ul class="mt-2 list-disc space-y-1 pl-4">
 		<li>Click or drag on the staff to add or move notes.</li>

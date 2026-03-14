@@ -37,6 +37,10 @@
 	});
 
 	const selectedNoteIndex = $derived(logic.selectedNoteIndex());
+	const selectedNoteRange = $derived(logic.selectedNoteRange());
+	const selectedNoteSlurRange = $derived(logic.selectedNoteSlurRange());
+	const pendingSlurStartIndex = $derived(logic.pendingSlurStartIndex());
+	const rangeHasSlur = $derived(logic.rangeHasSlur());
 	const noteContextMenu = $derived(logic.noteContextMenu());
 	const isSmallScreen = $derived(logic.isSmallScreen());
 	const selectedSequenceItem = $derived(logic.selectedSequenceItem());
@@ -64,6 +68,11 @@
 	</div>
 
 	<div class="mt-6 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
+		{#if pendingSlurStartIndex !== null}
+			<p class="mb-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+				⌢ Tap the last note of the slur
+			</p>
+		{/if}
 		<ComposerStaff
 			bind:this={staffRef}
 			bars={melody}
@@ -75,18 +84,24 @@
 			minBarWidth={isSmallScreen ? 190 : 240}
 			compactMode={isSmallScreen}
 			{selectedNoteIndex}
+			{selectedNoteRange}
 			isContextMenuOpen={noteContextMenu !== null}
 			enablePitchDrag={false}
 			onInteraction={logic.handleStaffInteraction}
 		/>
 
-		{#if noteContextMenu && selectedSequenceItem}
+		{#if noteContextMenu && (selectedSequenceItem || selectedNoteRange)}
 			<ComposerTechniqueContextMenu
 				bind:this={noteContextMenuRef}
 				x={noteContextMenu.x}
 				y={noteContextMenu.y}
 				selectedItem={selectedSequenceItem}
+				{selectedNoteRange}
+				{selectedNoteSlurRange}
+				{rangeHasSlur}
 				onSetFinger={logic.handleSetFingerFromMenu}
+				onStartSlur={logic.handleSingleNoteSlurAction}
+				onToggleSlur={logic.handleToggleSlurFromMenu}
 				onRequestScrollIntoView={logic.handleContextMenuScrollIntoView}
 			/>
 		{/if}
