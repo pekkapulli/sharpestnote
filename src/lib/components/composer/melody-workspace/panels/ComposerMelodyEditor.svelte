@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import { MAX_MELODY_BARS } from '../logic/composerMelodyEditorLogic';
-	import ComposerMelodyPreviewControls from '../controls/ComposerMelodyPreviewControls.svelte';
 	import ComposerMelodyEditorInstructions from '../controls/ComposerMelodyEditorInstructions.svelte';
 	import {
 		type NoteContextMenuHandle,
@@ -19,13 +18,8 @@
 		keySignature,
 		barLength,
 		availablePitches,
-		isPlayingMelodyPreview,
-		isMelodyPreviewMuted,
 		melodyPlayheadPosition = null,
 		lengthOptions,
-		onToggleMelodyPlayback,
-		onPlayMelodyFromStart,
-		onToggleMelodyMute,
 		onPreviewItem,
 		onEdit
 	}: ComposerMelodyPanelProps = $props();
@@ -66,110 +60,92 @@
 	onscroll={logic.handleWindowScroll}
 />
 
-<div
-	class="relative rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-5"
->
-	<ComposerMelodyPreviewControls
-		{isMelodyPreviewMuted}
-		{isPlayingMelodyPreview}
-		{selectedNoteIndex}
-		{onToggleMelodyMute}
-		{onPlayMelodyFromStart}
-		{onToggleMelodyPlayback}
-	/>
+<div class="mt-4 flex flex-col gap-3">
+	<ComposerMelodyEditorInstructions />
+</div>
 
-	<div class="flex flex-col gap-3">
-		<div>
-			<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Edit</h2>
-			<p class="mt-1 text-sm text-slate-600">Build the melody structure and note content here.</p>
-		</div>
-
-		<ComposerMelodyEditorInstructions />
-	</div>
-
-	<div class="mt-6 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
-		<div
-			class="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-6 sm:mb-3 sm:flex-nowrap sm:justify-around sm:gap-y-2"
+<div class="mt-4 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
+	<div
+		class="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-6 sm:mb-3 sm:flex-nowrap sm:justify-around sm:gap-y-2"
+	>
+		<Button
+			type="button"
+			size="medium"
+			variant="secondary"
+			title="Clear melody and restore initial rests"
+			onclick={logic.clearMelody}
 		>
+			Clear melody
+		</Button>
+		<div class="order-3 flex w-full justify-center gap-2 sm:order-0 sm:w-auto">
 			<Button
 				type="button"
 				size="medium"
 				variant="secondary"
-				title="Clear melody and restore initial rests"
-				onclick={logic.clearMelody}
+				title="Remove last bar"
+				onclick={logic.removeLastBar}
 			>
-				Clear melody
+				− Remove bar
 			</Button>
-			<div class="order-3 flex w-full justify-center gap-2 sm:order-0 sm:w-auto">
-				<Button
-					type="button"
-					size="medium"
-					variant="secondary"
-					title="Remove last bar"
-					onclick={logic.removeLastBar}
-				>
-					− Remove bar
-				</Button>
-				<Button
-					type="button"
-					size="medium"
-					variant="secondary"
-					title={hasReachedMaxBars ? `Maximum ${MAX_MELODY_BARS} bars reached` : 'Add new bar'}
-					onclick={logic.addBar}
-					disabled={hasReachedMaxBars}
-				>
-					+ Add bar
-				</Button>
-			</div>
-			<div class="order-2 sm:order-0">
-				<Button
-					type="button"
-					size="medium"
-					variant="secondary"
-					title="Merge adjacent rests"
-					onclick={logic.tidyUpRests}
-				>
-					Tidy up rests
-				</Button>
-			</div>
+			<Button
+				type="button"
+				size="medium"
+				variant="secondary"
+				title={hasReachedMaxBars ? `Maximum ${MAX_MELODY_BARS} bars reached` : 'Add new bar'}
+				onclick={logic.addBar}
+				disabled={hasReachedMaxBars}
+			>
+				+ Add bar
+			</Button>
 		</div>
-
-		<ComposerStaff
-			bind:this={staffRef}
-			bars={melody}
-			playheadPosition={melodyPlayheadPosition}
-			{keySignature}
-			{clef}
-			{barLength}
-			minWidth={isSmallScreen ? 200 : 400}
-			minBarWidth={isSmallScreen ? 190 : 240}
-			compactMode={isSmallScreen}
-			pitchPalette={availablePitches}
-			{selectedNoteIndex}
-			isContextMenuOpen={noteContextMenu !== null}
-			onInteraction={logic.handleStaffInteraction}
-		/>
-
-		{#if editorError}
-			<p class="mt-2 text-sm font-medium text-red-700">{editorError}</p>
-		{/if}
-
-		{#if noteContextMenu && selectedSequenceItem}
-			<ComposerNoteContextMenu
-				bind:this={noteContextMenuRef}
-				x={noteContextMenu.x}
-				y={noteContextMenu.y}
-				selectedItem={selectedSequenceItem}
-				{lengthOptions}
-				remainingInBar={remainingInBarForSelected}
-				onChangeLength={logic.handleChangeLengthFromMenu}
-				onSetItemKind={logic.handleSetItemKindFromMenu}
-				onMoveDownSemitone={() => logic.moveSelectedNoteBySemitone(-1)}
-				onMoveUpSemitone={() => logic.moveSelectedNoteBySemitone(1)}
-				canMoveDownSemitone={logic.canMoveSelectedNoteBySemitone(-1)}
-				canMoveUpSemitone={logic.canMoveSelectedNoteBySemitone(1)}
-				onRequestScrollIntoView={logic.handleContextMenuScrollIntoView}
-			/>
-		{/if}
+		<div class="order-2 sm:order-0">
+			<Button
+				type="button"
+				size="medium"
+				variant="secondary"
+				title="Merge adjacent rests"
+				onclick={logic.tidyUpRests}
+			>
+				Tidy up rests
+			</Button>
+		</div>
 	</div>
+
+	<ComposerStaff
+		bind:this={staffRef}
+		bars={melody}
+		playheadPosition={melodyPlayheadPosition}
+		{keySignature}
+		{clef}
+		{barLength}
+		minWidth={isSmallScreen ? 200 : 400}
+		minBarWidth={isSmallScreen ? 190 : 240}
+		compactMode={isSmallScreen}
+		pitchPalette={availablePitches}
+		{selectedNoteIndex}
+		isContextMenuOpen={noteContextMenu !== null}
+		onInteraction={logic.handleStaffInteraction}
+	/>
+
+	{#if editorError}
+		<p class="mt-2 text-sm font-medium text-red-700">{editorError}</p>
+	{/if}
+
+	{#if noteContextMenu && selectedSequenceItem}
+		<ComposerNoteContextMenu
+			bind:this={noteContextMenuRef}
+			x={noteContextMenu.x}
+			y={noteContextMenu.y}
+			selectedItem={selectedSequenceItem}
+			{lengthOptions}
+			remainingInBar={remainingInBarForSelected}
+			onChangeLength={logic.handleChangeLengthFromMenu}
+			onSetItemKind={logic.handleSetItemKindFromMenu}
+			onMoveDownSemitone={() => logic.moveSelectedNoteBySemitone(-1)}
+			onMoveUpSemitone={() => logic.moveSelectedNoteBySemitone(1)}
+			canMoveDownSemitone={logic.canMoveSelectedNoteBySemitone(-1)}
+			canMoveUpSemitone={logic.canMoveSelectedNoteBySemitone(1)}
+			onRequestScrollIntoView={logic.handleContextMenuScrollIntoView}
+		/>
+	{/if}
 </div>

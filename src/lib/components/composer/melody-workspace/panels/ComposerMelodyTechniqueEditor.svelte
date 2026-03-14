@@ -1,5 +1,4 @@
 <script lang="ts">
-	import ComposerMelodyPreviewControls from '../controls/ComposerMelodyPreviewControls.svelte';
 	import ComposerMelodyTechniqueEditorInstructions from '../controls/ComposerMelodyTechniqueEditorInstructions.svelte';
 	import {
 		type TechniqueContextMenuHandle,
@@ -15,12 +14,7 @@
 		melody = $bindable(),
 		keySignature,
 		barLength,
-		isPlayingMelodyPreview,
-		isMelodyPreviewMuted,
 		melodyPlayheadPosition = null,
-		onToggleMelodyPlayback,
-		onPlayMelodyFromStart,
-		onToggleMelodyMute,
 		onEdit
 	}: ComposerMelodyPanelProps = $props();
 
@@ -56,66 +50,48 @@
 	onscroll={logic.handleWindowScroll}
 />
 
-<div
-	class="relative rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-5"
->
-	<ComposerMelodyPreviewControls
-		{isMelodyPreviewMuted}
-		{isPlayingMelodyPreview}
+<div class="mt-4 flex flex-col gap-3">
+	<ComposerMelodyTechniqueEditorInstructions />
+</div>
+
+<div class="mt-4 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
+	{#if pendingSlurStartIndex !== null}
+		<p class="mb-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+			⌢ Tap the last note of the slur (in the same bar).
+		</p>
+	{/if}
+	<ComposerStaff
+		bind:this={staffRef}
+		bars={melody}
+		playheadPosition={melodyPlayheadPosition}
+		{keySignature}
+		{clef}
+		{barLength}
+		minWidth={isSmallScreen ? 200 : 400}
+		minBarWidth={isSmallScreen ? 190 : 240}
+		compactMode={isSmallScreen}
 		{selectedNoteIndex}
-		{onToggleMelodyMute}
-		{onPlayMelodyFromStart}
-		{onToggleMelodyPlayback}
+		{selectedNoteRange}
+		isContextMenuOpen={noteContextMenu !== null}
+		enablePitchDrag={false}
+		onInteraction={logic.handleStaffInteraction}
 	/>
 
-	<div class="flex flex-col gap-3 pr-32 sm:pr-40">
-		<div>
-			<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Technique</h2>
-			<p class="mt-1 text-sm text-slate-600">Set up playing details for the melody.</p>
-		</div>
-
-		<ComposerMelodyTechniqueEditorInstructions />
-	</div>
-
-	<div class="mt-6 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
-		{#if pendingSlurStartIndex !== null}
-			<p class="mb-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
-				⌢ Tap the last note of the slur (in the same bar).
-			</p>
-		{/if}
-		<ComposerStaff
-			bind:this={staffRef}
-			bars={melody}
-			playheadPosition={melodyPlayheadPosition}
-			{keySignature}
-			{clef}
-			{barLength}
-			minWidth={isSmallScreen ? 200 : 400}
-			minBarWidth={isSmallScreen ? 190 : 240}
-			compactMode={isSmallScreen}
-			{selectedNoteIndex}
+	{#if noteContextMenu && (selectedSequenceItem || selectedNoteRange)}
+		<ComposerTechniqueContextMenu
+			bind:this={noteContextMenuRef}
+			x={noteContextMenu.x}
+			y={noteContextMenu.y}
+			selectedItem={selectedSequenceItem}
 			{selectedNoteRange}
-			isContextMenuOpen={noteContextMenu !== null}
-			enablePitchDrag={false}
-			onInteraction={logic.handleStaffInteraction}
+			{selectedNoteSlurRange}
+			{rangeHasSlur}
+			{canStartSingleNoteSlur}
+			{canAddSlurToSelectedRange}
+			onSetFinger={logic.handleSetFingerFromMenu}
+			onStartSlur={logic.handleSingleNoteSlurAction}
+			onToggleSlur={logic.handleToggleSlurFromMenu}
+			onRequestScrollIntoView={logic.handleContextMenuScrollIntoView}
 		/>
-
-		{#if noteContextMenu && (selectedSequenceItem || selectedNoteRange)}
-			<ComposerTechniqueContextMenu
-				bind:this={noteContextMenuRef}
-				x={noteContextMenu.x}
-				y={noteContextMenu.y}
-				selectedItem={selectedSequenceItem}
-				{selectedNoteRange}
-				{selectedNoteSlurRange}
-				{rangeHasSlur}
-				{canStartSingleNoteSlur}
-				{canAddSlurToSelectedRange}
-				onSetFinger={logic.handleSetFingerFromMenu}
-				onStartSlur={logic.handleSingleNoteSlurAction}
-				onToggleSlur={logic.handleToggleSlurFromMenu}
-				onRequestScrollIntoView={logic.handleContextMenuScrollIntoView}
-			/>
-		{/if}
-	</div>
+	{/if}
 </div>
