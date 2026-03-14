@@ -19,7 +19,7 @@
 		slugifyPieceCode
 	} from '$lib/util/composerUtils';
 	import ComposerSettingsForm from '$lib/components/composer/ComposerSettingsForm.svelte';
-	import ComposerMelodyEditor from '$lib/components/composer/ComposerMelodyEditor.svelte';
+	import ComposerMelodyWorkspace from '$lib/components/composer/ComposerMelodyWorkspace.svelte';
 	import ComposerShareCard from '$lib/components/composer/ComposerShareCard.svelte';
 
 	const CANONICAL_SHARE_ORIGIN = 'https://sharpestnote.com';
@@ -492,7 +492,7 @@
 		</section>
 
 		<section class="space-y-6">
-			<ComposerMelodyEditor
+			<ComposerMelodyWorkspace
 				{clef}
 				bind:melody
 				{instrumentId}

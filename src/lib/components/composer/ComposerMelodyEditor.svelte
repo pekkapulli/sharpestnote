@@ -1,8 +1,5 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
-	import type { Clef } from '$lib/config/types';
-	import type { KeySignature } from '$lib/config/keys';
-	import type { MelodyItem, NoteLength } from '$lib/config/melody';
 	import { MAX_MELODY_BARS } from './composerMelodyEditorLogic';
 	import ComposerMelodyPreviewControls from './ComposerMelodyPreviewControls.svelte';
 	import ComposerMelodyEditorInstructions from './ComposerMelodyEditorInstructions.svelte';
@@ -13,25 +10,7 @@
 	} from './useComposerMelodyEditorLogic.svelte';
 	import ComposerStaff from '$lib/components/music/ComposerStaff.svelte';
 	import ComposerNoteContextMenu from '$lib/components/composer/ComposerNoteContextMenu.svelte';
-	import type { InstrumentId } from '$lib/config/types';
-
-	interface Props {
-		clef: Clef;
-		melody: MelodyItem[][];
-		instrumentId: InstrumentId;
-		keySignature: KeySignature;
-		barLength: number;
-		availablePitches: string[];
-		isPlayingMelodyPreview: boolean;
-		isMelodyPreviewMuted: boolean;
-		melodyPlayheadPosition?: number | null;
-		lengthOptions: NoteLength[];
-		onToggleMelodyPlayback: (startIndex?: number) => void;
-		onPlayMelodyFromStart: () => void;
-		onToggleMelodyMute: () => void;
-		onPreviewItem?: (item: MelodyItem) => void | Promise<void>;
-		onEdit?: () => void;
-	}
+	import type { ComposerMelodyPanelProps } from './composerMelodyTypes';
 
 	let {
 		clef,
@@ -49,7 +28,7 @@
 		onToggleMelodyMute,
 		onPreviewItem,
 		onEdit
-	}: Props = $props();
+	}: ComposerMelodyPanelProps = $props();
 
 	let noteContextMenuRef = $state<NoteContextMenuHandle | null>(null);
 	let staffRef = $state<StaffContextMenuAnchorProvider | null>(null);
@@ -99,9 +78,14 @@
 		{onToggleMelodyPlayback}
 	/>
 
-	<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Edit</h2>
+	<div class="flex flex-col gap-3 pr-32 sm:pr-40">
+		<div>
+			<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Edit</h2>
+			<p class="mt-1 text-sm text-slate-600">Build the melody structure and note content here.</p>
+		</div>
 
-	<ComposerMelodyEditorInstructions />
+		<ComposerMelodyEditorInstructions />
+	</div>
 
 	<div class="mt-6 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
 		<div class="mb-2 flex justify-around gap-2 sm:mb-3">
