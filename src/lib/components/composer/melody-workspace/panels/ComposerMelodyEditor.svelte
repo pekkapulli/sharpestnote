@@ -78,7 +78,7 @@
 		{onToggleMelodyPlayback}
 	/>
 
-	<div class="flex flex-col gap-3 pr-32 sm:pr-40">
+	<div class="flex flex-col gap-3">
 		<div>
 			<h2 class="text-lg font-semibold text-slate-900 sm:text-xl">Edit</h2>
 			<p class="mt-1 text-sm text-slate-600">Build the melody structure and note content here.</p>

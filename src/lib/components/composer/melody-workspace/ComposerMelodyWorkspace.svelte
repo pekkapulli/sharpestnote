@@ -39,7 +39,8 @@
 		<div>
 			<p class="text-sm font-semibold tracking-wide text-brand-green uppercase">Melody editor</p>
 			<p class="mt-1 text-sm text-slate-600">
-				Switch between note editing, technique marking, and melody testing.
+				Switch between note editing (create the melody) and technique marking (edit markings and add
+				slurs).
 			</p>
 		</div>
 		<div class="self-start sm:self-center">
