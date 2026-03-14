@@ -4,6 +4,7 @@ import type { MelodyItem, NoteLength } from '$lib/config/melody';
 import type { Clef, InstrumentId } from '$lib/config/types';
 import { createInitialRests, resolveBarAfterNoteChange } from '$lib/util/composerUtils';
 import { transposeNoteName } from '$lib/util/noteNames';
+import type { ComposerStaffInteraction } from '$lib/components/music/composerStaffTypes';
 import {
 	LENGTH_SHORTCUT_KEYS,
 	MAX_MELODY_BARS,
@@ -262,6 +263,33 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 
 	function handleStaffInteractionRelease() {
 		pendingContextMenuVisibilityCheck = true;
+	}
+
+	function handleStaffInteraction(interaction: ComposerStaffInteraction) {
+		switch (interaction.type) {
+			case 'note-select':
+				handleSelectNoteFromStaff(interaction.index);
+				return;
+			case 'note-drag':
+				handleMoveNoteFromStaff(interaction.index, interaction.note);
+				return;
+			case 'note-activate':
+				if (interaction.trigger === 'tap' && interaction.note) {
+					handleMoveNoteFromStaff(interaction.index, interaction.note);
+				}
+				handleOpenNoteContextMenu({
+					index: interaction.index,
+					x: interaction.x,
+					y: interaction.y
+				});
+				return;
+			case 'add-note':
+				handleAddNoteFromStaff(interaction.note);
+				return;
+			case 'interaction-end':
+				handleStaffInteractionRelease();
+				return;
+		}
 	}
 
 	function updateSelectedNoteInBar(
@@ -648,6 +676,7 @@ export function useComposerMelodyEditorLogic(config: UseComposerMelodyEditorLogi
 		hasReachedMaxBars: () => hasReachedMaxBars,
 		selectedSequenceItem: () => selectedSequenceItem,
 		remainingInBarForSelected: () => remainingInBarForSelected,
+		handleStaffInteraction,
 		handleMoveNoteFromStaff,
 		handleAddNoteFromStaff,
 		handleSelectNoteFromStaff,

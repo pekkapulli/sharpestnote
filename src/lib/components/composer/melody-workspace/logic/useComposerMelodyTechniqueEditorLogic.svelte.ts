@@ -1,4 +1,5 @@
 import type { MelodyItem } from '$lib/config/melody';
+import type { ComposerStaffInteraction } from '$lib/components/music/composerStaffTypes';
 
 export type TechniqueContextMenuHandle = {
 	scrollIntoViewIfNeeded: () => void;
@@ -107,6 +108,26 @@ export function useComposerMelodyTechniqueEditorLogic(
 		pendingContextMenuVisibilityCheck = true;
 	}
 
+	function handleStaffInteraction(interaction: ComposerStaffInteraction) {
+		switch (interaction.type) {
+			case 'note-select':
+				handleSelectNoteFromStaff(interaction.index);
+				return;
+			case 'note-activate':
+				handleOpenNoteContextMenu({
+					index: interaction.index,
+					x: interaction.x,
+					y: interaction.y
+				});
+				return;
+			case 'interaction-end':
+				handleStaffInteractionRelease();
+				return;
+			default:
+				return;
+		}
+	}
+
 	function handleSetFingerFromMenu(finger: number | undefined) {
 		if (selectedNoteIndex < 0) return;
 
@@ -150,6 +171,7 @@ export function useComposerMelodyTechniqueEditorLogic(
 		noteContextMenu: () => noteContextMenu,
 		isSmallScreen: () => isSmallScreen,
 		selectedSequenceItem: () => selectedSequenceItem,
+		handleStaffInteraction,
 		handleSelectNoteFromStaff,
 		handleOpenNoteContextMenu,
 		handleStaffInteractionRelease,

@@ -76,10 +76,8 @@
 			compactMode={isSmallScreen}
 			{selectedNoteIndex}
 			isContextMenuOpen={noteContextMenu !== null}
-			allowNoteMove={false}
-			onSelectNote={logic.handleSelectNoteFromStaff}
-			onInteractionRelease={logic.handleStaffInteractionRelease}
-			onOpenNoteContextMenu={logic.handleOpenNoteContextMenu}
+			enablePitchDrag={false}
+			onInteraction={logic.handleStaffInteraction}
 		/>
 
 		{#if noteContextMenu && selectedSequenceItem}

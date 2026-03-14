@@ -134,11 +134,7 @@
 			pitchPalette={availablePitches}
 			{selectedNoteIndex}
 			isContextMenuOpen={noteContextMenu !== null}
-			onMoveNote={logic.handleMoveNoteFromStaff}
-			onAddNote={logic.handleAddNoteFromStaff}
-			onSelectNote={logic.handleSelectNoteFromStaff}
-			onInteractionRelease={logic.handleStaffInteractionRelease}
-			onOpenNoteContextMenu={logic.handleOpenNoteContextMenu}
+			onInteraction={logic.handleStaffInteraction}
 		/>
 
 		{#if editorError}

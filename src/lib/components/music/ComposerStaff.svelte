@@ -2,6 +2,10 @@
 	import type { Clef } from '$lib/config/types';
 	import type { KeySignature } from '$lib/config/keys';
 	import FingerMarking from './FingerMarking.svelte';
+	import type {
+		ComposerStaffContextMenuAnchor,
+		ComposerStaffInteraction
+	} from './composerStaffTypes';
 	import { type MelodyItem } from '$lib/config/melody';
 	import { getNoteYPosition, renderVexFlowStaff, type VexFlowLayoutOptions } from './vexflowHelper';
 	import type { Stave } from 'vexflow';
@@ -17,15 +21,11 @@
 		barsPerRow?: number;
 		minBarWidth?: number;
 		compactMode?: boolean;
-		allowNoteMove?: boolean;
+		enablePitchDrag?: boolean;
 		pitchPalette?: string[];
 		playheadPosition?: number | null;
 		selectedNoteIndex?: number;
-		onMoveNote?: (index: number, note: string) => void;
-		onAddNote?: (note: string) => void;
-		onSelectNote?: (index: number) => void;
-		onInteractionRelease?: () => void;
-		onOpenNoteContextMenu?: (payload: { index: number; x: number; y: number }) => void;
+		onInteraction?: (interaction: ComposerStaffInteraction) => void;
 		isContextMenuOpen?: boolean;
 	}
 
@@ -71,7 +71,7 @@
 		x: number;
 		y: number;
 		note: string;
-		action: 'move' | 'add';
+		action: 'note' | 'add';
 		noteIndex: number;
 	};
 
@@ -85,15 +85,11 @@
 		barsPerRow,
 		minBarWidth = 240,
 		compactMode = false,
-		allowNoteMove = true,
+		enablePitchDrag = true,
 		pitchPalette = [],
 		playheadPosition = null,
 		selectedNoteIndex = -1,
-		onMoveNote,
-		onAddNote,
-		onSelectNote,
-		onInteractionRelease,
-		onOpenNoteContextMenu,
+		onInteraction,
 		isContextMenuOpen = false
 	}: Props = $props();
 
@@ -107,9 +103,7 @@
 	let hoverState = $state<HoverState | null>(null);
 	let dragState = $state<DragState | null>(null);
 	let suppressNextClick = $state(false);
-	const isInteractive = $derived(
-		Boolean(onMoveNote || onAddNote || onSelectNote || onOpenNoteContextMenu)
-	);
+	const isInteractive = $derived(Boolean(onInteraction));
 	const computedBarsPerRow = $derived.by(() => {
 		if (effectiveWidth > 0 && effectiveWidth <= SMALL_SCREEN_BREAKPOINT) {
 			return 1;
@@ -401,7 +395,7 @@
 			x: nearest.noteX,
 			y: closestPitch.y,
 			note: closestPitch.note,
-			action: allowNoteMove && nearest.distance <= SELECT_NOTE_THRESHOLD ? 'move' : 'add',
+			action: nearest.distance <= SELECT_NOTE_THRESHOLD ? 'note' : 'add',
 			noteIndex: nearest.noteIndex
 		};
 	}
@@ -436,12 +430,12 @@
 		const isLongPressEligible = nearest.distance <= SELECT_NOTE_THRESHOLD;
 
 		const longPressTimer =
-			isLongPressEligible && onOpenNoteContextMenu
+			isLongPressEligible && onInteraction
 				? setTimeout(() => {
 						if (!dragState || dragState.pointerId !== event.pointerId || dragState.didDrag) return;
 
-						onSelectNote?.(nearest.noteIndex);
-						emitContextMenuForNote(row, nearest.noteIndex, nearest.noteX);
+						onInteraction?.({ type: 'note-select', index: nearest.noteIndex });
+						emitNoteActivation(row, nearest.noteIndex, nearest.noteX, 'long-press');
 						suppressNextClick = true;
 						dragState = {
 							...dragState,
@@ -465,7 +459,7 @@
 			longPressTimer
 		};
 
-		onSelectNote?.(nearest.noteIndex);
+		onInteraction?.({ type: 'note-select', index: nearest.noteIndex });
 		target.setPointerCapture(event.pointerId);
 	}
 
@@ -485,7 +479,7 @@
 			return;
 		}
 
-		if (!allowNoteMove) {
+		if (!enablePitchDrag) {
 			return;
 		}
 
@@ -519,7 +513,7 @@
 			x: dragState.noteX,
 			y: closestPitch.y,
 			note: closestPitch.note,
-			action: 'move',
+			action: 'note',
 			noteIndex: dragState.noteIndex
 		};
 
@@ -528,8 +522,7 @@
 			return;
 		}
 
-		onMoveNote?.(dragState.noteIndex, closestPitch.note);
-		onSelectNote?.(dragState.noteIndex);
+		onInteraction?.({ type: 'note-drag', index: dragState.noteIndex, note: closestPitch.note });
 		dragState = {
 			...dragState,
 			lastMovedNote: closestPitch.note,
@@ -555,13 +548,7 @@
 		}
 
 		if (!currentDrag.didDrag && !currentDrag.longPressTriggered) {
-			const row = rowSpecs[currentDrag.rowIndex];
-			if (!allowNoteMove && currentDrag.longPressEligible && row && onOpenNoteContextMenu) {
-				onSelectNote?.(currentDrag.noteIndex);
-				emitContextMenuForNote(row, currentDrag.noteIndex, currentDrag.noteX);
-			} else {
-				performHoverAction();
-			}
+			performHoverAction();
 			suppressNextClick = true;
 		}
 
@@ -574,27 +561,49 @@
 		}
 
 		dragState = null;
-		onInteractionRelease?.();
+		onInteraction?.({ type: 'interaction-end' });
 	}
 
-	function emitContextMenuForNote(row: RowSpec, noteIndex: number, fallbackX: number) {
+	function getContextMenuAnchorForRowNote(
+		row: RowSpec,
+		noteIndex: number,
+		fallbackX: number
+	): ComposerStaffContextMenuAnchor | null {
 		const rowData = rowRenderData[row.rowIndex];
-		if (!rowData) return;
+		if (!rowData) return null;
 
 		const localIndex = noteIndex - row.startNoteIndex;
-		if (localIndex < 0 || localIndex >= row.notes.length) return;
+		if (localIndex < 0 || localIndex >= row.notes.length) return null;
 
 		const rowElement = rowContainers[row.rowIndex];
-		if (!rowElement) return;
+		if (!rowElement) return null;
 
 		const rect = rowElement.getBoundingClientRect();
 		const noteX = rowData.noteXPositions[localIndex] ?? fallbackX;
 		const menuAnchorY = Math.max(0, rowData.topLineY - rowData.lineSpacing * 1.5);
 
-		onOpenNoteContextMenu?.({
+		return {
 			index: noteIndex,
 			x: rect.left + noteX,
 			y: rect.top + menuAnchorY
+		};
+	}
+
+	function emitNoteActivation(
+		row: RowSpec,
+		noteIndex: number,
+		fallbackX: number,
+		trigger: 'tap' | 'long-press' | 'context-menu',
+		note?: string
+	) {
+		const anchor = getContextMenuAnchorForRowNote(row, noteIndex, fallbackX);
+		if (!anchor) return;
+
+		onInteraction?.({
+			type: 'note-activate',
+			trigger,
+			...anchor,
+			...(note ? { note } : {})
 		});
 	}
 
@@ -615,17 +624,7 @@
 		const noteX = rowData.noteXPositions[localIndex];
 		if (noteX === undefined) return null;
 
-		const rowElement = rowContainers[row.rowIndex];
-		if (!rowElement) return null;
-
-		const rect = rowElement.getBoundingClientRect();
-		const menuAnchorY = Math.max(0, rowData.topLineY - rowData.lineSpacing * 1.5);
-
-		return {
-			index: noteIndex,
-			x: rect.left + noteX,
-			y: rect.top + menuAnchorY
-		};
+		return getContextMenuAnchorForRowNote(row, noteIndex, noteX);
 	}
 
 	function performHoverAction() {
@@ -633,15 +632,14 @@
 		if (hoverState.action === 'add') {
 			const row = rowSpecs[hoverState.rowIndex];
 			if (!row || row.notes.length > 0) return;
-			onAddNote?.(hoverState.note);
+			onInteraction?.({ type: 'add-note', note: hoverState.note });
 			return;
 		}
-		if (hoverState.action === 'move') {
+		if (hoverState.action === 'note') {
 			const row = rowSpecs[hoverState.rowIndex];
-			onSelectNote?.(hoverState.noteIndex);
-			onMoveNote?.(hoverState.noteIndex, hoverState.note);
+			onInteraction?.({ type: 'note-select', index: hoverState.noteIndex });
 			if (row) {
-				emitContextMenuForNote(row, hoverState.noteIndex, hoverState.x);
+				emitNoteActivation(row, hoverState.noteIndex, hoverState.x, 'tap', hoverState.note);
 			}
 		}
 	}
@@ -686,8 +684,8 @@
 		if (nearestDistance > SELECT_NOTE_THRESHOLD) return;
 
 		const noteIndex = row.startNoteIndex + nearestIndex;
-		onSelectNote?.(noteIndex);
-		emitContextMenuForNote(row, noteIndex, noteXs[nearestIndex]);
+		onInteraction?.({ type: 'note-select', index: noteIndex });
+		emitNoteActivation(row, noteIndex, noteXs[nearestIndex], 'context-menu');
 	}
 </script>
 
@@ -745,7 +743,7 @@
 							cx={hoverState.x}
 							cy={hoverState.y}
 							r="7"
-							class={hoverState.action === 'move' ? 'hover-move' : 'hover-add'}
+							class={hoverState.action === 'note' ? 'hover-move' : 'hover-add'}
 						/>
 					{/if}
 				</svg>
