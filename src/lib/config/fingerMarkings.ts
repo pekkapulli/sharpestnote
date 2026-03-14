@@ -32,12 +32,12 @@ function getSemitoneToFingerMapping(instrumentId: string): (semitones: number) =
 	}
 
 	if (instrumentId === 'double-bass') {
-		// Simandl-style lower-position bass pattern: 1-2-4 (no 3rd finger)
+		// First-position bass pattern: 1-2-4 (no 3rd finger)
 		return (semitones: number): number | null => {
 			if (semitones === 0) return 0;
-			if (semitones === 1) return 1;
-			if (semitones === 2) return 2;
-			if (semitones >= 3) return 4;
+			if (semitones <= 2) return 1;
+			if (semitones === 3) return 2;
+			if (semitones >= 4) return 4;
 			return null;
 		};
 	}
