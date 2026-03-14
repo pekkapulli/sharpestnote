@@ -4,6 +4,7 @@
 	import { renderNote } from '$lib/components/music/noteRenderer';
 	import GhostNote from './GhostNote.svelte';
 	import FingerMarking from './FingerMarking.svelte';
+	import { getFingerMarkingY } from './fingerMarkingPosition';
 	import { type MelodyItem } from '$lib/config/melody';
 	import { noteNameToMidi } from '$lib/util/noteNames';
 	import { renderVexFlowStaff, getNoteYPosition } from './vexflowHelper';
@@ -175,6 +176,17 @@
 		}
 		return noteXs[noteXs.length - 1] ?? 0;
 	});
+
+	function getFingerY(noteIndex: number): number {
+		const topLineY = centerY - lineSpacing * 2;
+		return getFingerMarkingY({
+			topLineY,
+			lineSpacing,
+			noteY: noteYs[noteIndex],
+			notes: sequence,
+			noteIndex
+		});
+	}
 </script>
 
 <div
@@ -241,7 +253,7 @@
 
 					<!-- Finger markings -->
 					{#if n !== null}
-						<FingerMarking item={sequence[i]} x={noteXs[i] ?? 0} y={HEIGHT - 10} {lineSpacing} />
+						<FingerMarking item={sequence[i]} x={noteXs[i] ?? 0} y={getFingerY(i)} {lineSpacing} />
 					{/if}
 				{/each}
 

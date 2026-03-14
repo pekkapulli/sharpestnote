@@ -7,6 +7,7 @@
 		ComposerStaffInteraction
 	} from './composerStaffTypes';
 	import { type MelodyItem } from '$lib/config/melody';
+	import { getFingerMarkingY as getDynamicFingerMarkingY } from './fingerMarkingPosition';
 	import { getNoteYPosition, renderVexFlowStaff, type VexFlowLayoutOptions } from './vexflowHelper';
 	import type { Stave } from 'vexflow';
 	import { SvelteSet } from 'svelte/reactivity';
@@ -60,6 +61,7 @@
 
 	type RowRenderData = {
 		noteXPositions: number[];
+		noteYPositions: number[];
 		topLineY: number;
 		bottomLineY: number;
 		lineSpacing: number;
@@ -295,6 +297,7 @@
 
 			nextRenderData[row.rowIndex] = {
 				noteXPositions: result.noteXPositions,
+				noteYPositions: result.noteYPositions,
 				topLineY: result.topLineY,
 				bottomLineY: result.bottomLineY,
 				lineSpacing: result.lineSpacing,
@@ -716,6 +719,21 @@
 		onInteraction?.({ type: 'note-select', index: noteIndex });
 		emitNoteActivation(row, noteIndex, noteXs[nearestIndex], 'context-menu');
 	}
+
+	function getFingerMarkingY(row: RowSpec, localNoteIndex: number): number {
+		const rowData = rowRenderData[row.rowIndex];
+		const lineSpacing = rowData?.lineSpacing ?? 10;
+		const noteY = rowData?.noteYPositions[localNoteIndex];
+		const topLineY = rowData?.topLineY ?? ROW_HEIGHT / 2;
+
+		return getDynamicFingerMarkingY({
+			topLineY,
+			lineSpacing,
+			noteY,
+			notes: row.notes,
+			noteIndex: localNoteIndex
+		});
+	}
 </script>
 
 <div
@@ -784,7 +802,7 @@
 								<FingerMarking
 									{item}
 									x={rowRenderData[row.rowIndex]?.noteXPositions[i] ?? 0}
-									y={ROW_HEIGHT - 10}
+									y={getFingerMarkingY(row, i)}
 									lineSpacing={rowRenderData[row.rowIndex]?.lineSpacing ?? 10}
 								/>
 							{/if}

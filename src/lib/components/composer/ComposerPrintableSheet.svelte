@@ -5,6 +5,7 @@
 	import type { MelodyItem } from '$lib/config/melody';
 	import type { Clef } from '$lib/config/types';
 	import FingerMarking from '$lib/components/music/FingerMarking.svelte';
+	import { getFingerMarkingY } from '$lib/components/music/fingerMarkingPosition';
 	import { renderVexFlowStaff } from '$lib/components/music/vexflowHelper';
 
 	const DEFAULT_BARS_PER_ROW = 4;
@@ -39,6 +40,8 @@
 
 	type RowRenderData = {
 		noteXPositions: number[];
+		noteYPositions: number[];
+		topLineY: number;
 		lineSpacing: number;
 	};
 
@@ -116,6 +119,8 @@
 
 			nextRenderData[row.rowIndex] = {
 				noteXPositions: result.noteXPositions,
+				noteYPositions: result.noteYPositions,
+				topLineY: result.topLineY,
 				lineSpacing: result.lineSpacing
 			};
 		}
@@ -198,6 +203,20 @@
 
 	function pxToPt(px: number): number {
 		return px * 0.75;
+	}
+
+	function getRowFingerMarkingY(
+		rowData: RowRenderData,
+		rowNotes: MelodyItem[],
+		noteIndex: number
+	): number {
+		return getFingerMarkingY({
+			topLineY: rowData.topLineY,
+			lineSpacing: rowData.lineSpacing,
+			noteY: rowData.noteYPositions[noteIndex],
+			notes: rowNotes,
+			noteIndex
+		});
 	}
 
 	function imageToDataUrl(image: HTMLImageElement): string {
@@ -410,8 +429,6 @@
 					const rowRect = rowElement.getBoundingClientRect();
 					const rowOriginX = (rowRect.left - pageRect.left) * pxToMmX;
 					const rowOriginY = (rowRect.top - pageRect.top) * pxToMmY;
-					const fingerY = rowOriginY + (STAFF_ROW_HEIGHT - 10) * pxToMmY;
-
 					for (let noteIndex = 0; noteIndex < rowSpec.notes.length; noteIndex++) {
 						const item = rowSpec.notes[noteIndex];
 						if (item.note === null || item.finger === undefined) continue;
@@ -420,6 +437,8 @@
 						if (noteX === undefined) continue;
 
 						const fingerX = rowOriginX + noteX * pxToMmX;
+						const fingerY =
+							rowOriginY + getRowFingerMarkingY(rowData, rowSpec.notes, noteIndex) * pxToMmY;
 						const fontSizePt = pxToPt(rowData.lineSpacing * 1.5);
 
 						pdf.setFont('helvetica', 'normal');
@@ -468,7 +487,7 @@
 											<FingerMarking
 												{item}
 												x={rowRenderData[row.rowIndex].noteXPositions[noteIndex] ?? 0}
-												y={STAFF_ROW_HEIGHT - 10}
+												y={getRowFingerMarkingY(rowRenderData[row.rowIndex], row.notes, noteIndex)}
 												lineSpacing={rowRenderData[row.rowIndex].lineSpacing}
 											/>
 										{/if}
