@@ -337,6 +337,28 @@ export function useComposerMelodyTechniqueEditorLogic(
 		markEdited();
 	}
 
+	function handleSetTextFromMenu(text: string | undefined) {
+		if (selectedNoteIndex < 0) return;
+
+		let runningIndex = 0;
+		const nextMelody = config.getMelody().map((bar) =>
+			bar.map((item) => {
+				const isTarget = runningIndex === selectedNoteIndex;
+				runningIndex += 1;
+
+				if (!isTarget) return item;
+
+				return {
+					...item,
+					text
+				};
+			})
+		);
+
+		config.setMelody(nextMelody);
+		markEdited();
+	}
+
 	function navigateSelectionHorizontally(step: -1 | 1) {
 		if (sequence.length === 0) return;
 
@@ -537,6 +559,7 @@ export function useComposerMelodyTechniqueEditorLogic(
 		handleOpenNoteContextMenu,
 		handleStaffInteractionRelease,
 		handleSetFingerFromMenu,
+		handleSetTextFromMenu,
 		handleStartSlur,
 		handleSingleNoteSlurAction,
 		handleToggleSlurFromMenu,

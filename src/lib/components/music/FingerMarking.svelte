@@ -11,10 +11,9 @@
 	let { item, x, y, lineSpacing }: Props = $props();
 
 	const hasFinger = $derived(item.finger !== undefined);
-	const hasString = $derived(item.string !== undefined);
 </script>
 
-{#if hasFinger || hasString}
+{#if hasFinger}
 	<g>
 		<!-- Finger text (if present) -->
 		{#if hasFinger}

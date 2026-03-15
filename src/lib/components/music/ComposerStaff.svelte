@@ -2,12 +2,16 @@
 	import type { Clef } from '$lib/config/types';
 	import type { KeySignature } from '$lib/config/keys';
 	import FingerMarking from './FingerMarking.svelte';
+	import MelodyAnnotation from './MelodyAnnotation.svelte';
 	import type {
 		ComposerStaffContextMenuAnchor,
 		ComposerStaffInteraction
 	} from './composerStaffTypes';
 	import { type MelodyItem } from '$lib/config/melody';
-	import { getFingerMarkingY as getDynamicFingerMarkingY } from './fingerMarkingPosition';
+	import {
+		getFingerMarkingY as getDynamicFingerMarkingY,
+		getTextAnnotationY
+	} from './markingPositions';
 	import { getNoteYPosition, renderVexFlowStaff, type VexFlowLayoutOptions } from './vexflowHelper';
 	import type { Stave } from 'vexflow';
 	import { SvelteSet } from 'svelte/reactivity';
@@ -31,7 +35,8 @@
 		isContextMenuOpen?: boolean;
 	}
 
-	const ROW_HEIGHT = 150;
+	const BASE_ROW_HEIGHT = 150;
+	const TEXT_ROW_HEIGHT = 175;
 	const ROW_GAP = 16;
 	const SELECT_NOTE_THRESHOLD = 40;
 	const SMALL_SCREEN_BREAKPOINT = 640;
@@ -160,8 +165,13 @@
 		return rows;
 	});
 
+	const rowHeight = $derived.by(() => {
+		const hasAnyText = rowSpecs.some((row) => row.notes.some((item) => Boolean(item.text)));
+		return hasAnyText ? TEXT_ROW_HEIGHT : BASE_ROW_HEIGHT;
+	});
+
 	const componentHeight = $derived(
-		Math.max(1, rowSpecs.length) * ROW_HEIGHT + Math.max(0, rowSpecs.length - 1) * ROW_GAP
+		Math.max(1, rowSpecs.length) * rowHeight + Math.max(0, rowSpecs.length - 1) * ROW_GAP
 	);
 
 	const rowPlayheads = $derived.by(() => {
@@ -724,7 +734,7 @@
 		const rowData = rowRenderData[row.rowIndex];
 		const lineSpacing = rowData?.lineSpacing ?? 10;
 		const noteY = rowData?.noteYPositions[localNoteIndex];
-		const topLineY = rowData?.topLineY ?? ROW_HEIGHT / 2;
+		const topLineY = rowData?.topLineY ?? rowHeight / 2;
 
 		return getDynamicFingerMarkingY({
 			topLineY,
@@ -732,6 +742,17 @@
 			noteY,
 			notes: row.notes,
 			noteIndex: localNoteIndex
+		});
+	}
+
+	function getTextMarkingY(row: RowSpec): number {
+		const rowData = rowRenderData[row.rowIndex];
+		const lineSpacing = rowData?.lineSpacing ?? 10;
+		const topLineY = rowData?.topLineY ?? rowHeight / 2;
+
+		return getTextAnnotationY({
+			topLineY,
+			lineSpacing
 		});
 	}
 </script>
@@ -750,7 +771,7 @@
 				class="row"
 				class:row-compact={compactMode}
 				class:row-interactive={isInteractive}
-				style="height: {ROW_HEIGHT}px;"
+				style="height: {rowHeight}px;"
 				onmousemove={(e) => onRowMouseMove(e, row)}
 				onmouseleave={onRowMouseLeave}
 				onpointerdown={(e) => onRowPointerDown(e, row)}
@@ -771,7 +792,7 @@
 
 				<div bind:this={rowContainers[row.rowIndex]} class="vexflow-container"></div>
 
-				<svg class="feedback-overlay" width={effectiveWidth} height={ROW_HEIGHT}>
+				<svg class="feedback-overlay" width={effectiveWidth} height={rowHeight}>
 					{#if selectedNoteRange}
 						{@const rangeFirst = Math.max(row.startNoteIndex, selectedNoteRange.from)}
 						{@const rangeLast = Math.min(
@@ -803,6 +824,12 @@
 									{item}
 									x={rowRenderData[row.rowIndex]?.noteXPositions[i] ?? 0}
 									y={getFingerMarkingY(row, i)}
+									lineSpacing={rowRenderData[row.rowIndex]?.lineSpacing ?? 10}
+								/>
+								<MelodyAnnotation
+									{item}
+									x={rowRenderData[row.rowIndex]?.noteXPositions[i] ?? 0}
+									y={getTextMarkingY(row)}
 									lineSpacing={rowRenderData[row.rowIndex]?.lineSpacing ?? 10}
 								/>
 							{/if}
@@ -848,7 +875,7 @@
 	}
 
 	.empty-row {
-		height: 150px;
+		height: 175px;
 		border: 1px dashed #cbd5e1;
 		border-radius: 8px;
 	}

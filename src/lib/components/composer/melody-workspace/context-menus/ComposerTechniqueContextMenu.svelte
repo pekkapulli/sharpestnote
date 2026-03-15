@@ -15,6 +15,7 @@
 		canStartSingleNoteSlur?: boolean;
 		canAddSlurToSelectedRange?: boolean;
 		onSetFinger: (finger: number | undefined) => void;
+		onSetText: (text: string | undefined) => void;
 		onStartSlur?: () => void;
 		onToggleSlur?: () => void;
 		onRequestScrollIntoView?: (deltaY: number) => void;
@@ -35,6 +36,7 @@
 		canStartSingleNoteSlur = false,
 		canAddSlurToSelectedRange = false,
 		onSetFinger,
+		onSetText,
 		onStartSlur,
 		onToggleSlur,
 		onRequestScrollIntoView
@@ -58,6 +60,10 @@
 
 	function handleFingerChange(value: FingerOption) {
 		onSetFinger(value === 'empty' ? undefined : Number(value));
+	}
+
+	function handleTextInput(value: string) {
+		onSetText(value.trim() === '' ? undefined : value.trim());
 	}
 
 	export function scrollIntoViewIfNeeded() {
@@ -122,6 +128,18 @@
 					<span class="shortcut">F</span>
 				</div>
 			{/if}
+		</div>
+		<hr class="technique-divider" />
+		<div class="technique-context-actions">
+			<label class="text-input-label" for="note-text-input">Note:</label>
+			<input
+				id="note-text-input"
+				class="text-input"
+				type="text"
+				maxlength="20"
+				placeholder="e.g. pizz."
+				bind:value={() => selectedItem?.text ?? '', handleTextInput}
+			/>
 		</div>
 		<hr class="technique-divider" />
 		<button
@@ -242,6 +260,29 @@
 		font-size: 0.74rem;
 		line-height: 1.25;
 		color: #64748b;
+	}
+
+	.text-input-label {
+		display: block;
+		margin-bottom: 4px;
+		font-size: 0.75rem;
+		color: #64748b;
+	}
+
+	.text-input {
+		width: 100%;
+		padding: 5px 8px;
+		border: 1.5px solid #cbd5e1;
+		border-radius: 6px;
+		font-size: 0.85rem;
+		color: #1e293b;
+		background: #f8fafc;
+		outline: none;
+		box-sizing: border-box;
+	}
+
+	.text-input:focus {
+		border-color: #16a34a;
 	}
 
 	@media (max-width: 640px) {

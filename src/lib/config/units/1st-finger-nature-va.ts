@@ -42,76 +42,76 @@ export default {
 				mode: 'major',
 				barLength: 16,
 				scale: [
-					{ note: 'g/3', length: 4, finger: 0, string: 'Bear' },
-					{ note: 'a/3', length: 4, finger: 1, string: 'Bear' },
-					{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-					{ note: 'e/4', length: 4, finger: 1, string: 'Dad' },
-					{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-					{ note: 'b/4', length: 4, finger: 1, string: 'Mom' }
+					{ note: 'g/3', length: 4, finger: 0 },
+					{ note: 'a/3', length: 4, finger: 1 },
+					{ note: 'd/4', length: 4, finger: 0 },
+					{ note: 'e/4', length: 4, finger: 1 },
+					{ note: 'a/4', length: 4, finger: 0 },
+					{ note: 'b/4', length: 4, finger: 1 }
 				],
 				melody: [
 					[
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'a/4', length: 8, finger: 0, string: 'Mom' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'a/4', length: 8, finger: 0, string: 'Mom' }
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 8, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 8, finger: 0 }
 					],
 					[
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'b/4', length: 4, finger: 1, string: 'Mom' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'e/4', length: 4, finger: 1, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'b/4', length: 4, finger: 1 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'e/4', length: 4, finger: 1 },
+						{ note: 'd/4', length: 8, finger: 0 },
 						{ note: null, length: 8 }
 					],
 					[
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'a/4', length: 8, finger: 0, string: 'Mom' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'a/4', length: 8, finger: 0, string: 'Mom' }
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 8, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 8, finger: 0 }
 					],
 					[
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'b/4', length: 4, finger: 1, string: 'Mom' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'e/4', length: 4, finger: 1, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'b/4', length: 4, finger: 1 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'e/4', length: 4, finger: 1 },
+						{ note: 'd/4', length: 8, finger: 0 },
 						{ note: null, length: 8 }
 					],
 					[
-						{ note: 'g/3', length: 4, finger: 0, string: 'Bear' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' },
-						{ note: 'g/3', length: 4, finger: 0, string: 'Bear' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' }
+						{ note: 'g/3', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 8, finger: 0 },
+						{ note: 'g/3', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 8, finger: 0 }
 					],
 					[
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'e/4', length: 4, finger: 1, string: 'Dad' },
-						{ note: 'e/4', length: 4, finger: 1, string: 'Dad' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'a/4', length: 8, finger: 0, string: 'Mom' },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'e/4', length: 4, finger: 1 },
+						{ note: 'e/4', length: 4, finger: 1 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'a/4', length: 8, finger: 0 },
 						{ note: null, length: 8 }
 					],
 					[
-						{ note: 'g/3', length: 4, finger: 0, string: 'Bear' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' },
-						{ note: 'g/3', length: 4, finger: 0, string: 'Bear' },
-						{ note: 'd/4', length: 4, finger: 0, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' }
+						{ note: 'g/3', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 8, finger: 0 },
+						{ note: 'g/3', length: 4, finger: 0 },
+						{ note: 'd/4', length: 4, finger: 0 },
+						{ note: 'd/4', length: 8, finger: 0 }
 					],
 					[
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'b/4', length: 4, finger: 1, string: 'Mom' },
-						{ note: 'a/4', length: 4, finger: 0, string: 'Mom' },
-						{ note: 'e/4', length: 4, finger: 1, string: 'Dad' },
-						{ note: 'd/4', length: 8, finger: 0, string: 'Dad' },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'b/4', length: 4, finger: 1 },
+						{ note: 'a/4', length: 4, finger: 0 },
+						{ note: 'e/4', length: 4, finger: 1 },
+						{ note: 'd/4', length: 8, finger: 0 },
 						{ note: null, length: 8 }
 					]
 				]

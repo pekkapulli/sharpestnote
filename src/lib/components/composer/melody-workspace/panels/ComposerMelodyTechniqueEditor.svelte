@@ -89,6 +89,7 @@
 			{canStartSingleNoteSlur}
 			{canAddSlurToSelectedRange}
 			onSetFinger={logic.handleSetFingerFromMenu}
+			onSetText={logic.handleSetTextFromMenu}
 			onStartSlur={logic.handleSingleNoteSlurAction}
 			onToggleSlur={logic.handleToggleSlurFromMenu}
 			onRequestScrollIntoView={logic.handleContextMenuScrollIntoView}

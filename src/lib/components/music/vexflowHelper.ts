@@ -205,7 +205,8 @@ export function renderVexFlowStaff(
 
 	const displayBars = splitPhrasesToDisplayBars(bars, barLengthSixteenths);
 
-	const height = 150;
+	const hasLabels = displayBars.flat().some((item) => item.text);
+	const height = hasLabels ? 175 : 150;
 
 	// Create a temporary div for VexFlow to initialize into
 	const tempDiv = document.createElement('div');

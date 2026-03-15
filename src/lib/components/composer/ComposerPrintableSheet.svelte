@@ -5,7 +5,8 @@
 	import type { MelodyItem } from '$lib/config/melody';
 	import type { Clef } from '$lib/config/types';
 	import FingerMarking from '$lib/components/music/FingerMarking.svelte';
-	import { getFingerMarkingY } from '$lib/components/music/fingerMarkingPosition';
+	import MelodyAnnotation from '$lib/components/music/MelodyAnnotation.svelte';
+	import { getFingerMarkingY, getTextAnnotationY } from '$lib/components/music/markingPositions';
 	import { renderVexFlowStaff } from '$lib/components/music/vexflowHelper';
 
 	const DEFAULT_BARS_PER_ROW = 4;
@@ -219,6 +220,18 @@
 		});
 	}
 
+	function getRowTextAnnotationY(rowData: RowRenderData): number {
+		return getTextAnnotationY({
+			topLineY: rowData.topLineY,
+			lineSpacing: rowData.lineSpacing
+		});
+	}
+
+	function getMelodyAnnotationText(item: MelodyItem): string | null {
+		const value = item.text?.trim();
+		return value ? value : null;
+	}
+
 	function imageToDataUrl(image: HTMLImageElement): string {
 		const canvas = document.createElement('canvas');
 		const width = image.naturalWidth || Math.ceil(image.width) || 1;
@@ -307,6 +320,8 @@
 			putOnlyUsedFonts: true,
 			compress: true
 		});
+		const spectralStyles = pdf.getFontList().Spectral ?? [];
+		const hasSpectralItalic = spectralStyles.includes('italic');
 
 		await registerSpectralFont(pdf);
 
@@ -431,23 +446,44 @@
 					const rowOriginY = (rowRect.top - pageRect.top) * pxToMmY;
 					for (let noteIndex = 0; noteIndex < rowSpec.notes.length; noteIndex++) {
 						const item = rowSpec.notes[noteIndex];
-						if (item.note === null || item.finger === undefined) continue;
+						if (item.note === null) continue;
 
 						const noteX = rowData.noteXPositions[noteIndex];
 						if (noteX === undefined) continue;
 
-						const fingerX = rowOriginX + noteX * pxToMmX;
-						const fingerY =
-							rowOriginY + getRowFingerMarkingY(rowData, rowSpec.notes, noteIndex) * pxToMmY;
-						const fontSizePt = pxToPt(rowData.lineSpacing * 1.5);
+						if (item.finger !== undefined) {
+							const fingerX = rowOriginX + noteX * pxToMmX;
+							const fingerY =
+								rowOriginY + getRowFingerMarkingY(rowData, rowSpec.notes, noteIndex) * pxToMmY;
+							const fontSizePt = pxToPt(rowData.lineSpacing * 1.5);
 
-						pdf.setFont('helvetica', 'normal');
-						pdf.setTextColor(51, 51, 51);
-						pdf.setFontSize(fontSizePt);
-						pdf.text(String(item.finger), fingerX, fingerY, {
-							align: 'center',
-							baseline: 'middle'
-						});
+							pdf.setFont('helvetica', 'normal');
+							pdf.setTextColor(51, 51, 51);
+							pdf.setFontSize(fontSizePt);
+							pdf.text(String(item.finger), fingerX, fingerY, {
+								align: 'center',
+								baseline: 'middle'
+							});
+						}
+
+						const melodyAnnotation = getMelodyAnnotationText(item);
+						if (melodyAnnotation) {
+							const textX = rowOriginX + noteX * pxToMmX;
+							const textY = rowOriginY + getRowTextAnnotationY(rowData) * pxToMmY;
+							const textFontSizePt = pxToPt(rowData.lineSpacing * 1.2);
+
+							if (hasSpectralItalic) {
+								pdf.setFont('Spectral', 'italic');
+							} else {
+								pdf.setFont('helvetica', 'italic');
+							}
+							pdf.setTextColor(51, 65, 85);
+							pdf.setFontSize(textFontSizePt);
+							pdf.text(melodyAnnotation, textX, textY, {
+								align: 'center',
+								baseline: 'middle'
+							});
+						}
 					}
 				}
 			}
@@ -488,6 +524,12 @@
 												{item}
 												x={rowRenderData[row.rowIndex].noteXPositions[noteIndex] ?? 0}
 												y={getRowFingerMarkingY(rowRenderData[row.rowIndex], row.notes, noteIndex)}
+												lineSpacing={rowRenderData[row.rowIndex].lineSpacing}
+											/>
+											<MelodyAnnotation
+												{item}
+												x={rowRenderData[row.rowIndex].noteXPositions[noteIndex] ?? 0}
+												y={getRowTextAnnotationY(rowRenderData[row.rowIndex])}
 												lineSpacing={rowRenderData[row.rowIndex].lineSpacing}
 											/>
 										{/if}

@@ -59,7 +59,7 @@ export function getFingerMarkingY({
 export function getTextAnnotationY({
 	topLineY,
 	lineSpacing,
-	baseOffsetMultiplier = 6.4
+	baseOffsetMultiplier = 7.5
 }: TextAnnotationYInput): number {
 	return topLineY + lineSpacing * baseOffsetMultiplier;
 }
