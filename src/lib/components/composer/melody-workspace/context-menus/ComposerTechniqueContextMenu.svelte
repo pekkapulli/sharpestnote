@@ -289,5 +289,9 @@
 		:global(.technique-context-menu) {
 			min-width: 240px;
 		}
+
+		.text-input {
+			font-size: 16px;
+		}
 	}
 </style>
