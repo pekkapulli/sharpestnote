@@ -480,7 +480,7 @@
 							pdf.setTextColor(51, 65, 85);
 							pdf.setFontSize(textFontSizePt);
 							pdf.text(melodyAnnotation, textX, textY, {
-								align: 'center',
+								align: 'left',
 								baseline: 'middle'
 							});
 						}
