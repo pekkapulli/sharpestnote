@@ -9,6 +9,12 @@ create table if not exists public.teacher_profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.teacher_profiles
+  add column if not exists studio_name text,
+  add column if not exists teacher_role text,
+  add column if not exists credits integer not null default 0,
+  add column if not exists credits_refreshed_at timestamptz;
+
 alter table public.teacher_profiles enable row level security;
 
 drop policy if exists "Teacher can read own profile" on public.teacher_profiles;
@@ -48,3 +54,68 @@ create trigger teacher_profiles_set_updated_at
 before update on public.teacher_profiles
 for each row
 execute function public.set_teacher_profile_updated_at();
+
+create or replace function public.get_profile_with_credits()
+returns table (teacher_role text, credits integer)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_uid uuid := auth.uid();
+  role_value text;
+  refreshed_at timestamptz;
+  monthly_amount integer;
+begin
+  if current_uid is null then
+    return;
+  end if;
+
+  select p.teacher_role::text, p.credits_refreshed_at
+  into role_value, refreshed_at
+  from public.teacher_profiles as p
+  where p.id = current_uid;
+
+  if not found then
+    return;
+  end if;
+
+  if role_value = 'core' then
+    monthly_amount := 15;
+  elsif role_value in ('institution_teacher', 'admin', 'owner') then
+    monthly_amount := null;
+  else
+    monthly_amount := 3;
+  end if;
+
+  if refreshed_at is null or date_trunc('month', refreshed_at) < date_trunc('month', now()) then
+    if monthly_amount is null then
+      update public.teacher_profiles as p
+      set credits_refreshed_at = now()
+      where p.id = current_uid
+        and (
+          p.credits_refreshed_at is null
+          or date_trunc('month', p.credits_refreshed_at) < date_trunc('month', now())
+        );
+    else
+      update public.teacher_profiles as p
+      set
+        credits = coalesce(p.credits, 0) + monthly_amount,
+        credits_refreshed_at = now()
+      where p.id = current_uid
+        and (
+          p.credits_refreshed_at is null
+          or date_trunc('month', p.credits_refreshed_at) < date_trunc('month', now())
+        );
+    end if;
+  end if;
+
+  return query
+    select p.teacher_role::text, coalesce(p.credits, 0)::integer
+    from public.teacher_profiles as p
+    where p.id = current_uid;
+end;
+$$;
+
+revoke all on function public.get_profile_with_credits() from public;
+grant execute on function public.get_profile_with_credits() to authenticated;

@@ -45,7 +45,118 @@
 	const resendSecondsLeft = $derived(
 		sentAt ? Math.max(0, 60 - Math.floor((now - sentAt) / 1000)) : 0
 	);
-	const canResend = $derived(showCodeStep && resendSecondsLeft === 0 && Boolean(emailInput));
+	const codeStepEmail = $derived((emailValue || emailInput).trim());
+	const canResend = $derived(showCodeStep && resendSecondsLeft === 0 && Boolean(codeStepEmail));
+
+	const OTP_LENGTH = 6;
+	let otpDigits = $state<string[]>(Array(OTP_LENGTH).fill(''));
+	let otpInputs = $state<Array<HTMLInputElement | null>>(Array(OTP_LENGTH).fill(null));
+	let verifyCodeForm = $state<HTMLFormElement | null>(null);
+	let verifyEmailHiddenInput = $state<HTMLInputElement | null>(null);
+	let verifyTokenHiddenInput = $state<HTMLInputElement | null>(null);
+	const otpCode = $derived(otpDigits.join(''));
+
+	function getOtpCodeFromInputs(): string {
+		return otpInputs
+			.map((input) => input?.value.replace(/\D/g, '') ?? '')
+			.join('')
+			.slice(0, OTP_LENGTH);
+	}
+
+	function syncVerifyFormHiddenFields(): string {
+		const token = getOtpCodeFromInputs();
+		if (verifyEmailHiddenInput) verifyEmailHiddenInput.value = codeStepEmail;
+		if (verifyTokenHiddenInput) verifyTokenHiddenInput.value = token;
+		return token;
+	}
+
+	function maybeAutoSubmitOtp(previousCode: string): void {
+		const token = syncVerifyFormHiddenFields();
+		if (token === previousCode) return;
+		if (!codeStepEmail) return;
+		if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(token)) return;
+		verifyCodeForm?.requestSubmit();
+	}
+
+	function focusOtpInput(index: number): void {
+		if (index < 0 || index >= OTP_LENGTH) return;
+		otpInputs[index]?.focus();
+		otpInputs[index]?.select();
+	}
+
+	function distributeOtpDigits(rawValue: string, startIndex = 0): number {
+		const digits = rawValue.replace(/\D/g, '');
+		if (!digits.length) return startIndex;
+
+		let nextIndex = startIndex;
+		for (const digit of digits) {
+			if (nextIndex >= OTP_LENGTH) break;
+			otpDigits[nextIndex] = digit;
+			nextIndex += 1;
+		}
+
+		return Math.min(nextIndex, OTP_LENGTH - 1);
+	}
+
+	function handleOtpInput(index: number, event: Event): void {
+		const previousCode = otpCode;
+		const target = event.currentTarget as HTMLInputElement;
+		const digits = target.value.replace(/\D/g, '');
+
+		if (!digits) {
+			otpDigits[index] = '';
+			return;
+		}
+
+		if (digits.length > 1) {
+			const nextIndex = distributeOtpDigits(digits, index);
+			focusOtpInput(nextIndex);
+			maybeAutoSubmitOtp(previousCode);
+			return;
+		}
+
+		otpDigits[index] = digits;
+		focusOtpInput(index + 1);
+		maybeAutoSubmitOtp(previousCode);
+	}
+
+	function handleOtpKeydown(index: number, event: KeyboardEvent): void {
+		if (event.key === 'Backspace' && !otpDigits[index] && index > 0) {
+			event.preventDefault();
+			otpDigits[index - 1] = '';
+			focusOtpInput(index - 1);
+		}
+
+		if (event.key === 'ArrowLeft' && index > 0) {
+			event.preventDefault();
+			focusOtpInput(index - 1);
+		}
+
+		if (event.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+			event.preventDefault();
+			focusOtpInput(index + 1);
+		}
+	}
+
+	function handleOtpPaste(index: number, event: ClipboardEvent): void {
+		const previousCode = otpCode;
+		event.preventDefault();
+		const pasted = event.clipboardData?.getData('text') ?? '';
+		const digits = pasted.replace(/\D/g, '');
+
+		if (!digits) return;
+
+		const startIndex = digits.length >= OTP_LENGTH ? 0 : index;
+		const nextIndex = distributeOtpDigits(digits, startIndex);
+		focusOtpInput(nextIndex);
+		maybeAutoSubmitOtp(previousCode);
+	}
+
+	$effect(() => {
+		if (!showCodeStep) {
+			otpDigits = Array(OTP_LENGTH).fill('');
+		}
+	});
 </script>
 
 <svelte:head>
@@ -110,7 +221,7 @@
 				</form>
 				{#if showCodeStep}
 					<p class="text-sm text-slate-600">
-						Sign-in email sent to <span class="font-semibold text-slate-800">{emailValue}</span>.
+						Sign-in email sent to <span class="font-semibold text-slate-800">{codeStepEmail}</span>.
 					</p>
 					<Button
 						type="button"
@@ -126,25 +237,48 @@
 
 			{#if showCodeStep}
 				<section class="space-y-4 border-t border-slate-200 pt-6">
-					<form method="POST" action="?/verifyCode" class="space-y-3">
+					<form
+						method="POST"
+						action="?/verifyCode"
+						class="space-y-3"
+						bind:this={verifyCodeForm}
+						onsubmit={() => {
+							syncVerifyFormHiddenFields();
+						}}
+					>
 						<input type="hidden" name="next" value={data.next} />
-						<input type="hidden" name="email" value={emailInput} />
+						<input
+							type="hidden"
+							name="email"
+							value={codeStepEmail}
+							bind:this={verifyEmailHiddenInput}
+						/>
 						<input type="hidden" name="sentAt" value={sentAt} />
-						<label class="block text-sm font-medium text-slate-700" for="otp-code"
+						<label class="block text-sm font-medium text-slate-700" for="otp-digit-0"
 							>6-digit code</label
 						>
-						<input
-							id="otp-code"
-							type="text"
-							name="token"
-							required
-							inputmode="numeric"
-							pattern="[0-9]{6}"
-							autocomplete="one-time-code"
-							maxlength="6"
-							placeholder="123456"
-							class="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 focus:outline-none"
-						/>
+						<div
+							class="flex items-center gap-2"
+							role="group"
+							aria-label="6-digit verification code"
+						>
+							{#each otpDigits as digit, index (index)}
+								<input
+									id={`otp-digit-${index}`}
+									type="text"
+									inputmode="numeric"
+									autocomplete={index === 0 ? 'one-time-code' : 'off'}
+									maxlength="1"
+									value={digit}
+									oninput={(event) => handleOtpInput(index, event)}
+									onkeydown={(event) => handleOtpKeydown(index, event)}
+									onpaste={(event) => handleOtpPaste(index, event)}
+									bind:this={otpInputs[index]}
+									class="h-12 w-10 rounded-md border border-slate-300 text-center text-lg font-semibold text-slate-900 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 focus:outline-none"
+								/>
+							{/each}
+						</div>
+						<input type="hidden" name="token" value={otpCode} bind:this={verifyTokenHiddenInput} />
 						<button
 							type="submit"
 							class="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
@@ -155,7 +289,7 @@
 
 					<form method="POST" action="?/resend" class="pt-2">
 						<input type="hidden" name="next" value={data.next} />
-						<input type="hidden" name="email" value={emailInput} />
+						<input type="hidden" name="email" value={codeStepEmail} />
 						<button
 							type="submit"
 							disabled={!canResend}

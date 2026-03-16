@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ensureTeacherProfile } from '$lib/supabase/teacherProfile';
 
-const DEFAULT_NEXT = '/teachers/composer';
+const DEFAULT_NEXT = '/teachers/profile';
 const GENERIC_ERROR = 'Could not sign in. Please try again.';
 
 function sanitizeNextPath(next: string | null): string {

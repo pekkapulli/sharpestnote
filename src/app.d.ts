@@ -1,4 +1,5 @@
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import type { UserRole } from '$lib/config/types';
 
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
@@ -7,11 +8,14 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			supabase: SupabaseClient;
-			safeGetSession: () => Promise<{ session: Session | null; user: User | null }>;
+			safeGetSession: () => Promise<{
+				session: Session | null;
+				user: (User & { role: UserRole; credits: number }) | null;
+			}>;
 		}
 		interface PageData {
 			session: Session | null;
-			user: User | null;
+			user: (User & { role: UserRole; credits: number }) | null;
 		}
 		// interface PageState {}
 		interface Platform {

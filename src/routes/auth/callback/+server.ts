@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ensureTeacherProfile } from '$lib/supabase/teacherProfile';
 
-const DEFAULT_NEXT = '/teachers/composer';
+const DEFAULT_NEXT = '/teachers/profile';
 
 function sanitizeNextPath(next: string | null): string {
 	if (!next || !next.startsWith('/') || next.startsWith('//')) {

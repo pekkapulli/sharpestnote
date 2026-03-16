@@ -28,14 +28,10 @@ export async function ensureTeacherProfile(user: User, supabase?: SupabaseClient
 		);
 	}
 
-	const displayName =
-		typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : null;
-
 	await client.from('teacher_profiles').upsert(
 		{
 			id: user.id,
-			email: user.email,
-			display_name: displayName
+			email: user.email
 		},
 		{ onConflict: 'id' }
 	);
