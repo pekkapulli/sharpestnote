@@ -78,6 +78,7 @@
 						<p class="teacher-email">{teacherEmail}</p>
 					{/if}
 					<p class="teacher-credits">{teacherCredits}</p>
+					<a href="/teachers/pieces" role="menuitem" onclick={closeMenu}>My pieces</a>
 					<a href="/teachers/composer" role="menuitem" onclick={closeMenu}>Composer</a>
 					<a href="/teachers/profile" role="menuitem" onclick={closeMenu}>Profile</a>
 					<a href="/teachers" role="menuitem" onclick={closeMenu}>Teacher tools</a>

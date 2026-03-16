@@ -23,6 +23,11 @@
 		shareError: string;
 		errors: string[];
 		shareStatus: string;
+		onSavePiece: () => Promise<void> | void;
+		isSavingPiece: boolean;
+		hasSavedPiece: boolean;
+		hasUnsavedPieceChanges: boolean;
+		hasSharedPiece: boolean;
 		onCopyUrl: () => Promise<void> | void;
 		onPrepareShareUrl: () => Promise<boolean>;
 		hasUnlimitedComposerCredits: boolean;
@@ -46,6 +51,11 @@
 		shareError,
 		errors,
 		shareStatus,
+		onSavePiece,
+		isSavingPiece,
+		hasSavedPiece,
+		hasUnsavedPieceChanges,
+		hasSharedPiece,
 		onCopyUrl,
 		onPrepareShareUrl,
 		hasUnlimitedComposerCredits,
@@ -468,9 +478,7 @@
 	<div>
 		<div>
 			<h2 class="text-xl font-semibold text-slate-900">Share with student</h2>
-			<p class="mt-1 text-sm text-slate-600">
-				Create a short link, open a QR preview, and add a teacher note.
-			</p>
+			<p class="mt-1 text-sm text-slate-600">Save privately for free, then share when ready.</p>
 		</div>
 	</div>
 
@@ -499,15 +507,35 @@
 				class="rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-800"
 			></textarea>
 		</label>
-		<Button
-			type="button"
-			size="medium"
-			color="green"
-			onclick={onOpenShareModal}
-			disabled={errors.length > 0 || isShareBlocked}
-		>
-			Share
-		</Button>
+		<div class="flex flex-wrap gap-2">
+			<Button
+				type="button"
+				size="medium"
+				color="secondary"
+				onclick={onSavePiece}
+				disabled={errors.length > 0 || isSavingPiece || isPreparingShareUrl}
+			>
+				{isSavingPiece ? 'Saving...' : 'Save draft'}
+			</Button>
+			<Button
+				type="button"
+				size="medium"
+				color="green"
+				onclick={onOpenShareModal}
+				disabled={errors.length > 0 || isPreparingShareUrl || isSavingPiece || isShareBlocked}
+			>
+				Share
+			</Button>
+		</div>
+		{#if hasSavedPiece && hasUnsavedPieceChanges}
+			<p class="text-sm text-amber-800">You have unsaved changes.</p>
+		{:else if hasSavedPiece && hasSharedPiece}
+			<p class="text-sm text-slate-700">
+				This piece is already shared. Saving updates the existing student link.
+			</p>
+		{:else if hasSavedPiece}
+			<p class="text-sm text-slate-700">Draft saved privately. Share when you are ready.</p>
+		{/if}
 		{#if shareStatus}
 			<p class="text-sm font-medium text-brand-green">{shareStatus}</p>
 		{/if}
@@ -516,7 +544,7 @@
 		{/if}
 		{#if isShareBlocked}
 			<p class="text-sm text-amber-800">
-				You need at least 1 credit to share. Credits are only consumed once per piece.
+				You need at least 1 credit for the first share of a piece.
 			</p>
 		{/if}
 	</div>
@@ -541,7 +569,7 @@
 
 		{#if !hasUnlimitedComposerCredits}
 			<p class="mt-2 text-center text-sm font-semibold text-brand-green">
-				Sharing this piece uses {shareCreditCost} credit. {creditsLabel}
+				First share uses {shareCreditCost} credit. {creditsLabel}
 			</p>
 		{/if}
 		<div class="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-5">

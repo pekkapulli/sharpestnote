@@ -64,6 +64,8 @@ as $$
 declare
   current_uid uuid := auth.uid();
   role_value text;
+  role_from_profile text;
+  role_from_jwt text;
   refreshed_at timestamptz;
   monthly_amount integer;
 begin
@@ -71,14 +73,40 @@ begin
     return;
   end if;
 
-  select p.teacher_role::text, p.credits_refreshed_at
-  into role_value, refreshed_at
+  select
+    nullif(
+      lower(
+        trim(
+          coalesce(
+            to_jsonb(p) ->> 'teacher_role',
+            to_jsonb(p) ->> 'role'
+          )
+        )
+      ),
+      ''
+    ),
+    p.credits_refreshed_at
+  into role_from_profile, refreshed_at
   from public.teacher_profiles as p
   where p.id = current_uid;
 
   if not found then
     return;
   end if;
+
+  role_from_jwt := nullif(
+    lower(
+      trim(
+        coalesce(
+          auth.jwt() -> 'app_metadata' ->> 'teacher_role',
+          auth.jwt() -> 'app_metadata' ->> 'role'
+        )
+      )
+    ),
+    ''
+  );
+
+  role_value := coalesce(role_from_profile, role_from_jwt);
 
   if role_value = 'core' then
     monthly_amount := 15;
@@ -111,7 +139,7 @@ begin
   end if;
 
   return query
-    select p.teacher_role::text, coalesce(p.credits, 0)::integer
+    select role_value, coalesce(p.credits, 0)::integer
     from public.teacher_profiles as p
     where p.id = current_uid;
 end;

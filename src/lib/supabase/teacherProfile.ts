@@ -20,6 +20,11 @@ function createSupabaseAdminClient(): SupabaseClient | null {
 
 export async function ensureTeacherProfile(user: User, supabase?: SupabaseClient) {
 	if (!user.email) return;
+	const appRole = user.app_metadata?.teacher_role ?? user.app_metadata?.role;
+	const teacherRole =
+		typeof appRole === 'string' && appRole.trim().length > 0
+			? appRole.trim().toLowerCase()
+			: undefined;
 
 	const client = createSupabaseAdminClient() ?? supabase;
 	if (!client) {
@@ -28,11 +33,15 @@ export async function ensureTeacherProfile(user: User, supabase?: SupabaseClient
 		);
 	}
 
-	await client.from('teacher_profiles').upsert(
-		{
-			id: user.id,
-			email: user.email
-		},
-		{ onConflict: 'id' }
-	);
+	await client
+		.from('teacher_profiles')
+		.upsert(
+			{
+				id: user.id,
+				email: user.email,
+				...(teacherRole ? { teacher_role: teacherRole } : {})
+			},
+			{ onConflict: 'id' }
+		)
+		.select('id');
 }

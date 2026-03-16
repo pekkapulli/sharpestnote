@@ -22,6 +22,11 @@ type EnsureShortLinkRpcResult = {
 	created_new: unknown;
 };
 
+type TeacherPieceRow = {
+	id: string;
+	is_published: boolean;
+};
+
 const SHORT_ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 const SHORT_ID_LENGTH = 7;
 const MAX_COLLISION_RETRIES = 8;
@@ -44,8 +49,8 @@ function generateShortId(length: number): string {
 
 export const POST: RequestHandler = async ({ request, locals, url }) => {
 	try {
-		const { session } = await locals.safeGetSession();
-		if (!session) {
+		const { session, user } = await locals.safeGetSession();
+		if (!session || !user) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'content-type': 'application/json' }
@@ -59,6 +64,46 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 				status: 400,
 				headers: { 'content-type': 'application/json' }
 			});
+		}
+
+		const { data: pieceData, error: pieceLookupError } = await locals.supabase
+			.from('teacher_pieces')
+			.select('id, is_published')
+			.eq('id', teacherPieceId)
+			.eq('teacher_id', user.id)
+			.maybeSingle();
+
+		if (pieceLookupError) {
+			console.error('Teacher-piece lookup before short-link creation failed:', pieceLookupError);
+			return new Response(JSON.stringify({ error: 'Failed to create share link.' }), {
+				status: 500,
+				headers: { 'content-type': 'application/json' }
+			});
+		}
+
+		if (!pieceData) {
+			return new Response(JSON.stringify({ error: 'Teacher piece not found.' }), {
+				status: 404,
+				headers: { 'content-type': 'application/json' }
+			});
+		}
+
+		const pieceRow = pieceData as TeacherPieceRow;
+
+		if (!pieceRow.is_published) {
+			const { error: publishError } = await locals.supabase
+				.from('teacher_pieces')
+				.update({ is_published: true })
+				.eq('id', teacherPieceId)
+				.eq('teacher_id', user.id);
+
+			if (publishError) {
+				console.error('Teacher-piece publish before short-link creation failed:', publishError);
+				return new Response(JSON.stringify({ error: 'Failed to publish piece for sharing.' }), {
+					status: 500,
+					headers: { 'content-type': 'application/json' }
+				});
+			}
 		}
 
 		const targetUrl = `${url.origin}/unit/custom/tp_${teacherPieceId}`;

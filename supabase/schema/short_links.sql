@@ -81,7 +81,9 @@ set search_path = ''
 as $$
 declare
   current_uid uuid := auth.uid();
-  current_role text;
+  resolved_role text;
+  role_from_profile text;
+  role_from_jwt text;
   current_credits integer;
   unlimited_access boolean := false;
   existing_short_link_id text;
@@ -119,8 +121,20 @@ begin
     and s.created_by = current_uid
   limit 1;
 
-  select p.teacher_role::text, coalesce(p.credits, 0)::integer
-  into current_role, current_credits
+  select
+    nullif(
+      lower(
+        trim(
+          coalesce(
+            to_jsonb(p) ->> 'teacher_role',
+            to_jsonb(p) ->> 'role'
+          )
+        )
+      ),
+      ''
+    ),
+    coalesce(p.credits, 0)::integer
+  into role_from_profile, current_credits
   from public.teacher_profiles as p
   where p.id = current_uid
   for update;
@@ -129,7 +143,20 @@ begin
     raise exception 'Teacher profile not found';
   end if;
 
-  unlimited_access := current_role in ('institution_teacher', 'admin', 'owner');
+  role_from_jwt := nullif(
+    lower(
+      trim(
+        coalesce(
+          auth.jwt() -> 'app_metadata' ->> 'teacher_role',
+          auth.jwt() -> 'app_metadata' ->> 'role'
+        )
+      )
+    ),
+    ''
+  );
+
+  resolved_role := coalesce(role_from_profile, role_from_jwt);
+  unlimited_access := resolved_role in ('institution_teacher', 'admin', 'owner');
 
   if existing_short_link_id is not null then
     return query

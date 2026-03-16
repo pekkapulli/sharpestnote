@@ -5,12 +5,22 @@ import type { CustomUnitMaterial } from '$lib/config/types';
 const STORED_TEACHER_PIECE_PREFIX = 'tp_';
 
 type SharePieceRequest = {
+	pieceId?: string;
 	customUnitMaterial?: CustomUnitMaterial;
 };
 
 type CreatedPieceRow = {
 	id: string;
+	is_published: boolean;
 };
+
+type ExistingShortLinkRow = {
+	id: string;
+};
+
+function isUuid(value: string): boolean {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 function stableSerialize(value: unknown): string {
 	if (Array.isArray(value)) {
@@ -89,10 +99,70 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const piece = body.customUnitMaterial.piece;
 	const teacherNote = body.customUnitMaterial.teacherNote?.trim() || null;
 	const pieceFingerprint = getPieceFingerprint(body.customUnitMaterial);
+	const requestPieceId = (body.pieceId || '').trim();
+
+	if (requestPieceId && !isUuid(requestPieceId)) {
+		return json({ error: 'pieceId must be a valid UUID.' }, { status: 400 });
+	}
+
+	if (requestPieceId) {
+		const { data: updatedData, error: updateError } = await locals.supabase
+			.from('teacher_pieces')
+			.update({
+				piece_fingerprint: pieceFingerprint,
+				piece_code: piece.code.trim(),
+				piece_label: piece.label.trim(),
+				instrument: body.customUnitMaterial.instrument,
+				teacher_note: teacherNote,
+				custom_unit_material: body.customUnitMaterial
+			})
+			.eq('id', requestPieceId)
+			.eq('teacher_id', user.id)
+			.select('id, is_published')
+			.maybeSingle();
+
+		if (updateError) {
+			console.error('Failed to update teacher piece:', updateError);
+			return json({ error: 'Could not update saved piece' }, { status: 500 });
+		}
+
+		if (!updatedData) {
+			return json({ error: 'Saved piece not found.' }, { status: 404 });
+		}
+
+		const updatedPiece = updatedData as CreatedPieceRow;
+		const pieceRef = `${STORED_TEACHER_PIECE_PREFIX}${updatedPiece.id}`;
+
+		const { data: shortLinkRows, error: shortLinkError } = await locals.supabase
+			.from('short_links')
+			.select('id')
+			.eq('teacher_piece_id', updatedPiece.id)
+			.eq('created_by', user.id)
+			.limit(1);
+
+		if (shortLinkError) {
+			console.error('Failed to check short-link after teacher piece update:', shortLinkError);
+			return json({ error: 'Could not update saved piece' }, { status: 500 });
+		}
+
+		const existingShortLink = (shortLinkRows?.[0] ?? null) as ExistingShortLinkRow | null;
+
+		return json(
+			{
+				pieceId: updatedPiece.id,
+				pieceRef,
+				targetUrl: `${url.origin}/unit/custom/${pieceRef}`,
+				isPublished: updatedPiece.is_published,
+				hasShortLink: Boolean(existingShortLink?.id),
+				shortUrl: existingShortLink?.id ? `${url.origin}/s/${existingShortLink.id}` : null
+			},
+			{ status: 200 }
+		);
+	}
 
 	const { data: existingRows, error: existingError } = await locals.supabase
 		.from('teacher_pieces')
-		.select('id')
+		.select('id, is_published')
 		.eq('teacher_id', user.id)
 		.eq('piece_fingerprint', pieceFingerprint)
 		.limit(1);
@@ -105,11 +175,29 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 	const existingPiece = (existingRows?.[0] ?? null) as CreatedPieceRow | null;
 	if (existingPiece?.id) {
 		const pieceRef = `${STORED_TEACHER_PIECE_PREFIX}${existingPiece.id}`;
+
+		const { data: shortLinkRows, error: shortLinkError } = await locals.supabase
+			.from('short_links')
+			.select('id')
+			.eq('teacher_piece_id', existingPiece.id)
+			.eq('created_by', user.id)
+			.limit(1);
+
+		if (shortLinkError) {
+			console.error('Failed to check existing short-link for saved piece:', shortLinkError);
+			return json({ error: 'Could not save piece for sharing' }, { status: 500 });
+		}
+
+		const existingShortLink = (shortLinkRows?.[0] ?? null) as ExistingShortLinkRow | null;
+
 		return json(
 			{
 				pieceId: existingPiece.id,
 				pieceRef,
-				targetUrl: `${url.origin}/unit/custom/${pieceRef}`
+				targetUrl: `${url.origin}/unit/custom/${pieceRef}`,
+				isPublished: existingPiece.is_published,
+				hasShortLink: Boolean(existingShortLink?.id),
+				shortUrl: existingShortLink?.id ? `${url.origin}/s/${existingShortLink.id}` : null
 			},
 			{ status: 200 }
 		);
@@ -125,9 +213,9 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 			instrument: body.customUnitMaterial.instrument,
 			teacher_note: teacherNote,
 			custom_unit_material: body.customUnitMaterial,
-			is_published: true
+			is_published: false
 		})
-		.select('id')
+		.select('id, is_published')
 		.single();
 
 	if (error || !data) {
@@ -142,7 +230,10 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 		{
 			pieceId: row.id,
 			pieceRef,
-			targetUrl: `${url.origin}/unit/custom/${pieceRef}`
+			targetUrl: `${url.origin}/unit/custom/${pieceRef}`,
+			isPublished: row.is_published,
+			hasShortLink: false,
+			shortUrl: null
 		},
 		{ status: 200 }
 	);

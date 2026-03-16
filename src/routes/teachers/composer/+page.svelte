@@ -85,6 +85,10 @@
 	let shortShareUrl = $state('');
 	let shortShareSourceFingerprint = $state('');
 	let shortShareError = $state('');
+	let savedPieceId = $state('');
+	let savedPieceSourceFingerprint = $state('');
+	let hasSavedSharedPiece = $state(false);
+	let isSavingPiece = $state(false);
 	let isCreatingShortShareUrl = $state(false);
 	let isPlayingMelodyPreview = $state(false);
 	let isMelodyPreviewMuted = $state(false);
@@ -98,6 +102,7 @@
 	const shareCreditCost = 1;
 	const isShareBlocked = $derived(
 		!hasUnlimitedComposerCredits &&
+			!hasSavedSharedPiece &&
 			(typeof composerCredits === 'number' ? composerCredits <= 0 : true)
 	);
 
@@ -127,6 +132,7 @@
 	});
 
 	const pieceBuildResult = $derived.by(() => buildPiece());
+	const hasSavedPiece = $derived(savedPieceId.trim().length > 0);
 	const customPieceShare = $derived.by(() => {
 		if (!pieceBuildResult.piece) {
 			return {
@@ -159,6 +165,12 @@
 			};
 		}
 	});
+	const hasUnsavedPieceChanges = $derived.by(() => {
+		if (!savedPieceId.trim()) return false;
+		const currentFingerprint = customPieceShare.payloadFingerprint;
+		if (!currentFingerprint) return false;
+		return savedPieceSourceFingerprint !== currentFingerprint;
+	});
 	const shareError = $derived.by(() => shortShareError || customPieceShare.error);
 	const inferredTempiPreview = $derived.by(() => inferPracticeTempiFromFastTempo(fastTempo));
 
@@ -189,6 +201,7 @@
 	$effect(() => {
 		const nextFingerprint = customPieceShare.payloadFingerprint;
 		if (!shortShareSourceFingerprint || shortShareSourceFingerprint === nextFingerprint) return;
+		if (hasSavedSharedPiece && shortShareUrl) return;
 
 		shortShareUrl = '';
 		shortShareSourceFingerprint = '';
@@ -426,6 +439,93 @@
 		}
 	}
 
+	type SavedPiecePayload = {
+		pieceId?: string;
+		isPublished?: boolean;
+		hasShortLink?: boolean;
+		shortUrl?: string | null;
+	};
+
+	function applySavedPiecePayload(payload: SavedPiecePayload, sourceFingerprint: string) {
+		const teacherPieceId = payload.pieceId?.trim();
+		if (!teacherPieceId) {
+			throw new Error('Piece save endpoint returned an invalid piece id.');
+		}
+
+		savedPieceId = teacherPieceId;
+		savedPieceSourceFingerprint = sourceFingerprint;
+
+		const normalizedShortUrl = payload.shortUrl?.trim() || '';
+		if (normalizedShortUrl) {
+			shortShareUrl = normalizedShortUrl;
+			shortShareSourceFingerprint = sourceFingerprint;
+		}
+
+		if (payload.isPublished || payload.hasShortLink) {
+			hasSavedSharedPiece = true;
+			if (shortShareUrl) {
+				shortShareSourceFingerprint = sourceFingerprint;
+			}
+		}
+	}
+
+	async function savePiece(showStatusMessage = true): Promise<boolean> {
+		const sourceFingerprint = customPieceShare.payloadFingerprint;
+		const customUnitMaterial = customPieceShare.customUnitMaterial;
+		if (!sourceFingerprint || !customUnitMaterial) {
+			shortShareError = customPieceShare.error || 'Piece is not valid yet.';
+			return false;
+		}
+
+		if (savedPieceSourceFingerprint === sourceFingerprint && savedPieceId.trim()) {
+			if (showStatusMessage) {
+				shareStatus = hasSavedSharedPiece
+					? 'Piece already saved. Your existing share link points to this version.'
+					: 'Piece already saved as a draft.';
+			}
+			return true;
+		}
+
+		if (isSavingPiece) {
+			return false;
+		}
+
+		isSavingPiece = true;
+		shortShareError = '';
+
+		try {
+			const res = await fetch('/api/teacher-pieces/share', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					pieceId: savedPieceId || undefined,
+					customUnitMaterial
+				})
+			});
+
+			if (!res.ok) {
+				const payload = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new Error(payload.error || 'Unable to save piece.');
+			}
+
+			const payload = (await res.json()) as SavedPiecePayload;
+			applySavedPiecePayload(payload, sourceFingerprint);
+
+			if (showStatusMessage) {
+				shareStatus = hasSavedSharedPiece
+					? 'Piece saved. Existing share link now opens this updated version.'
+					: 'Piece saved. Share when you are ready.';
+			}
+
+			return true;
+		} catch (error) {
+			shortShareError = error instanceof Error ? error.message : 'Unable to save piece.';
+			return false;
+		} finally {
+			isSavingPiece = false;
+		}
+	}
+
 	async function ensureShortShareUrl() {
 		if (isShareBlocked) {
 			shortShareError = 'You need at least 1 credit to share a piece.';
@@ -447,27 +547,25 @@
 			return;
 		}
 
+		const hasSavedLatestPiece =
+			savedPieceId.trim().length > 0 && savedPieceSourceFingerprint === sourceFingerprint;
+		if (!hasSavedLatestPiece) {
+			const didSave = await savePiece(false);
+			if (!didSave) {
+				return;
+			}
+		}
+
+		const teacherPieceId = savedPieceId.trim();
+		if (!teacherPieceId) {
+			shortShareError = 'Unable to find saved piece id.';
+			return;
+		}
+
 		isCreatingShortShareUrl = true;
 		shortShareError = '';
 
 		try {
-			const savedPieceResponse = await fetch('/api/teacher-pieces/share', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ customUnitMaterial })
-			});
-
-			if (!savedPieceResponse.ok) {
-				const payload = (await savedPieceResponse.json().catch(() => ({}))) as { error?: string };
-				throw new Error(payload.error || 'Unable to save piece for sharing.');
-			}
-
-			const savedPiecePayload = (await savedPieceResponse.json()) as { pieceId?: string };
-			const teacherPieceId = savedPiecePayload.pieceId?.trim();
-			if (!teacherPieceId) {
-				throw new Error('Piece sharing endpoint returned an invalid piece id.');
-			}
-
 			const res = await fetch('/api/share/custom', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
@@ -491,6 +589,7 @@
 
 			shortShareUrl = payload.shortUrl;
 			shortShareSourceFingerprint = sourceFingerprint;
+			hasSavedSharedPiece = true;
 
 			if (payload.hasUnlimitedCredits) {
 				composerCredits = null;
@@ -503,10 +602,10 @@
 
 			if (payload.consumedCredit) {
 				shareStatus = '1 credit consumed for this shared piece.';
+			} else {
+				shareStatus = 'Share link is ready.';
 			}
 		} catch (error) {
-			shortShareUrl = '';
-			shortShareSourceFingerprint = '';
 			shortShareError =
 				error instanceof Error ? error.message : 'Unable to create short share link.';
 		} finally {
@@ -522,6 +621,10 @@
 
 		await ensureShortShareUrl();
 		return shortShareUrl.trim().length > 0;
+	}
+
+	async function handleSavePiece() {
+		await savePiece(true);
 	}
 
 	async function openShareModal() {
@@ -553,7 +656,7 @@
 				</p>
 				<p class="max-w-xl text-lg text-slate-700">
 					This tool is great for teachers who want to use the Sharpest Note practice experience with
-					their own material!
+					their own material, and even better for creating together with the student!
 				</p>
 				<div class="max-w-xl rounded-xl border border-emerald-300 bg-emerald-50 p-4">
 					<p class="text-xs font-semibold tracking-wide text-emerald-900 uppercase">
@@ -621,6 +724,11 @@
 				{shareError}
 				errors={pieceBuildResult.errors}
 				{shareStatus}
+				onSavePiece={handleSavePiece}
+				{isSavingPiece}
+				{hasSavedPiece}
+				{hasUnsavedPieceChanges}
+				hasSharedPiece={hasSavedSharedPiece}
 				onCopyUrl={copyCustomPieceUrl}
 				onPrepareShareUrl={prepareShareForAction}
 				{hasUnlimitedComposerCredits}
