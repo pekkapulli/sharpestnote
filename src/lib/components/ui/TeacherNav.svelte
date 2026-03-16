@@ -78,10 +78,8 @@
 						<p class="teacher-email">{teacherEmail}</p>
 					{/if}
 					<p class="teacher-credits">{teacherCredits}</p>
-					<a href="/teachers/pieces" role="menuitem" onclick={closeMenu}>My pieces</a>
 					<a href="/teachers/composer" role="menuitem" onclick={closeMenu}>Composer</a>
 					<a href="/teachers/profile" role="menuitem" onclick={closeMenu}>Profile</a>
-					<a href="/teachers" role="menuitem" onclick={closeMenu}>Teacher tools</a>
 					<form method="POST" action="/teachers/profile?/signout" class="teacher-signout-form">
 						<button type="submit" role="menuitem" class="teacher-signout-button"> Sign out </button>
 					</form>
@@ -89,7 +87,7 @@
 			{/if}
 		</div>
 	{:else}
-		<a href="/teachers/login" class="teacher-login-button">Log in</a>
+		<a href="/teachers/login" class="teacher-login-button">Log in / Sign up</a>
 	{/if}
 </div>
 

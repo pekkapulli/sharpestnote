@@ -167,7 +167,7 @@
 	<div class="mx-auto w-full max-w-lg px-4">
 		<p class="text-sm font-semibold tracking-wide text-brand-green uppercase">Teacher tools</p>
 		<h1 class="mt-3 text-3xl font-semibold text-slate-900">
-			Sign in or sign up to The Sharpest Note
+			Log in or sign up to The Sharpest Note
 		</h1>
 		<p class="mt-3 text-slate-700">
 			Send a sign-in email that contains both a login link and a 6-digit code. You can click the

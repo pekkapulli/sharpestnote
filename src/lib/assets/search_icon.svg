@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="84px" height="84px" viewBox="0 0 84 84" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>search_icon</title>
+    <defs>
+        <path d="M0,0 L84,0 L84,84 L0,84 L0,0 Z" id="path-1"></path>
+    </defs>
+    <g id="search_icon" stroke="none" fill="none" xlink:href="#path-1" fill-rule="evenodd" stroke-width="1">
+        <g id="Group" transform="translate(38.6, 42) rotate(30) translate(-38.6, -42)translate(23.6, 13)">
+            <g transform="translate(2.5981, -2.5)">
+                <path d="M20.5335059,32.778521 L21.8998202,33.5044028 L21.9138969,33.4825103 L25.169714,35.1984282 L25.1478202,35.2314028 L26.321648,35.8546683 L25.019981,37.9228975 L23.8548202,37.3034028 L21.6288202,40.8674028 L24.1482349,42.1941138 L7.56079572,68.7936242 L0.123030348,64.8798197 L16.7104695,38.2803092 L18.3718202,39.1544028 L20.6058202,35.5764028 L19.231839,34.8467502 L20.5335059,32.778521 Z" id="Combined-Shape" fill="#303D53" transform="translate(13.7983, 50.6954) rotate(-30) translate(-13.7983, -50.6954)"></path>
+                <ellipse id="Oval" stroke="#303D53" stroke-width="2" cx="14.1488032" cy="13.1630983" rx="18.9520829" ry="18.6872012"></ellipse>
+                <rect id="Rectangle-Copy" fill="#303D53" transform="translate(15.8414, 8.2984) rotate(-30) translate(-15.8414, -8.2984)" x="15.3359663" y="-0.726283705" width="1.01091462" height="18.0493151" rx="0.505457312"></rect>
+                <path d="M17.2509055,22.5412089 C20.3695786,21.5898737 22.4870241,19.4721414 21.9803524,17.8111214 C21.4736808,16.1501015 18.5347581,15.5747883 15.416085,16.5261236 C12.2974119,17.4774589 10.1799664,19.5951912 10.6866381,21.2562111 C11.1933098,22.9172311 14.1322324,23.4925442 17.2509055,22.5412089 Z" id="Oval-Copy" fill="#303D53" transform="translate(16.3335, 19.5337) rotate(-30) translate(-16.3335, -19.5337)"></path>
+            </g>
+        </g>
+    </g>
+</svg>

@@ -66,8 +66,11 @@
 
 	let qrCodeDataUrl = $state('');
 	let qrCodeError = $state('');
+	let copyActionStatus = $state('');
 	let imageActionStatus = $state('');
 	let pdfActionStatus = $state('');
+	let isCopyConfirmed = $state(false);
+	let copyFeedbackTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
 	let isPreparingImage = $state(false);
 	let isPreparingPdf = $state(false);
 	let printableSheet = $state<{ exportPdf: () => Promise<void> } | null>(null);
@@ -81,13 +84,85 @@
 		if (typeof navigator === 'undefined') return false;
 		return typeof navigator.share === 'function';
 	});
+	const normalizedComposerCredits = $derived.by(() => {
+		if (typeof composerCredits === 'number' && Number.isFinite(composerCredits)) {
+			return Math.max(0, Math.trunc(composerCredits));
+		}
+
+		return 0;
+	});
+	const publishStateLabel = $derived.by(() => {
+		if (hasSharedPiece) {
+			return hasUnsavedPieceChanges ? 'Published, changes pending' : 'Published';
+		}
+
+		if (hasSavedPiece) {
+			return hasUnsavedPieceChanges ? 'Draft, changes pending' : 'Saved draft';
+		}
+
+		return 'New draft';
+	});
+	const publishStateTone = $derived.by(() => {
+		if (hasSharedPiece) {
+			return hasUnsavedPieceChanges
+				? 'border-amber-300 bg-amber-50 text-amber-900'
+				: 'border-emerald-300 bg-emerald-50 text-emerald-900';
+		}
+
+		if (hasSavedPiece) {
+			return hasUnsavedPieceChanges
+				? 'border-amber-300 bg-amber-50 text-amber-900'
+				: 'border-slate-300 bg-slate-100 text-slate-700';
+		}
+
+		return 'border-slate-300 bg-slate-100 text-slate-700';
+	});
+	const shareCardIntro = $derived.by(() => {
+		if (hasSharedPiece) {
+			return hasUnsavedPieceChanges
+				? 'This piece is published. Save changes before sharing so the existing student link updates to this version.'
+				: 'This piece is published. Students already have a live link to this version.';
+		}
+
+		if (hasSavedPiece) {
+			return 'This piece is saved privately. Publish it when you are ready for students to see it.';
+		}
+
+		return 'Save privately for free, then publish when you are ready.';
+	});
+	const saveButtonLabel = $derived.by(() => {
+		if (isSavingPiece) return 'Saving...';
+		if (hasSharedPiece) return 'Save published changes';
+		return 'Save draft';
+	});
+	const shareButtonLabel = $derived(hasSharedPiece ? 'Manage share' : 'Publish & share');
 	const creditsLabel = $derived.by(() => {
 		if (hasUnlimitedComposerCredits) return 'You have unlimited credits';
-		const credits =
-			typeof composerCredits === 'number' && Number.isFinite(composerCredits)
-				? Math.max(0, Math.trunc(composerCredits))
-				: 0;
+		const credits = normalizedComposerCredits;
 		return `${credits} credits remaining`;
+	});
+	const shareCreditSummary = $derived.by(() => {
+		if (hasUnlimitedComposerCredits) {
+			return undefined;
+		}
+
+		if (hasSharedPiece) {
+			return `This piece is already published. Updating or re-sharing it will not use another credit. ${creditsLabel}.`;
+		}
+
+		return `Publishing this piece for the first time uses ${shareCreditCost} credit. ${creditsLabel}.`;
+	});
+	const publishedChangeWarning = $derived.by(() => {
+		if (!hasSharedPiece) return undefined;
+		if (hasUnsavedPieceChanges) {
+			return 'Saving will update the existing student link. Until you save, students still see the last published version.';
+		}
+
+		return 'Further saves update the existing student link.';
+	});
+
+	const hasShareState = $derived(() => {
+		return !!shareCreditSummary || !!publishedChangeWarning;
 	});
 
 	async function ensureShareReadyForAction(): Promise<boolean> {
@@ -117,10 +192,50 @@
 		return shareUrl.trim().length > 0 && qrCodeDataUrl.length > 0 && !qrCodeError;
 	}
 
+	function resetCopyFeedback() {
+		if (copyFeedbackTimeout) {
+			clearTimeout(copyFeedbackTimeout);
+			copyFeedbackTimeout = null;
+		}
+
+		isCopyConfirmed = false;
+		copyActionStatus = '';
+	}
+
+	function showCopyFeedback(message: string, isSuccess: boolean) {
+		resetCopyFeedback();
+		isCopyConfirmed = isSuccess;
+		copyActionStatus = message;
+
+		if (!isSuccess) {
+			return;
+		}
+
+		copyFeedbackTimeout = setTimeout(() => {
+			isCopyConfirmed = false;
+			copyActionStatus = '';
+			copyFeedbackTimeout = null;
+		}, 2200);
+	}
+
+	async function handleCopyUrl() {
+		if (isPreparingShareUrl || isShareBlocked) return;
+
+		resetCopyFeedback();
+
+		try {
+			await onCopyUrl();
+			showCopyFeedback('Copied to clipboard.', true);
+		} catch {
+			showCopyFeedback('Unable to copy link.', false);
+		}
+	}
+
 	$effect(() => {
 		if (!isShareModalOpen) {
 			qrCodeDataUrl = '';
 			qrCodeError = '';
+			resetCopyFeedback();
 			pdfActionStatus = '';
 			isPreparingPdf = false;
 			return;
@@ -160,6 +275,14 @@
 
 		return () => {
 			isActive = false;
+		};
+	});
+
+	$effect(() => {
+		return () => {
+			if (copyFeedbackTimeout) {
+				clearTimeout(copyFeedbackTimeout);
+			}
 		};
 	});
 
@@ -477,8 +600,15 @@
 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 	<div>
 		<div>
-			<h2 class="text-xl font-semibold text-slate-900">Share with student</h2>
-			<p class="mt-1 text-sm text-slate-600">Save privately for free, then share when ready.</p>
+			<div class="flex flex-wrap items-center gap-3">
+				<h2 class="text-xl font-semibold text-slate-900">Share with student</h2>
+				<span
+					class={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${publishStateTone}`}
+				>
+					{publishStateLabel}
+				</span>
+			</div>
+			<p class="mt-1 text-sm text-slate-600">{shareCardIntro}</p>
 		</div>
 	</div>
 
@@ -498,6 +628,17 @@
 	{/if}
 
 	<div class="mt-5 space-y-4">
+		{#if hasShareState()}
+			<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Publishing state</p>
+				{#if shareCreditSummary}
+					<p class="mt-2 text-sm text-slate-700">{shareCreditSummary}</p>
+				{/if}
+				{#if publishedChangeWarning}
+					<p class="mt-2 text-sm font-medium text-amber-800">{publishedChangeWarning}</p>
+				{/if}
+			</div>
+		{/if}
 		<label class="flex flex-col gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
 			Teacher note
 			<textarea
@@ -515,7 +656,7 @@
 				onclick={onSavePiece}
 				disabled={errors.length > 0 || isSavingPiece || isPreparingShareUrl}
 			>
-				{isSavingPiece ? 'Saving...' : 'Save draft'}
+				{saveButtonLabel}
 			</Button>
 			<Button
 				type="button"
@@ -524,14 +665,18 @@
 				onclick={onOpenShareModal}
 				disabled={errors.length > 0 || isPreparingShareUrl || isSavingPiece || isShareBlocked}
 			>
-				Share
+				{shareButtonLabel}
 			</Button>
 		</div>
 		{#if hasSavedPiece && hasUnsavedPieceChanges}
-			<p class="text-sm text-amber-800">You have unsaved changes.</p>
+			<p class="text-sm text-amber-800">
+				{hasSharedPiece
+					? 'You have unsaved changes to a published piece.'
+					: 'You have unsaved draft changes.'}
+			</p>
 		{:else if hasSavedPiece && hasSharedPiece}
 			<p class="text-sm text-slate-700">
-				This piece is already shared. Saving updates the existing student link.
+				This piece is published. Saving updates the existing student link.
 			</p>
 		{:else if hasSavedPiece}
 			<p class="text-sm text-slate-700">Draft saved privately. Share when you are ready.</p>
@@ -555,6 +700,17 @@
 		title="Share with student"
 		maxWidth="xl"
 	>
+		{#if hasShareState()}
+			<div class="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share status</p>
+				{#if shareCreditSummary}
+					<p class="mt-2 text-sm text-slate-700">{shareCreditSummary}</p>
+				{/if}
+				{#if publishedChangeWarning}
+					<p class="mt-2 text-sm font-medium text-amber-800">{publishedChangeWarning}</p>
+				{/if}
+			</div>
+		{/if}
 		<ComposerPrintableSheet
 			bind:this={printableSheet}
 			{pieceLabel}
@@ -567,11 +723,6 @@
 			{qrCodeDataUrl}
 		/>
 
-		{#if !hasUnlimitedComposerCredits}
-			<p class="mt-2 text-center text-sm font-semibold text-brand-green">
-				First share uses {shareCreditCost} credit. {creditsLabel}
-			</p>
-		{/if}
 		<div class="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-5">
 			<div>
 				<div class="space-y-4">
@@ -583,10 +734,10 @@
 							<Button
 								type="button"
 								size="medium"
-								onclick={onCopyUrl}
+								onclick={handleCopyUrl}
 								disabled={isPreparingShareUrl || isShareBlocked}
 							>
-								Copy link
+								{isCopyConfirmed ? 'Copied!' : 'Copy link'}
 							</Button>
 							<Button
 								type="button"
@@ -615,6 +766,13 @@
 						</div>
 						{#if shareError}
 							<p class="mt-2 text-sm text-amber-800">{shareError}</p>
+						{/if}
+						{#if copyActionStatus}
+							<p
+								class={`mt-2 text-sm font-medium ${isCopyConfirmed ? 'text-brand-green' : 'text-amber-800'}`}
+							>
+								{copyActionStatus}
+							</p>
 						{/if}
 						{#if imageActionStatus}
 							<p class="mt-2 text-sm font-medium text-brand-green">{imageActionStatus}</p>

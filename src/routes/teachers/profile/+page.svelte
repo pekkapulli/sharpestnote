@@ -353,7 +353,7 @@
 			<p class="mt-2 text-sm text-slate-600">Open your composing workspace from here.</p>
 
 			<div class="tool-grid">
-				<a class="tool-card" href="/teachers/pieces" aria-label="Open My pieces page">
+				<a class="tool-card" href="/teachers/composer" aria-label="Open My pieces page">
 					<div class="tool-card__content">
 						<img src={melodyIcon} alt="" class="tool-card__icon" />
 						<span class="tool-card__title">My pieces</span>

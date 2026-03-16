@@ -80,8 +80,7 @@
 		<h2 class="text-2xl font-semibold text-slate-900">The composer tool</h2>
 		<p class="mt-4 text-slate-700">
 			Teachers can bring their own material to life with the composer tool: add interactive
-			exercises to your existing repertoire, or create custom material for specific students. Three
-			pieces per month for free.
+			exercises to your existing repertoire, or create custom material for specific students.
 		</p>
 		<div class="mt-6">
 			<LinkButton href="/teachers/login" color="green" size="large"
