@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ComposerMelodyTechniqueEditorInstructions from '../controls/ComposerMelodyTechniqueEditorInstructions.svelte';
+	import ComposerMelodyPreviewControls from '../controls/ComposerMelodyPreviewControls.svelte';
 	import {
 		type TechniqueContextMenuHandle,
 		type StaffContextMenuAnchorProvider,
@@ -14,7 +15,12 @@
 		melody = $bindable(),
 		keySignature,
 		barLength,
+		isPlayingMelodyPreview,
+		isMelodyPreviewMuted,
 		melodyPlayheadPosition = null,
+		onToggleMelodyPlayback,
+		onPlayMelodyFromStart,
+		onToggleMelodyMute,
 		onEdit
 	}: ComposerMelodyPanelProps = $props();
 
@@ -55,6 +61,17 @@
 </div>
 
 <div class="mt-4 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
+	<div class="mb-3 flex justify-center sm:justify-end">
+		<ComposerMelodyPreviewControls
+			{isMelodyPreviewMuted}
+			{isPlayingMelodyPreview}
+			{selectedNoteIndex}
+			{onToggleMelodyMute}
+			{onPlayMelodyFromStart}
+			{onToggleMelodyPlayback}
+		/>
+	</div>
+
 	{#if pendingSlurStartIndex !== null}
 		<p class="mb-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
 			⌢ Tap the last note of the slur (in the same bar).

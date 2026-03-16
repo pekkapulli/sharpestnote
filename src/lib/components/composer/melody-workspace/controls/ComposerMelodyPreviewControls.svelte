@@ -18,7 +18,7 @@
 	}: Props = $props();
 </script>
 
-<div class="absolute right-2 flex items-center gap-2">
+<div class="flex items-center gap-2">
 	<button
 		type="button"
 		title={isMelodyPreviewMuted ? 'Unmute synth preview' : 'Mute synth preview'}
