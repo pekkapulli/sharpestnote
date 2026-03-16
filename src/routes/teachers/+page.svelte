@@ -8,6 +8,7 @@
 	import practiceImage from '$lib/assets/practice.png';
 	import listeningImage from '$lib/assets/intonation.png';
 	import printableSheetMusicImage from '$lib/assets/printable_sheet_music.png';
+	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 
 	let { data } = $props();
 
@@ -73,6 +74,20 @@
 				trained.
 			</li>
 		</ol>
+	</section>
+
+	<section class="mx-auto w-full max-w-lg px-4 pb-14">
+		<h2 class="text-2xl font-semibold text-slate-900">The composer tool</h2>
+		<p class="mt-4 text-slate-700">
+			Teachers can bring their own material to life with the composer tool: add interactive
+			exercises to your existing repertoire, or create custom material for specific students. Three
+			pieces per month for free.
+		</p>
+		<div class="mt-6">
+			<LinkButton href="/teachers/login" color="green" size="large"
+				>Log in to use the composer tool</LinkButton
+			>
+		</div>
 	</section>
 
 	<section class="mx-auto w-full max-w-lg px-4 pb-20">

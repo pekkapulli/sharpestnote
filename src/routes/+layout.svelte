@@ -1,13 +1,23 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Breadcrumbs from '$lib/components/ui/Breadcrumbs.svelte';
+	import TeacherNav from '$lib/components/ui/TeacherNav.svelte';
 
-	let { children } = $props();
+	interface Props {
+		children: import('svelte').Snippet;
+		data: PageData;
+	}
+
+	let { children, data }: Props = $props();
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 <a href="#main-content" class="skip-link">Skip to main content</a>
+
+<TeacherNav user={data.user} />
+
 <Breadcrumbs />
 <main id="main-content">
 	{@render children()}

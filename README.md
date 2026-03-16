@@ -48,3 +48,60 @@ Install dependencies and run the dev server:
 npm install
 npm run dev
 ```
+
+## Teacher auth setup (Supabase)
+
+Teacher login uses Supabase Auth.
+
+1. Create your local env file:
+
+```sh
+cp .env.example .env
+```
+
+2. Fill these values in `.env`:
+
+```sh
+PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SECRET_KEY=your-secret-key
+```
+
+You can find them in Supabase Dashboard:
+
+- Project Settings -> API -> Project URL
+- Project Settings -> API -> publishable key
+- Project Settings -> API -> secret key
+
+`SUPABASE_SECRET_KEY` is server-only. Never prefix it with `PUBLIC_`.
+
+3. Configure Supabase Auth URLs:
+
+- Authentication -> URL Configuration -> Site URL
+- Authentication -> URL Configuration -> Redirect URLs
+
+Add at least:
+
+- `http://localhost:5173/auth/callback`
+- `https://your-production-domain.com/auth/callback`
+
+4. For Cloudflare deployment, set the same vars with Wrangler:
+
+```sh
+npx wrangler secret put PUBLIC_SUPABASE_URL
+npx wrangler secret put PUBLIC_SUPABASE_PUBLISHABLE_KEY
+npx wrangler secret put SUPABASE_SECRET_KEY
+```
+
+If you use a Cloudflare Pages style setup instead of Worker secrets, add both keys in the Cloudflare dashboard environment variables for your production and preview environments.
+
+Legacy compatibility: `PUBLIC_SUPABASE_ANON_KEY` still works as a fallback, but new setups should use `PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+
+Then run the teacher profile SQL in Supabase SQL editor:
+
+- `supabase/schema/teacher_profiles.sql`
+
+After setup:
+
+- Visit `/teachers/login` to sign in with magic link, email/password, or Google OAuth.
+- `/teachers/composer` is now protected and redirects to login when unauthenticated.

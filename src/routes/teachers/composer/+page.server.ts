@@ -1,4 +1,6 @@
 import type { PageServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
+import type { Actions } from './$types';
 import { instrumentConfigs } from '$lib/config/instruments';
 import type { Mode, NoteName } from '$lib/config/keys';
 import type { InstrumentId } from '$lib/config/types';
@@ -85,8 +87,12 @@ function parseDraftStateFromUrl(url: URL): ComposerDraftState {
 	}
 }
 
-export const load: PageServerLoad = ({ url }) => {
-	const initialDraftState = parseDraftStateFromUrl(url);
+export const load: PageServerLoad = async ({ url, locals }) => {
+	const { session, user } = await locals.safeGetSession();
+	if (!session) {
+		const redirectTarget = `${url.pathname}${url.search}`;
+		throw redirect(303, `/teachers/login?next=${encodeURIComponent(redirectTarget)}`);
+	}
 
 	return {
 		sharePreviewData: {
@@ -95,6 +101,14 @@ export const load: PageServerLoad = ({ url }) => {
 			image: `${url.origin}/og-logo.png`,
 			url: url.href
 		},
-		initialDraftState
+		initialDraftState: parseDraftStateFromUrl(url),
+		teacherEmail: user?.email ?? ''
 	};
+};
+
+export const actions: Actions = {
+	signout: async ({ locals }) => {
+		await locals.supabase.auth.signOut();
+		throw redirect(303, '/teachers/login');
+	}
 };

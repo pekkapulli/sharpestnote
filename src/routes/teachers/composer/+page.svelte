@@ -468,8 +468,7 @@
 <div class="min-h-screen bg-off-white py-10">
 	<div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4">
 		<header class="space-y-4">
-			<div>
-				<p class="text-sm font-semibold tracking-wide text-brand-green uppercase">Teacher tools</p>
+			<div class="space-y-3">
 				<h1 class="mt-2 mb-4 text-3xl font-semibold text-slate-900">
 					Compose your own Sharpest Note piece
 				</h1>
