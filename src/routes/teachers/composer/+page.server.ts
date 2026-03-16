@@ -94,6 +94,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		throw redirect(303, `/teachers/login?next=${encodeURIComponent(redirectTarget)}`);
 	}
 
+	const hasUnlimitedComposerCredits =
+		user?.role === 'institution_teacher' || user?.role === 'admin' || user?.role === 'owner';
+
 	return {
 		sharePreviewData: {
 			title: 'Composer - Teacher Tools - The Sharpest Note',
@@ -102,7 +105,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			url: url.href
 		},
 		initialDraftState: parseDraftStateFromUrl(url),
-		teacherEmail: user?.email ?? ''
+		teacherEmail: user?.email ?? '',
+		hasUnlimitedComposerCredits,
+		composerCredits: hasUnlimitedComposerCredits ? null : (user?.credits ?? 0)
 	};
 };
 

@@ -23,7 +23,12 @@
 		shareError: string;
 		errors: string[];
 		shareStatus: string;
-		onCopyUrl: () => void;
+		onCopyUrl: () => Promise<void> | void;
+		onPrepareShareUrl: () => Promise<boolean>;
+		hasUnlimitedComposerCredits: boolean;
+		composerCredits: number | null;
+		shareCreditCost: number;
+		isShareBlocked: boolean;
 	}
 
 	let {
@@ -41,7 +46,12 @@
 		shareError,
 		errors,
 		shareStatus,
-		onCopyUrl
+		onCopyUrl,
+		onPrepareShareUrl,
+		hasUnlimitedComposerCredits,
+		composerCredits,
+		shareCreditCost,
+		isShareBlocked
 	}: Props = $props();
 
 	let qrCodeDataUrl = $state('');
@@ -61,6 +71,41 @@
 		if (typeof navigator === 'undefined') return false;
 		return typeof navigator.share === 'function';
 	});
+	const creditsLabel = $derived.by(() => {
+		if (hasUnlimitedComposerCredits) return 'You have unlimited credits';
+		const credits =
+			typeof composerCredits === 'number' && Number.isFinite(composerCredits)
+				? Math.max(0, Math.trunc(composerCredits))
+				: 0;
+		return `${credits} credits remaining`;
+	});
+
+	async function ensureShareReadyForAction(): Promise<boolean> {
+		if (isShareBlocked) {
+			imageActionStatus = 'You need at least 1 credit to share a piece.';
+			pdfActionStatus = 'You need at least 1 credit to share a piece.';
+			return false;
+		}
+
+		if (shareUrl.trim().length > 0) return true;
+		const isReady = await onPrepareShareUrl();
+		if (!isReady) {
+			imageActionStatus = 'Unable to prepare share link.';
+			pdfActionStatus = 'Unable to prepare share link.';
+		}
+		return isReady;
+	}
+
+	async function waitForQrCodeReady(timeoutMs = 2200): Promise<boolean> {
+		const start = Date.now();
+		while (Date.now() - start < timeoutMs) {
+			if (qrCodeError) return false;
+			if (shareUrl.trim().length > 0 && qrCodeDataUrl.length > 0) return true;
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+
+		return shareUrl.trim().length > 0 && qrCodeDataUrl.length > 0 && !qrCodeError;
+	}
 
 	$effect(() => {
 		if (!isShareModalOpen) {
@@ -311,12 +356,20 @@
 	}
 
 	async function handleDownloadImage() {
-		if (!canCreateShareImage || isPreparingImage) return;
+		if (isPreparingImage || isPreparingShareUrl || isShareBlocked) return;
 
 		isPreparingImage = true;
 		imageActionStatus = '';
 
 		try {
+			const isShareReady = await ensureShareReadyForAction();
+			if (!isShareReady) return;
+
+			const isQrReady = await waitForQrCodeReady();
+			if (!isQrReady) {
+				throw new Error(qrCodeError || 'Preparing QR code preview. Please try again.');
+			}
+
 			const { blob, fileName } = await buildShareImageBlob();
 			const objectUrl = URL.createObjectURL(blob);
 			const anchor = document.createElement('a');
@@ -335,7 +388,7 @@
 	}
 
 	async function handleNativeShareImage() {
-		if (!canCreateShareImage || isPreparingImage) return;
+		if (isPreparingImage || isPreparingShareUrl || isShareBlocked) return;
 		if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
 			imageActionStatus = 'Native sharing is not available in this browser.';
 			return;
@@ -345,6 +398,14 @@
 		imageActionStatus = '';
 
 		try {
+			const isShareReady = await ensureShareReadyForAction();
+			if (!isShareReady) return;
+
+			const isQrReady = await waitForQrCodeReady();
+			if (!isQrReady) {
+				throw new Error(qrCodeError || 'Preparing QR code preview. Please try again.');
+			}
+
 			const { blob, fileName } = await buildShareImageBlob();
 			const file = new File([blob], fileName, { type: 'image/png' });
 
@@ -373,10 +434,10 @@
 
 	async function handleDownloadPdf() {
 		if (
-			!canCreateShareImage ||
 			isPreparingImage ||
 			isPreparingPdf ||
 			isPreparingShareUrl ||
+			isShareBlocked ||
 			!printableSheet
 		)
 			return;
@@ -385,6 +446,14 @@
 		pdfActionStatus = '';
 
 		try {
+			const isShareReady = await ensureShareReadyForAction();
+			if (!isShareReady) return;
+
+			const isQrReady = await waitForQrCodeReady();
+			if (!isQrReady) {
+				throw new Error(qrCodeError || 'Preparing QR code preview. Please try again.');
+			}
+
 			await printableSheet.exportPdf();
 			pdfActionStatus = 'PDF downloaded.';
 		} catch (error) {
@@ -430,13 +499,12 @@
 				class="rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-800"
 			></textarea>
 		</label>
-
 		<Button
 			type="button"
 			size="medium"
 			color="green"
 			onclick={onOpenShareModal}
-			disabled={errors.length > 0}
+			disabled={errors.length > 0 || isShareBlocked}
 		>
 			Share
 		</Button>
@@ -445,6 +513,11 @@
 		{/if}
 		{#if shareError && !isShareModalOpen}
 			<p class="text-sm text-amber-800">{shareError}</p>
+		{/if}
+		{#if isShareBlocked}
+			<p class="text-sm text-amber-800">
+				You need at least 1 credit to share. Credits are only consumed once per piece.
+			</p>
 		{/if}
 	</div>
 
@@ -465,60 +538,14 @@
 			{shareUrl}
 			{qrCodeDataUrl}
 		/>
+
+		{#if !hasUnlimitedComposerCredits}
+			<p class="mt-2 text-center text-sm font-semibold text-brand-green">
+				Sharing this piece uses {shareCreditCost} credit. {creditsLabel}
+			</p>
+		{/if}
 		<div class="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-5">
 			<div>
-				<!-- <div
-					class="mx-auto mt-0 w-full max-w-52 rounded-2xl border border-slate-200 bg-white p-4 sm:max-w-64 sm:p-5"
-				>
-					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share preview</p>
-					<img
-						src={TheSharpestNoteLogo}
-						alt="The Sharpest Note"
-						class="mx-auto hidden h-5 w-auto sm:block"
-					/>
-
-					<div class="flex flex-col items-center gap-3">
-						{#if qrCodeDataUrl}
-							<img
-								src={qrCodeDataUrl}
-								alt={`QR code for ${trimmedPieceLabel}`}
-								class="w-full max-w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:max-w-64 sm:p-3"
-							/>
-						{:else}
-							<div
-								class="flex h-44 w-full max-w-44 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-4 text-center text-sm text-slate-500 sm:h-64 sm:max-w-64 sm:px-6"
-							>
-								{#if qrCodeError}
-									{qrCodeError}
-								{:else if isPreparingShareUrl}
-									Creating short link...
-								{:else if shareUrl}
-									Generating QR code preview...
-								{:else}
-									The QR code will appear when the share link is ready.
-								{/if}
-							</div>
-						{/if}
-						<p class="text-center text-xs leading-5 text-slate-500 sm:text-left">
-							Students can scan this code to open the custom piece directly.
-						</p>
-					</div>
-
-					<div class="hidden sm:block">
-						<h3 class="mt-0 text-lg font-semibold text-slate-900">{trimmedPieceLabel}</h3>
-						{#if trimmedTeacherShareNote}
-							<p class="mt-0 text-sm leading-6 whitespace-pre-wrap text-slate-700">
-								{trimmedTeacherShareNote}
-							</p>
-						{:else}
-							<p class="mt-3 text-sm leading-6 text-slate-500">
-								Add a note to include practice instructions or reminders for the student.
-							</p>
-						{/if}
-					</div>
-				</div>
-			</div> -->
-
 				<div class="space-y-4">
 					<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
 						<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share link</p>
@@ -529,7 +556,7 @@
 								type="button"
 								size="medium"
 								onclick={onCopyUrl}
-								disabled={!shareUrl || isPreparingShareUrl}
+								disabled={isPreparingShareUrl || isShareBlocked}
 							>
 								Copy link
 							</Button>
@@ -538,7 +565,7 @@
 								size="medium"
 								color="green"
 								onclick={handleDownloadImage}
-								disabled={!canCreateShareImage || isPreparingImage || isPreparingShareUrl}
+								disabled={isPreparingImage || isPreparingShareUrl || isShareBlocked}
 							>
 								{isPreparingImage ? 'Preparing image...' : 'Download QR code'}
 							</Button>
@@ -547,10 +574,10 @@
 								size="medium"
 								color="green"
 								onclick={handleNativeShareImage}
-								disabled={!canCreateShareImage ||
-									!canUseNativeShare ||
+								disabled={!canUseNativeShare ||
 									isPreparingImage ||
-									isPreparingShareUrl}
+									isPreparingShareUrl ||
+									isShareBlocked}
 							>
 								Share QR code
 							</Button>
@@ -580,10 +607,7 @@
 						size="medium"
 						color="secondary"
 						onclick={handleDownloadPdf}
-						disabled={!canCreateShareImage ||
-							isPreparingImage ||
-							isPreparingPdf ||
-							isPreparingShareUrl}
+						disabled={isPreparingImage || isPreparingPdf || isPreparingShareUrl || isShareBlocked}
 					>
 						<img src={printIcon} alt="Print icon" class="h-8 w-8 flex-none" />
 						{isPreparingPdf ? 'Preparing PDF...' : 'Download Sheet music PDF'}

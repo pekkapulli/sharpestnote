@@ -211,14 +211,19 @@
 			<p class="mt-2 text-lg font-semibold text-slate-900">{data.composerAccessPlan.name}</p>
 			<p class="mt-2 text-sm text-slate-700">{data.composerAccessPlan.headline}</p>
 			<p class="mt-1 text-sm text-slate-600">{data.composerAccessPlan.details}</p>
-			<p class="mt-3 text-sm font-medium text-slate-800">
-				Current balance:
+			<div class="mt-4 rounded-xl border border-emerald-300 bg-white/75 p-4">
+				<p class="text-xs font-semibold tracking-wide text-emerald-900 uppercase">
+					Current balance
+				</p>
 				{#if data.composerCredits === null}
-					Unlimited
+					<p class="mt-2 text-3xl leading-none font-bold text-emerald-800">Unlimited</p>
 				{:else}
-					{data.composerCredits} credits
+					<p class="mt-2 text-3xl leading-none font-bold text-emerald-800">
+						{data.composerCredits}
+					</p>
+					<p class="mt-1 text-sm font-medium text-emerald-900">composer credits</p>
 				{/if}
-			</p>
+			</div>
 		</div>
 
 		<div class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -22,7 +22,6 @@
 	import ComposerMelodyWorkspace from '$lib/components/composer/melody-workspace/ComposerMelodyWorkspace.svelte';
 	import ComposerShareCard from '$lib/components/composer/ComposerShareCard.svelte';
 
-	const CANONICAL_SHARE_ORIGIN = 'https://sharpestnote.com';
 	const COMPOSER_DRAFT_PARAM = 'draft';
 	const LENGTH_OPTIONS: NoteLength[] = [1, 2, 3, 4, 6, 8, 12, 16];
 
@@ -46,6 +45,8 @@
 				url: string;
 			};
 			initialDraftState: ComposerDraftState;
+			hasUnlimitedComposerCredits: boolean;
+			composerCredits: number | null;
 		};
 	}
 
@@ -82,7 +83,7 @@
 	let teacherShareNote = $state(initialDraftState.teacherShareNote);
 	let isShareModalOpen = $state(false);
 	let shortShareUrl = $state('');
-	let shortShareSourceUrl = $state('');
+	let shortShareSourceFingerprint = $state('');
 	let shortShareError = $state('');
 	let isCreatingShortShareUrl = $state(false);
 	let isPlayingMelodyPreview = $state(false);
@@ -90,6 +91,15 @@
 	let shouldStopMelodyPreview = $state(false);
 	let melodyPreviewPlayheadPosition = $state<number | null>(null);
 	let melodyPreviewSessionId = $state(0);
+
+	const hasUnlimitedComposerCredits = $derived(data.hasUnlimitedComposerCredits);
+	let composerCredits = $state<number | null>(null);
+	let hasInitializedCredits = $state(false);
+	const shareCreditCost = 1;
+	const isShareBlocked = $derived(
+		!hasUnlimitedComposerCredits &&
+			(typeof composerCredits === 'number' ? composerCredits <= 0 : true)
+	);
 
 	const instrumentConfig = $derived(
 		instrumentConfigs.find((instrument) => instrument.id === instrumentId) ?? instrumentConfigs[0]
@@ -120,20 +130,13 @@
 	const customPieceShare = $derived.by(() => {
 		if (!pieceBuildResult.piece) {
 			return {
-				longUrl: '',
+				payloadFingerprint: '',
+				customUnitMaterial: null as CustomUnitMaterial | null,
 				error: pieceBuildResult.errors[0] ?? 'Piece is not valid yet.'
 			};
 		}
 
 		try {
-			const baseUrl = getShareBaseUrl();
-			if (!baseUrl) {
-				return {
-					longUrl: '',
-					error: 'Unable to determine the site URL for sharing.'
-				};
-			}
-
 			const trimmedTeacherNote = teacherShareNote.trim();
 
 			const customUnitMaterial: CustomUnitMaterial = {
@@ -141,14 +144,17 @@
 				instrument: instrumentId,
 				teacherNote: trimmedTeacherNote || undefined
 			};
+			const payloadFingerprint = packCustomUnitMaterialForUrl(customUnitMaterial);
 
 			return {
-				longUrl: `${baseUrl}/unit/custom/${packCustomUnitMaterialForUrl(customUnitMaterial)}`,
+				payloadFingerprint,
+				customUnitMaterial,
 				error: ''
 			};
 		} catch {
 			return {
-				longUrl: '',
+				payloadFingerprint: '',
+				customUnitMaterial: null as CustomUnitMaterial | null,
 				error: 'Unable to build custom piece URL.'
 			};
 		}
@@ -168,6 +174,12 @@
 	});
 
 	$effect(() => {
+		if (hasInitializedCredits) return;
+		composerCredits = data.composerCredits;
+		hasInitializedCredits = true;
+	});
+
+	$effect(() => {
 		if (previousBarLength === barLength) return;
 		melody = rearrangeNotesForTimeSignatureChange(melody, previousBarLength, barLength);
 		previousBarLength = barLength;
@@ -175,15 +187,12 @@
 	});
 
 	$effect(() => {
-		const nextSourceUrl = customPieceShare.longUrl;
-		if (!shortShareSourceUrl || shortShareSourceUrl === nextSourceUrl) return;
+		const nextFingerprint = customPieceShare.payloadFingerprint;
+		if (!shortShareSourceFingerprint || shortShareSourceFingerprint === nextFingerprint) return;
 
 		shortShareUrl = '';
-		shortShareSourceUrl = '';
+		shortShareSourceFingerprint = '';
 		shortShareError = '';
-		if (isShareModalOpen && nextSourceUrl) {
-			void ensureShortShareUrl();
-		}
 	});
 
 	$effect(() => {
@@ -394,11 +403,16 @@
 		return { piece, errors: [] };
 	}
 
-	function getShareBaseUrl(): string {
-		return CANONICAL_SHARE_ORIGIN;
-	}
-
 	async function copyCustomPieceUrl() {
+		if (isShareBlocked) {
+			shortShareError = 'You need at least 1 credit to share a piece.';
+			return;
+		}
+
+		if (!shortShareUrl) {
+			await ensureShortShareUrl();
+		}
+
 		if (!shortShareUrl) {
 			shareStatus = shareError || pieceBuildResult.errors[0] || 'Share link is not ready yet.';
 			return;
@@ -413,13 +427,19 @@
 	}
 
 	async function ensureShortShareUrl() {
-		const targetUrl = customPieceShare.longUrl;
-		if (!targetUrl) {
+		if (isShareBlocked) {
+			shortShareError = 'You need at least 1 credit to share a piece.';
+			return;
+		}
+
+		const sourceFingerprint = customPieceShare.payloadFingerprint;
+		const customUnitMaterial = customPieceShare.customUnitMaterial;
+		if (!sourceFingerprint || !customUnitMaterial) {
 			shortShareError = customPieceShare.error || 'Piece is not valid yet.';
 			return;
 		}
 
-		if (shortShareUrl && shortShareSourceUrl === targetUrl) {
+		if (shortShareUrl && shortShareSourceFingerprint === sourceFingerprint) {
 			return;
 		}
 
@@ -431,10 +451,27 @@
 		shortShareError = '';
 
 		try {
+			const savedPieceResponse = await fetch('/api/teacher-pieces/share', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ customUnitMaterial })
+			});
+
+			if (!savedPieceResponse.ok) {
+				const payload = (await savedPieceResponse.json().catch(() => ({}))) as { error?: string };
+				throw new Error(payload.error || 'Unable to save piece for sharing.');
+			}
+
+			const savedPiecePayload = (await savedPieceResponse.json()) as { pieceId?: string };
+			const teacherPieceId = savedPiecePayload.pieceId?.trim();
+			if (!teacherPieceId) {
+				throw new Error('Piece sharing endpoint returned an invalid piece id.');
+			}
+
 			const res = await fetch('/api/share/custom', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ targetUrl })
+				body: JSON.stringify({ teacherPieceId })
 			});
 
 			if (!res.ok) {
@@ -442,16 +479,34 @@
 				throw new Error(payload.error || 'Unable to create short share link.');
 			}
 
-			const payload = (await res.json()) as { shortUrl?: string };
+			const payload = (await res.json()) as {
+				shortUrl?: string;
+				consumedCredit?: boolean;
+				creditsRemaining?: number;
+				hasUnlimitedCredits?: boolean;
+			};
 			if (!payload.shortUrl) {
 				throw new Error('Short-link service returned an invalid response.');
 			}
 
 			shortShareUrl = payload.shortUrl;
-			shortShareSourceUrl = targetUrl;
+			shortShareSourceFingerprint = sourceFingerprint;
+
+			if (payload.hasUnlimitedCredits) {
+				composerCredits = null;
+			} else if (
+				typeof payload.creditsRemaining === 'number' &&
+				Number.isFinite(payload.creditsRemaining)
+			) {
+				composerCredits = Math.max(0, Math.trunc(payload.creditsRemaining));
+			}
+
+			if (payload.consumedCredit) {
+				shareStatus = '1 credit consumed for this shared piece.';
+			}
 		} catch (error) {
 			shortShareUrl = '';
-			shortShareSourceUrl = '';
+			shortShareSourceFingerprint = '';
 			shortShareError =
 				error instanceof Error ? error.message : 'Unable to create short share link.';
 		} finally {
@@ -459,10 +514,19 @@
 		}
 	}
 
+	async function prepareShareForAction(): Promise<boolean> {
+		if (isShareBlocked) {
+			shortShareError = 'You need at least 1 credit to share a piece.';
+			return false;
+		}
+
+		await ensureShortShareUrl();
+		return shortShareUrl.trim().length > 0;
+	}
+
 	async function openShareModal() {
 		isShareModalOpen = true;
 		shareStatus = '';
-		await ensureShortShareUrl();
 	}
 
 	function closeShareModal() {
@@ -491,6 +555,20 @@
 					This tool is great for teachers who want to use the Sharpest Note practice experience with
 					their own material!
 				</p>
+				<div class="max-w-xl rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+					<p class="text-xs font-semibold tracking-wide text-emerald-900 uppercase">
+						Composer credits
+					</p>
+					{#if hasUnlimitedComposerCredits}
+						<p class="mt-2 text-2xl font-bold text-emerald-800">Unlimited</p>
+					{:else}
+						<p class="mt-2 text-2xl font-bold text-emerald-800">{composerCredits ?? 0}</p>
+						<p class="text-sm font-medium text-emerald-900">credits remaining</p>
+						<p class="mt-2 text-sm text-emerald-900">
+							Sharing one piece consumes 1 credit. Draft freely!
+						</p>
+					{/if}
+				</div>
 			</div>
 		</header>
 
@@ -544,6 +622,11 @@
 				errors={pieceBuildResult.errors}
 				{shareStatus}
 				onCopyUrl={copyCustomPieceUrl}
+				onPrepareShareUrl={prepareShareForAction}
+				{hasUnlimitedComposerCredits}
+				{composerCredits}
+				{shareCreditCost}
+				{isShareBlocked}
 			/>
 		</section>
 	</div>

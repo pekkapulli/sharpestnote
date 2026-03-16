@@ -3,9 +3,11 @@ import { getUnitByCode, normalizeUnitCode } from '$lib/config/units';
 import type { CustomUnitMaterial, Piece, UnitMaterial } from '$lib/config/types';
 import { getImageUrl } from '$lib/util/getImageUrl';
 import { unpackCustomUnitMaterialFromUrl } from '$lib/util/pieceUrl';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const CUSTOM_UNIT_CODE = 'custom';
 const CUSTOM_IMAGE_URL = '/og-logo.png';
+const STORED_TEACHER_PIECE_PREFIX = 'tp_';
 
 export type UnitPieceRouteData = {
 	unit: UnitMaterial;
@@ -19,15 +21,27 @@ export type UnitPieceRouteData = {
 	isCustomPiece: boolean;
 };
 
+type UnitPieceRouteOptions = {
+	supabase?: SupabaseClient;
+};
+
+type StoredTeacherPieceRow = {
+	custom_unit_material: CustomUnitMaterial;
+	is_published: boolean;
+};
+
 export function isCustomUnitCode(code: string | null | undefined): boolean {
 	return normalizeUnitCode(code) === CUSTOM_UNIT_CODE;
 }
 
-export function getUnitPieceRouteData(params: { code: string; piece: string }): UnitPieceRouteData {
+export async function getUnitPieceRouteData(
+	params: { code: string; piece: string },
+	options: UnitPieceRouteOptions = {}
+): Promise<UnitPieceRouteData> {
 	const normalizedCode = normalizeUnitCode(params.code);
 
 	if (isCustomUnitCode(params.code)) {
-		const customUnitMaterial = tryUnpackCustomUnitMaterial(params.piece);
+		const customUnitMaterial = await resolveCustomUnitMaterial(params.piece, options.supabase);
 		const unit = createCustomUnitMaterial(customUnitMaterial);
 		const piece = customUnitMaterial.piece;
 
@@ -68,6 +82,54 @@ export function getUnitPieceRouteData(params: { code: string; piece: string }): 
 		imageUrl: getImageUrl(params.code),
 		isCustomPiece: false
 	};
+}
+
+async function resolveCustomUnitMaterial(
+	pieceParam: string,
+	supabase?: SupabaseClient
+): Promise<CustomUnitMaterial> {
+	if (isStoredTeacherPieceReference(pieceParam)) {
+		const pieceId = pieceParam.slice(STORED_TEACHER_PIECE_PREFIX.length);
+		if (!isUuid(pieceId)) {
+			throw error(400, 'Invalid teacher piece reference');
+		}
+
+		if (!supabase) {
+			throw error(500, 'Supabase client is required for stored teacher piece links');
+		}
+
+		const { data, error: fetchError } = await supabase
+			.from('teacher_pieces')
+			.select('custom_unit_material, is_published')
+			.eq('id', pieceId)
+			.eq('is_published', true)
+			.maybeSingle();
+
+		if (fetchError) {
+			throw error(500, 'Could not load teacher piece');
+		}
+
+		if (!data) {
+			throw error(404, 'Teacher piece not found');
+		}
+
+		const row = data as StoredTeacherPieceRow;
+		if (!row.is_published || !row.custom_unit_material) {
+			throw error(404, 'Teacher piece not found');
+		}
+
+		return row.custom_unit_material;
+	}
+
+	return tryUnpackCustomUnitMaterial(pieceParam);
+}
+
+function isStoredTeacherPieceReference(value: string): boolean {
+	return value.startsWith(STORED_TEACHER_PIECE_PREFIX);
+}
+
+function isUuid(value: string): boolean {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 export function createCustomUnitStub(): UnitMaterial {

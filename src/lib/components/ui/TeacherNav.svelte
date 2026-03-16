@@ -3,6 +3,8 @@
 
 	interface TeacherUser {
 		email?: string | null;
+		credits?: number | null;
+		role?: string | null;
 	}
 
 	interface Props {
@@ -11,6 +13,17 @@
 
 	let { user }: Props = $props();
 	const teacherEmail = $derived(user?.email ?? '');
+	const hasUnlimitedComposerCredits = $derived(
+		user?.role === 'institution_teacher' || user?.role === 'admin' || user?.role === 'owner'
+	);
+	const teacherCredits = $derived.by(() => {
+		if (hasUnlimitedComposerCredits) return 'Unlimited credits';
+		const credits =
+			typeof user?.credits === 'number' && Number.isFinite(user.credits)
+				? Math.max(0, Math.trunc(user.credits))
+				: 0;
+		return `${credits} credits`;
+	});
 	let isOpen = $state(false);
 	let menuRoot = $state<HTMLElement | null>(null);
 
@@ -64,6 +77,7 @@
 					{#if teacherEmail}
 						<p class="teacher-email">{teacherEmail}</p>
 					{/if}
+					<p class="teacher-credits">{teacherCredits}</p>
 					<a href="/teachers/composer" role="menuitem" onclick={closeMenu}>Composer</a>
 					<a href="/teachers/profile" role="menuitem" onclick={closeMenu}>Profile</a>
 					<a href="/teachers" role="menuitem" onclick={closeMenu}>Teacher tools</a>
@@ -123,6 +137,17 @@
 		font-size: 0.75rem;
 		line-height: 1.3;
 		color: color-mix(in srgb, var(--color-dark-blue) 75%, white);
+	}
+
+	.teacher-credits {
+		margin: 0 0.35rem 0.45rem;
+		padding: 0.25rem 0.45rem;
+		border-radius: 999px;
+		font-size: 0.72rem;
+		font-weight: 700;
+		line-height: 1.2;
+		color: #065f46;
+		background: #ecfdf5;
 	}
 
 	.teacher-nav-panel a {
