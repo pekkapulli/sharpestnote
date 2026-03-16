@@ -1,6 +1,5 @@
 <script lang="ts">
 	import PillSelector from '$lib/components/ui/PillSelector.svelte';
-	import ComposerMelodyPreviewControls from './controls/ComposerMelodyPreviewControls.svelte';
 	import ComposerMelodyEditor from './panels/ComposerMelodyEditor.svelte';
 	import ComposerMelodyTechniqueEditor from './panels/ComposerMelodyTechniqueEditor.svelte';
 	import ComposerMelodyTestEditor from './panels/ComposerMelodyTestEditor.svelte';
@@ -68,15 +67,6 @@
 		</div>
 
 		<div class="relative">
-			{#if editorMode !== 'test'}
-				<ComposerMelodyPreviewControls
-					{isMelodyPreviewMuted}
-					{isPlayingMelodyPreview}
-					{onToggleMelodyMute}
-					{onPlayMelodyFromStart}
-					{onToggleMelodyPlayback}
-				/>
-			{/if}
 			{#if editorMode === 'edit'}
 				<ComposerMelodyEditor
 					{clef}

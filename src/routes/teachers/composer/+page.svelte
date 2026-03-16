@@ -235,9 +235,20 @@
 
 		const safeStartIndex =
 			startIndex >= 0 && startIndex < sequence.length ? Math.floor(startIndex) : 0;
-		const playbackSequence = sequence.slice(safeStartIndex);
+		const startBarIndex = melody.findIndex((bar, barIndex) => {
+			const barStart = melody
+				.slice(0, barIndex)
+				.reduce((sum, currentBar) => sum + currentBar.length, 0);
+			return safeStartIndex >= barStart && safeStartIndex < barStart + bar.length;
+		});
+		const safeBarIndex = startBarIndex >= 0 ? startBarIndex : 0;
+		const barStartIndex = melody
+			.slice(0, safeBarIndex)
+			.reduce((sum, currentBar) => sum + currentBar.length, 0);
+
+		const playbackSequence = sequence.slice(barStartIndex);
 		const startSixteenth = sequence
-			.slice(0, safeStartIndex)
+			.slice(0, barStartIndex)
 			.reduce((sum, item) => sum + item.length, 0);
 
 		if (playbackSequence.length === 0) return;

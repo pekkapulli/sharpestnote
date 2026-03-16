@@ -2,6 +2,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { MAX_MELODY_BARS } from '../logic/composerMelodyEditorLogic';
 	import ComposerMelodyEditorInstructions from '../controls/ComposerMelodyEditorInstructions.svelte';
+	import ComposerMelodyPreviewControls from '../controls/ComposerMelodyPreviewControls.svelte';
 	import {
 		type NoteContextMenuHandle,
 		type StaffContextMenuAnchorProvider,
@@ -18,8 +19,13 @@
 		keySignature,
 		barLength,
 		availablePitches,
+		isPlayingMelodyPreview,
+		isMelodyPreviewMuted,
 		melodyPlayheadPosition = null,
 		lengthOptions,
+		onToggleMelodyPlayback,
+		onPlayMelodyFromStart,
+		onToggleMelodyMute,
 		onPreviewItem,
 		onEdit
 	}: ComposerMelodyPanelProps = $props();
@@ -66,18 +72,29 @@
 
 <div class="mt-4 p-3 sm:rounded-lg sm:border sm:border-slate-100 sm:bg-slate-50">
 	<div
-		class="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-6 sm:mb-3 sm:flex-nowrap sm:justify-around sm:gap-y-2"
+		class="mb-2 flex flex-wrap items-center justify-center gap-4 sm:mb-3 sm:flex-nowrap sm:justify-between"
 	>
-		<Button
-			type="button"
-			size="medium"
-			variant="secondary"
-			title="Clear melody and restore initial rests"
-			onclick={logic.clearMelody}
-		>
-			Clear melody
-		</Button>
-		<div class="order-3 flex w-full justify-center gap-2 sm:order-0 sm:w-auto">
+		<div class="flex flex-wrap items-center justify-center gap-2">
+			<Button
+				type="button"
+				size="medium"
+				variant="secondary"
+				title="Clear melody and restore initial rests"
+				onclick={logic.clearMelody}
+			>
+				Clear melody
+			</Button>
+			<Button
+				type="button"
+				size="medium"
+				variant="secondary"
+				title="Merge adjacent rests"
+				onclick={logic.tidyUpRests}
+			>
+				Tidy up rests
+			</Button>
+		</div>
+		<div class="flex flex-wrap items-center justify-center gap-2">
 			<Button
 				type="button"
 				size="medium"
@@ -98,16 +115,15 @@
 				+ Add bar
 			</Button>
 		</div>
-		<div class="order-2 sm:order-0">
-			<Button
-				type="button"
-				size="medium"
-				variant="secondary"
-				title="Merge adjacent rests"
-				onclick={logic.tidyUpRests}
-			>
-				Tidy up rests
-			</Button>
+		<div class="flex w-full justify-center sm:w-auto sm:justify-end">
+			<ComposerMelodyPreviewControls
+				{isMelodyPreviewMuted}
+				{isPlayingMelodyPreview}
+				{selectedNoteIndex}
+				{onToggleMelodyMute}
+				{onPlayMelodyFromStart}
+				{onToggleMelodyPlayback}
+			/>
 		</div>
 	</div>
 
