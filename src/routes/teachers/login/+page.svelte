@@ -25,11 +25,6 @@
 			link or type the code below, which works even if your inbox is on another device.
 		</p>
 
-		<LoginForm
-			{form}
-			next={data.next}
-			referralStudio={data.referralStudio}
-			errorMessage={data.errorMessage}
-		/>
+		<LoginForm {form} next={data.next} errorMessage={data.errorMessage} />
 	</div>
 </div>

@@ -77,14 +77,14 @@
 	</section>
 
 	<section class="mx-auto w-full max-w-lg px-4 pb-14">
-		<h2 class="text-2xl font-semibold text-slate-900">The composer tool</h2>
+		<h2 class="text-2xl font-semibold text-slate-900">Teacher tools</h2>
 		<p class="mt-4 text-slate-700">
 			Teachers can bring their own material to life with the composer tool: add interactive
 			exercises to your existing repertoire, or create custom material for specific students.
 		</p>
 		<div class="mt-6">
 			<LinkButton href="/teachers/login" color="green" size="large"
-				>Log in to use the composer tool</LinkButton
+				>Log in or sign up to use the teacher tools</LinkButton
 			>
 		</div>
 	</section>

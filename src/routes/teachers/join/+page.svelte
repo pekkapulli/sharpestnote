@@ -25,7 +25,7 @@
 			<p class="mt-3 text-slate-700">
 				<span class="font-semibold text-slate-900">{data.displayName ?? data.studioName}</span
 				>{#if data.displayName && data.studioName && data.displayName !== data.studioName}
-					<span class="text-slate-500"> ({data.studioName})</span>
+					<span class="text-slate-500">&nbsp;({data.studioName})</span>
 				{/if}
 				recommends The Sharpest Note for music teachers. Sign up below — when you publish your first piece,
 				you'll both receive 3 bonus credits.
@@ -38,6 +38,11 @@
 			</p>
 		{/if}
 
-		<LoginForm {form} next={data.next} referralStudio={data.referralStudio} />
+		<LoginForm
+			{form}
+			next={data.next}
+			referralStudio={data.referralStudio}
+			showReferralInput={true}
+		/>
 	</div>
 </div>

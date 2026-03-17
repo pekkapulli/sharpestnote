@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { ensureTeacherProfile } from '$lib/supabase/teacherProfile';
+import { applyReferral, ensureTeacherProfile } from '$lib/supabase/teacherProfile';
 
 const DEFAULT_NEXT = '/teachers/profile';
 
@@ -12,8 +12,17 @@ function sanitizeNextPath(next: string | null): string {
 	return next;
 }
 
+function normalizeRef(value: string | null): string {
+	if (!value) return '';
+	return value
+		.trim()
+		.replace(/[^A-Za-z0-9_-]/g, '')
+		.slice(0, 30);
+}
+
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const next = sanitizeNextPath(url.searchParams.get('next'));
+	const referralStudio = normalizeRef(url.searchParams.get('ref'));
 	const code = url.searchParams.get('code');
 
 	if (code) {
@@ -28,6 +37,14 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 					await ensureTeacherProfile(user, locals.supabase);
 				} catch {
 					// Auth should still succeed even if profile sync is temporarily unavailable.
+				}
+
+				if (referralStudio) {
+					try {
+						await applyReferral(user.id, referralStudio, locals.supabase);
+					} catch {
+						// Non-blocking.
+					}
 				}
 			}
 

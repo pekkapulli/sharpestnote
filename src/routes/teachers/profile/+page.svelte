@@ -17,7 +17,7 @@
 
 	const referralLink = $derived(
 		data.teacherStudioName
-			? `${data.origin ?? 'https://sharpestnote.com'}/join?ref=${encodeURIComponent(data.teacherStudioName)}`
+			? `${data.origin ?? 'https://sharpestnote.com'}/teachers/join?ref=${encodeURIComponent(data.teacherStudioName)}`
 			: null
 	);
 

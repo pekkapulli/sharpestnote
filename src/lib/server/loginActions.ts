@@ -53,7 +53,11 @@ export async function handleMagic(event: RequestEvent) {
 		});
 	}
 
-	const redirectTo = `${event.url.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+	const redirectParams = new URLSearchParams({ next });
+	if (referralStudio) {
+		redirectParams.set('ref', referralStudio);
+	}
+	const redirectTo = `${event.url.origin}/auth/callback?${redirectParams.toString()}`;
 	const { error } = await event.locals.supabase.auth.signInWithOtp({
 		email,
 		options: { emailRedirectTo: redirectTo }
@@ -94,7 +98,11 @@ export async function handleResend(event: RequestEvent) {
 		});
 	}
 
-	const redirectTo = `${event.url.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+	const redirectParams = new URLSearchParams({ next });
+	if (referralStudio) {
+		redirectParams.set('ref', referralStudio);
+	}
+	const redirectTo = `${event.url.origin}/auth/callback?${redirectParams.toString()}`;
 	const { error } = await event.locals.supabase.auth.signInWithOtp({
 		email,
 		options: { emailRedirectTo: redirectTo }

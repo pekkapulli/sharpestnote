@@ -16,6 +16,8 @@
 		next: string;
 		// pre-fills the referral code input (e.g. from ?ref= query param)
 		referralStudio?: string;
+		// Shows the referral input section (enabled only on /teachers/join page)
+		showReferralInput?: boolean;
 		// optional error message passed from URL params or other sources
 		errorMessage?: string;
 	}
@@ -24,6 +26,7 @@
 		form,
 		next,
 		referralStudio: initialReferralStudio = '',
+		showReferralInput = false,
 		errorMessage: externalErrorMessage = ''
 	}: Props = $props();
 
@@ -36,10 +39,11 @@
 	let emailInput = $state('');
 	let lastSyncedEmail = $state('');
 	let isEditingEmail = $state(false);
-	// On mount, prefer the echoed form value or fall back to the initial prop.
-	// The effect re-runs only when `form` changes (i.e., after a form submission),
-	// never when the user is typing — so it doesn't interfere with user edits.
-	let referralInput = $derived(form?.referralStudio ?? initialReferralStudio);
+	// Keep referral input mutable for bind:value while syncing server-provided values.
+	let referralInput = $state('');
+	$effect(() => {
+		referralInput = form?.referralStudio ?? initialReferralStudio;
+	});
 	$effect(() => {
 		if (emailValue !== lastSyncedEmail) {
 			emailInput = emailValue;
@@ -221,26 +225,28 @@
 				/>
 			</div>
 
-			<div>
-				<label class="block text-sm font-medium text-slate-700" for="referral-code">
-					Referral code <span class="font-normal text-slate-500">(optional)</span>
-				</label>
-				<input
-					id="referral-code"
-					type="text"
-					name="referralStudio"
-					maxlength="30"
-					autocomplete="off"
-					bind:value={referralInput}
-					disabled={showCodeStep}
-					placeholder="e.g. HarmonyStudio"
-					class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 focus:outline-none disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
-				/>
-				<p class="mt-1 text-xs text-slate-500">
-					Have a referral code from a colleague? Enter it here — when you publish your first piece,
-					you'll both receive 3 bonus credits.
-				</p>
-			</div>
+			{#if showReferralInput}
+				<div>
+					<label class="block text-sm font-medium text-slate-700" for="referral-code">
+						Referral code <span class="font-normal text-slate-500">(optional)</span>
+					</label>
+					<input
+						id="referral-code"
+						type="text"
+						name="referralStudio"
+						maxlength="30"
+						autocomplete="off"
+						bind:value={referralInput}
+						disabled={showCodeStep}
+						placeholder="e.g. HarmonyStudio"
+						class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-green focus:ring-2 focus:ring-brand-green/30 focus:outline-none disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
+					/>
+					<p class="mt-1 text-xs text-slate-500">
+						Have a referral code from a colleague? Enter it here — when you publish your first
+						piece, you'll both receive 3 bonus credits.
+					</p>
+				</div>
+			{/if}
 
 			<button
 				type="submit"
@@ -286,7 +292,9 @@
 					bind:this={verifyEmailHiddenInput}
 				/>
 				<input type="hidden" name="sentAt" value={sentAt} />
-				<input type="hidden" name="referralStudio" value={referralInput} />
+				{#if showReferralInput}
+					<input type="hidden" name="referralStudio" value={referralInput} />
+				{/if}
 
 				<label class="block text-sm font-medium text-slate-700" for="otp-digit-0"
 					>6-digit code</label
@@ -320,7 +328,9 @@
 			<form method="POST" action="?/resend" class="pt-2">
 				<input type="hidden" name="next" value={next} />
 				<input type="hidden" name="email" value={codeStepEmail} />
-				<input type="hidden" name="referralStudio" value={referralInput} />
+				{#if showReferralInput}
+					<input type="hidden" name="referralStudio" value={referralInput} />
+				{/if}
 				<button
 					type="submit"
 					disabled={!canResend}
