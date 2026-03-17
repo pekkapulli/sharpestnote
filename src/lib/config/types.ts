@@ -7,6 +7,7 @@ export type InstrumentId =
 	| 'viola'
 	| 'cello'
 	| 'double-bass'
+	| 'french-horn'
 	| 'flute'
 	| 'recorder';
 
