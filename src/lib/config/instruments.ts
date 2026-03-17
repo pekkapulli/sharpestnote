@@ -155,6 +155,22 @@ export const instrumentConfigs: InstrumentConfig[] = [
 		}
 	},
 	{
+		id: 'french-horn',
+		label: 'French Horn',
+		clef: 'treble',
+		sustaining: true,
+		transpositionSemitones: -7, // F horn: written C sounds a perfect fifth lower
+		bottomNote: 'F3',
+		topNote: 'C6',
+		detectionConfig: genericDetectionConfig,
+		adsrConfig: {
+			attack: 0.04, // Rounded brass attack
+			decay: 0.12, // Slightly longer settle than flute
+			sustain: 0.88, // Strong sustained tone support
+			release: 0.16 // Softer brass release tail
+		}
+	},
+	{
 		id: 'recorder',
 		label: 'Recorder',
 		clef: 'treble',

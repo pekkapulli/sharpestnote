@@ -10,6 +10,7 @@ export type InstrumentId =
 	| 'cello'
 	| 'double-bass'
 	| 'flute'
+	| 'french-horn'
 	| 'recorder';
 
 export type Clef = 'treble' | 'alto' | 'bass';
