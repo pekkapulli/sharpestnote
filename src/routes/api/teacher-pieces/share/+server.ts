@@ -1,5 +1,4 @@
 import { error as kitError, json, type RequestHandler } from '@sveltejs/kit';
-import { createHash } from 'node:crypto';
 import type { CustomUnitMaterial } from '$lib/config/types';
 
 const STORED_TEACHER_PIECE_PREFIX = 'tp_';
@@ -39,9 +38,11 @@ function stableSerialize(value: unknown): string {
 	return JSON.stringify(value);
 }
 
-function getPieceFingerprint(customUnitMaterial: CustomUnitMaterial): string {
+async function getPieceFingerprint(customUnitMaterial: CustomUnitMaterial): Promise<string> {
 	const payload = stableSerialize(customUnitMaterial);
-	return createHash('sha256').update(payload).digest('hex');
+	const encoded = new TextEncoder().encode(payload);
+	const digest = await crypto.subtle.digest('SHA-256', encoded);
+	return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function assertValidCustomUnitMaterial(value: unknown): asserts value is CustomUnitMaterial {
@@ -98,7 +99,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 
 	const piece = body.customUnitMaterial.piece;
 	const teacherNote = body.customUnitMaterial.teacherNote?.trim() || null;
-	const pieceFingerprint = getPieceFingerprint(body.customUnitMaterial);
+	const pieceFingerprint = await getPieceFingerprint(body.customUnitMaterial);
 	const requestPieceId = (body.pieceId || '').trim();
 
 	if (requestPieceId && !isUuid(requestPieceId)) {
