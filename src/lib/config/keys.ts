@@ -276,7 +276,7 @@ export function getTransposedKeySignature(
 	transpositionSemitones: number
 ): KeySignature {
 	const baseKeySignature = getKeySignature(note, mode);
-	if (!transpositionSemitones) {
+	if (transpositionSemitones === 0) {
 		return baseKeySignature;
 	}
 
@@ -285,7 +285,7 @@ export function getTransposedKeySignature(
 		return baseKeySignature;
 	}
 
-	const targetSemitone = (((baseSemitone + transpositionSemitones) % 12) + 12) % 12;
+	const targetSemitone = (((baseSemitone - transpositionSemitones) % 12) + 12) % 12;
 	const candidates = keySignatures.filter((key) => {
 		if (key.mode !== mode) return false;
 		return keyNoteToSemitone(key.note) === targetSemitone;
