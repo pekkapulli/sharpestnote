@@ -27,12 +27,14 @@ export interface VexFlowLayoutOptions {
  * Convert our key signature format to VexFlow format
  */
 function keySignatureToVexFlow(keySignature: KeySignature): string {
+	const vexKeyNote = keySignature.note.replace('♭', 'b').replace('♯', '#');
+
 	// VexFlow expects key names like "C" for major, "Am" for minor
 	// Return the key with mode suffix for natural minor
 	if (keySignature.mode === 'natural_minor') {
-		return `${keySignature.note}m`;
+		return `${vexKeyNote}m`;
 	}
-	return keySignature.note;
+	return vexKeyNote;
 }
 
 /**

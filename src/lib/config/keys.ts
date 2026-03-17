@@ -237,6 +237,78 @@ export function getKeySignature(note: string, mode: Mode): KeySignature {
 	return keySignatures.find((key) => key.note === note && key.mode === mode) ?? keySignatures[0];
 }
 
+function keyNoteToSemitone(note: string): number | null {
+	const normalized = note.replace('♭', 'b');
+	const semitoneByNote: Record<string, number> = {
+		C: 0,
+		'B#': 0,
+		'C#': 1,
+		Db: 1,
+		D: 2,
+		'D#': 3,
+		Eb: 3,
+		E: 4,
+		Fb: 4,
+		'F#': 6,
+		Gb: 6,
+		F: 5,
+		'E#': 5,
+		G: 7,
+		'G#': 8,
+		Ab: 8,
+		A: 9,
+		'A#': 10,
+		Bb: 10,
+		B: 11,
+		Cb: 11
+	};
+
+	return semitoneByNote[normalized] ?? null;
+}
+
+/**
+ * Returns the written key signature for a transposing instrument.
+ * `transpositionSemitones` follows the instrument config convention (written -> sounding).
+ */
+export function getTransposedKeySignature(
+	note: string,
+	mode: Mode,
+	transpositionSemitones: number
+): KeySignature {
+	const baseKeySignature = getKeySignature(note, mode);
+	if (!transpositionSemitones) {
+		return baseKeySignature;
+	}
+
+	const baseSemitone = keyNoteToSemitone(baseKeySignature.note);
+	if (baseSemitone === null) {
+		return baseKeySignature;
+	}
+
+	const targetSemitone = (((baseSemitone + transpositionSemitones) % 12) + 12) % 12;
+	const candidates = keySignatures.filter((key) => {
+		if (key.mode !== mode) return false;
+		return keyNoteToSemitone(key.note) === targetSemitone;
+	});
+
+	if (!candidates.length) {
+		return baseKeySignature;
+	}
+
+	const withMatchingAccidental = candidates.find(
+		(candidate) => candidate.preferredAccidental === baseKeySignature.preferredAccidental
+	);
+	if (withMatchingAccidental) {
+		return withMatchingAccidental;
+	}
+
+	return candidates.reduce((best, candidate) => {
+		const bestAccidentals = best.sharps.length + best.flats.length;
+		const candidateAccidentals = candidate.sharps.length + candidate.flats.length;
+		return candidateAccidentals < bestAccidentals ? candidate : best;
+	});
+}
+
 // Helper function to get all major keys
 export function getMajorKeys(): KeySignature[] {
 	return keySignatures.filter((key) => key.mode === 'major');

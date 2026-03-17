@@ -8,7 +8,7 @@ import { createTuner } from '$lib/tuner/useTuner.svelte';
 import { useSightGameSynth } from './useSightGameSynth.svelte';
 import { DEFAULT_A4 } from '$lib/tuner/tune';
 import { instrumentMap } from '$lib/config/instruments';
-import { getKeySignature, type Mode } from '$lib/config/keys';
+import { getTransposedKeySignature, type Mode } from '$lib/config/keys';
 import type { InstrumentId } from '$lib/config/types';
 import {
 	transposeForTransposition,
@@ -42,7 +42,13 @@ export function useSightGameLogic(config: SightGameConfig) {
 		config;
 
 	const selectedInstrument = $derived(instrumentMap[getInstrument()]);
-	const keySignature = $derived(getKeySignature(getKeyNote(), getMode()));
+	const keySignature = $derived(
+		getTransposedKeySignature(
+			getKeyNote(),
+			getMode(),
+			selectedInstrument?.transpositionSemitones ?? 0
+		)
+	);
 
 	// Game state
 	let melody = $state<MelodyItem[]>([]);
