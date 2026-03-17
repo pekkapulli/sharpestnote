@@ -147,3 +147,91 @@ $$;
 
 revoke all on function public.get_profile_with_credits() from public;
 grant execute on function public.get_profile_with_credits() to authenticated;
+
+-- Referral system columns
+alter table public.teacher_profiles
+  add column if not exists referred_by_studio text,
+  add column if not exists referral_rewarded_at timestamptz;
+
+-- Returns the public display info for a studio name (callable by anonymous users).
+-- Used by the /join landing page before any authentication.
+create or replace function public.get_teacher_by_studio_name(p_studio_name text)
+returns table (display_name text, studio_name text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  return query
+    select p.display_name, p.studio_name
+    from public.teacher_profiles as p
+    where lower(p.studio_name) = lower(trim(p_studio_name))
+    limit 1;
+end;
+$$;
+
+revoke all on function public.get_teacher_by_studio_name(text) from public;
+grant execute on function public.get_teacher_by_studio_name(text) to anon;
+grant execute on function public.get_teacher_by_studio_name(text) to authenticated;
+
+-- Awards 3 bonus credits to both the new teacher and their referrer on first piece publish.
+-- Idempotent: does nothing if already rewarded, if no referral recorded, or on self-referral.
+create or replace function public.award_referral_credits(new_teacher_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_referred_by text;
+  v_rewarded_at timestamptz;
+  v_referrer_id uuid;
+begin
+  select referred_by_studio, referral_rewarded_at
+  into v_referred_by, v_rewarded_at
+  from public.teacher_profiles
+  where id = new_teacher_id;
+
+  if not found then
+    return false;
+  end if;
+
+  -- Already processed
+  if v_rewarded_at is not null then
+    return false;
+  end if;
+
+  -- No referral recorded
+  if v_referred_by is null or trim(v_referred_by) = '' then
+    return false;
+  end if;
+
+  select id into v_referrer_id
+  from public.teacher_profiles
+  where lower(studio_name) = lower(trim(v_referred_by))
+  limit 1;
+
+  -- Mark as processed even when no valid referrer or self-referral (prevents future retries)
+  if v_referrer_id is null or v_referrer_id = new_teacher_id then
+    update public.teacher_profiles
+    set referral_rewarded_at = now()
+    where id = new_teacher_id;
+    return false;
+  end if;
+
+  -- Award credits to both parties in the same transaction
+  update public.teacher_profiles
+  set credits = credits + 3,
+      referral_rewarded_at = now()
+  where id = new_teacher_id;
+
+  update public.teacher_profiles
+  set credits = credits + 3
+  where id = v_referrer_id;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.award_referral_credits(uuid) from public;
+grant execute on function public.award_referral_credits(uuid) to authenticated;

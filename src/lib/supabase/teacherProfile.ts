@@ -45,3 +45,21 @@ export async function ensureTeacherProfile(user: User, supabase?: SupabaseClient
 		)
 		.select('id');
 }
+
+export async function applyReferral(
+	userId: string,
+	studioName: string,
+	supabase?: SupabaseClient
+): Promise<void> {
+	const trimmed = studioName.trim();
+	if (!userId || !trimmed) return;
+
+	const client = createSupabaseAdminClient() ?? supabase;
+	if (!client) return;
+
+	await client
+		.from('teacher_profiles')
+		.update({ referred_by_studio: trimmed })
+		.eq('id', userId)
+		.is('referred_by_studio', null);
+}

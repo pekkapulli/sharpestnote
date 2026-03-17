@@ -172,6 +172,13 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 				createdNew: Boolean(row?.created_new)
 			};
 
+			// Fire-and-forget referral credit award on first publish
+			locals.supabase
+				.rpc('award_referral_credits', { new_teacher_id: user.id })
+				.then(({ error: awardError }) => {
+					if (awardError) console.error('award_referral_credits failed:', awardError);
+				});
+
 			return new Response(JSON.stringify(data), {
 				status: 200,
 				headers: { 'content-type': 'application/json' }

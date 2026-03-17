@@ -12,6 +12,25 @@
 	let { data, form }: Props = $props();
 	let displayName = $state('');
 	let studioName = $state('');
+	let referralLinkCopied = $state(false);
+	let referralLinkCopyTimer: ReturnType<typeof setTimeout> | null = null;
+
+	const referralLink = $derived(
+		data.teacherStudioName
+			? `${data.origin ?? 'https://sharpestnote.com'}/join?ref=${encodeURIComponent(data.teacherStudioName)}`
+			: null
+	);
+
+	function copyReferralLink(): void {
+		if (!referralLink || !browser) return;
+		void navigator.clipboard.writeText(referralLink).then(() => {
+			referralLinkCopied = true;
+			if (referralLinkCopyTimer) clearTimeout(referralLinkCopyTimer);
+			referralLinkCopyTimer = setTimeout(() => {
+				referralLinkCopied = false;
+			}, 2000);
+		});
+	}
 	let profileSummaryDisplayName = $state('');
 	let profileSummaryStudioName = $state('');
 	let showEditPanel = $state(false);
@@ -347,6 +366,38 @@
 				</form>
 			{/if}
 		</div>
+
+		<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+			<h2 class="text-xl font-semibold text-slate-900">Recommend a teacher</h2>
+			<p class="mt-2 text-sm text-slate-600">
+				Share your personal link with another music teacher. When they publish their first piece,
+				you'll both receive 3 bonus credits.
+			</p>
+
+			{#if referralLink}
+				<div class="mt-4 space-y-3">
+					<div
+						class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+					>
+						<span class="min-w-0 flex-1 truncate font-mono text-sm text-slate-700"
+							>{referralLink}</span
+						>
+						<button
+							type="button"
+							onclick={copyReferralLink}
+							class="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+						>
+							{referralLinkCopied ? 'Copied!' : 'Copy'}
+						</button>
+					</div>
+				</div>
+			{:else}
+				<p class="mt-3 text-sm text-amber-700">
+					<a href="#studioName" class="underline underline-offset-2">Set your studio code</a> to unlock
+					your personal recommendation link.
+				</p>
+			{/if}
+		</section>
 
 		<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
 			<h2 class="text-xl font-semibold text-slate-900">Teacher tools</h2>
