@@ -33,6 +33,7 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 	let volume = options.volume ?? 0.3; // 30% volume by default
 	let reverbMix = options.reverbMix ?? 0.3; // 30% wet by default
 	let reverbDecay = options.reverbDecay ?? 2.5; // 2.5 second decay
+	let transpositionSemitones = options.transpositionSemitones ?? 0; // written -> sounding
 
 	/**
 	 * Initialize audio context and audio graph if not already done.
@@ -96,13 +97,14 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 			return;
 		}
 
-		// Convert note name to frequency
-		const midi = noteNameToMidi(item.note);
-		if (midi === null) {
+		// Convert note name to frequency, applying transposition for sounding pitch
+		const writtenMidi = noteNameToMidi(item.note);
+		if (writtenMidi === null) {
 			console.error('[Synth] Invalid note name:', item.note);
 			return;
 		}
 
+		const midi = writtenMidi + transpositionSemitones;
 		const frequency = frequencyFromNoteNumber(midi, a4);
 
 		// Calculate duration in milliseconds
@@ -256,6 +258,8 @@ export function createSynth(options: SynthOptions = {}): SynthVoice {
 				wetGain.gain.value = reverbMix;
 			}
 		}
+		if (opts.transpositionSemitones !== undefined)
+			transpositionSemitones = opts.transpositionSemitones;
 		if (opts.reverbDecay !== undefined) {
 			reverbDecay = opts.reverbDecay;
 			if (reverbNode) {

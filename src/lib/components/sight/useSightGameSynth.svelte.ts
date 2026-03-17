@@ -42,11 +42,12 @@ export function useSightGameSynth(config: SightGameSynthConfig) {
 		reverbDecay: 2
 	});
 
-	// Update synth with instrument-specific ADSR settings
+	// Update synth with instrument-specific ADSR settings and transposition
 	$effect(() => {
-		if (selectedInstrument.adsrConfig) {
-			synth.setOptions(selectedInstrument.adsrConfig);
-		}
+		synth.setOptions({
+			...(selectedInstrument.adsrConfig ?? {}),
+			transpositionSemitones: selectedInstrument.transpositionSemitones
+		});
 	});
 
 	async function playMelodyWithSynth(melody: MelodyItem[]) {

@@ -187,9 +187,10 @@
 	});
 
 	$effect(() => {
-		if (instrumentConfig.adsrConfig) {
-			melodyPreviewSynth.setOptions(instrumentConfig.adsrConfig);
-		}
+		melodyPreviewSynth.setOptions({
+			...(instrumentConfig.adsrConfig ?? {}),
+			transpositionSemitones: instrumentConfig.transpositionSemitones
+		});
 	});
 
 	$effect(() => {
