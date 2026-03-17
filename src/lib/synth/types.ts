@@ -8,6 +8,7 @@ export interface SynthOptions {
 	volume?: number; // Master volume (0-1)
 	reverbMix?: number; // Reverb wet/dry mix (0 = dry, 1 = wet)
 	reverbDecay?: number; // Reverb decay time (1-10 seconds)
+	transpositionSemitones?: number; // written -> sounding (e.g. -7 for French Horn)
 }
 
 export interface SynthVoice {

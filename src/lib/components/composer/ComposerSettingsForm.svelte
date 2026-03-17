@@ -42,7 +42,7 @@
 	<label class="flex flex-col gap-1 text-sm font-medium text-slate-700">
 		Instrument (clef)
 		<select bind:value={instrumentId} class="rounded-md border border-slate-300 px-3 py-2">
-			{#each instrumentConfigs as instrument (instrument.id)}
+			{#each instrumentConfigs.filter((instrument) => instrument.id !== 'guitar') as instrument (instrument.id)}
 				<option value={instrument.id}>{instrument.label} ({instrument.clef})</option>
 			{/each}
 		</select>
