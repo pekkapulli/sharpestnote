@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { InstrumentId, Piece, Speed } from '$lib/config/types';
 	import Staff from '$lib/components/music/Staff.svelte';
-	import { getKeySignature } from '$lib/config/keys';
+	import { getTransposedKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
 
 	interface Props {
@@ -239,7 +239,9 @@
 	const totalOffset = $derived(scrollOffset + userOffset);
 	const shouldTransition = $derived(shouldAnimate && !isScrubbing && inertiaId === null);
 
-	const keySignature = $derived(getKeySignature(piece.key, piece.mode));
+	const keySignature = $derived(
+		getTransposedKeySignature(piece.key, piece.mode, instrumentConfig?.transpositionSemitones ?? 0)
+	);
 </script>
 
 <div class="rolling-staff-container" bind:clientWidth={containerWidth}>

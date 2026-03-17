@@ -8,7 +8,7 @@
 	import type { MelodyItem } from '$lib/config/melody';
 	import { getUnitStorage, setUnitStorage } from '$lib/util/unitStorage.svelte';
 	import { recordPracticeSession } from '$lib/util/practiceCalendarStorage.svelte';
-	import { getKeySignature } from '$lib/config/keys.js';
+	import { getTransposedKeySignature } from '$lib/config/keys.js';
 	import TitleWithIcon from '$lib/components/ui/TitleWithIcon.svelte';
 	import defendIcon from '$lib/assets/defend_icon.png';
 	import { initUnitKeyAccess } from '$lib/util/initUnitKeyAccess.js';
@@ -90,7 +90,9 @@
 	let gameStartTime = 0;
 	const BASE_SPAWN_INTERVAL = 3000; // milliseconds
 
-	const keySignature = $derived(getKeySignature(piece.key, piece.mode));
+	const keySignature = $derived(
+		getTransposedKeySignature(piece.key, piece.mode, instrument.transpositionSemitones)
+	);
 
 	// Generate note to Y position mapping based on piece scale
 	function generateNoteToYMapping(scaleNotes: MelodyItem[]) {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import SharePreview from '$lib/components/SharePreview.svelte';
-	import { getKeySignature } from '$lib/config/keys';
+	import { getTransposedKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
 	import type { Mode, NoteName } from '$lib/config/keys';
 	import type { CustomUnitMaterial, InstrumentId, Piece } from '$lib/config/types';
@@ -110,7 +110,9 @@
 		instrumentConfigs.find((instrument) => instrument.id === instrumentId) ?? instrumentConfigs[0]
 	);
 	const clef = $derived(instrumentConfig.clef);
-	const keySignature = $derived(getKeySignature(pieceKey, pieceMode));
+	const keySignature = $derived(
+		getTransposedKeySignature(pieceKey, pieceMode, instrumentConfig.transpositionSemitones)
+	);
 
 	const availablePitches = $derived(
 		getPitchPalette(
