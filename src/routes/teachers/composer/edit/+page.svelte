@@ -46,10 +46,13 @@
 				url: string;
 			};
 			initialDraftState: ComposerDraftState;
+			initialPieceId: string;
+			initialPieceIsPublished: boolean;
+			initialPieceShortUrl: string;
+			initialSavedSourceFingerprint: string;
 			hasUnlimitedComposerCredits: boolean;
 			composerCredits: number | null;
 			hasPendingRecommendationCredits: boolean;
-			hasReceivedRecommendationCredits: boolean;
 			recommendationBonusCredits: number;
 		};
 	}
@@ -86,12 +89,14 @@
 	let shareStatus = $state('');
 	let teacherShareNote = $state(initialDraftState.teacherShareNote);
 	let isShareModalOpen = $state(false);
-	let shortShareUrl = $state('');
+	let shortShareUrl = $state(untrack(() => data.initialPieceShortUrl || ''));
 	let shortShareSourceFingerprint = $state('');
 	let shortShareError = $state('');
-	let savedPieceId = $state('');
-	let savedPieceSourceFingerprint = $state('');
-	let hasSavedSharedPiece = $state(false);
+	let savedPieceId = $state(untrack(() => data.initialPieceId || ''));
+	let savedPieceSourceFingerprint = $state(untrack(() => data.initialSavedSourceFingerprint || ''));
+	let hasSavedSharedPiece = $state(
+		untrack(() => Boolean(data.initialPieceIsPublished) || Boolean(data.initialPieceShortUrl))
+	);
 	let isSavingPiece = $state(false);
 	let isCreatingShortShareUrl = $state(false);
 	let isPlayingMelodyPreview = $state(false);
@@ -105,9 +110,7 @@
 	let composerCredits = $state<number | null>(null);
 	let hasInitializedCredits = $state(false);
 	let hasPendingRecommendationCredits = $state(untrack(() => data.hasPendingRecommendationCredits));
-	let hasReceivedRecommendationCredits = $state(
-		untrack(() => data.hasReceivedRecommendationCredits)
-	);
+	let hasReceivedRecommendationCredits = $state(false);
 	const shareCreditCost = 1;
 	const isShareBlocked = $derived(
 		!hasUnlimitedComposerCredits &&
@@ -231,6 +234,19 @@
 		shortShareUrl = '';
 		shortShareSourceFingerprint = '';
 		shortShareError = '';
+	});
+
+	$effect(() => {
+		if (!savedPieceId.trim()) return;
+		if (savedPieceSourceFingerprint.trim()) return;
+
+		const nextFingerprint = customPieceShare.payloadFingerprint;
+		if (!nextFingerprint) return;
+
+		savedPieceSourceFingerprint = nextFingerprint;
+		if (shortShareUrl && !shortShareSourceFingerprint) {
+			shortShareSourceFingerprint = nextFingerprint;
+		}
 	});
 
 	$effect(() => {
@@ -664,6 +680,10 @@
 	}
 
 	async function openShareModal() {
+		if (hasUnsavedPieceChanges) {
+			const saved = await savePiece(false);
+			if (!saved) return;
+		}
 		isShareModalOpen = true;
 		shareStatus = '';
 	}

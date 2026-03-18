@@ -141,7 +141,10 @@
 		if (hasSharedPiece) return 'Save published changes';
 		return 'Save draft';
 	});
-	const shareButtonLabel = $derived(hasSharedPiece ? 'Manage share' : 'Publish & share');
+	const shareButtonLabel = $derived.by(() => {
+		const prefix = hasUnsavedPieceChanges ? 'Save and ' : '';
+		return hasSharedPiece ? `${prefix}Share` : `${prefix}Publish & share`;
+	});
 	const creditsLabel = $derived.by(() => {
 		if (hasUnlimitedComposerCredits) return 'You have unlimited credits';
 		const credits = normalizedComposerCredits;

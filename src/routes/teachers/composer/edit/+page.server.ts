@@ -4,11 +4,13 @@ import type { Actions } from './$types';
 import { instrumentConfigs } from '$lib/config/instruments';
 import type { Mode, NoteName } from '$lib/config/keys';
 import type { InstrumentId } from '$lib/config/types';
+import type { CustomUnitMaterial } from '$lib/config/types';
 import type { MelodyItem, NoteLength } from '$lib/config/melody';
 import { createInitialRests, normalizeMelodyToBars } from '$lib/util/composerUtils';
-import { unpackCustomUnitMaterialFromUrl } from '$lib/util/pieceUrl';
+import { packCustomUnitMaterialForUrl, unpackCustomUnitMaterialFromUrl } from '$lib/util/pieceUrl';
 
 const COMPOSER_DRAFT_PARAM = 'draft';
+const COMPOSER_PIECE_ID_PARAM = 'pieceId';
 const RECOMMENDATION_BONUS_CREDITS = 3;
 
 const modeOptions: Mode[] = ['major', 'natural_minor'];
@@ -28,6 +30,16 @@ type ComposerDraftState = {
 	fastTempo: string;
 	melody: MelodyItem[][];
 	teacherShareNote: string;
+};
+
+type TeacherPieceSeedRow = {
+	id: string;
+	custom_unit_material: unknown;
+	is_published: boolean;
+};
+
+type ShortLinkSeedRow = {
+	id: string;
 };
 
 function createDefaultDraftState(): ComposerDraftState {
@@ -55,6 +67,33 @@ function getTimeSignatureLabel(barLengthValue: NoteLength): string {
 	return timeSignatureOptions.find((option) => option.barLength === barLengthValue)?.label ?? '4/4';
 }
 
+function isUuid(value: string): boolean {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function parseDraftStateFromCustomUnitMaterial(value: CustomUnitMaterial): ComposerDraftState {
+	const defaults = createDefaultDraftState();
+	const restoredPiece = value.piece;
+	const safeBarLength = sanitizeBarLength(restoredPiece.barLength);
+	const restoredMelody = normalizeMelodyToBars(restoredPiece.melody.flat(), safeBarLength);
+	const hasInstrument = instrumentConfigs.some((instrument) => instrument.id === value.instrument);
+	const safeFastTempo = restoredPiece.practiceTempi?.fast;
+
+	return {
+		pieceLabel: restoredPiece.label || defaults.pieceLabel,
+		pieceKey: noteOptions.includes(restoredPiece.key) ? restoredPiece.key : defaults.pieceKey,
+		pieceMode: modeOptions.includes(restoredPiece.mode) ? restoredPiece.mode : defaults.pieceMode,
+		instrumentId: hasInstrument ? value.instrument : defaults.instrumentId,
+		selectedTimeSignature: getTimeSignatureLabel(safeBarLength),
+		fastTempo:
+			typeof safeFastTempo === 'number' && Number.isFinite(safeFastTempo) && safeFastTempo > 0
+				? String(Math.round(safeFastTempo))
+				: defaults.fastTempo,
+		melody: restoredMelody.length > 0 ? restoredMelody : createInitialRests(safeBarLength),
+		teacherShareNote: value.teacherNote ?? ''
+	};
+}
+
 function parseDraftStateFromUrl(url: URL): ComposerDraftState {
 	const defaults = createDefaultDraftState();
 	const packedDraft = url.searchParams.get(COMPOSER_DRAFT_PARAM);
@@ -62,35 +101,23 @@ function parseDraftStateFromUrl(url: URL): ComposerDraftState {
 
 	try {
 		const restored = unpackCustomUnitMaterialFromUrl(packedDraft);
-		const restoredPiece = restored.piece;
-		const safeBarLength = sanitizeBarLength(restoredPiece.barLength);
-		const restoredMelody = normalizeMelodyToBars(restoredPiece.melody.flat(), safeBarLength);
-		const hasInstrument = instrumentConfigs.some(
-			(instrument) => instrument.id === restored.instrument
-		);
-		const safeFastTempo = restoredPiece.practiceTempi?.fast;
-
-		return {
-			pieceLabel: restoredPiece.label || defaults.pieceLabel,
-			pieceKey: noteOptions.includes(restoredPiece.key) ? restoredPiece.key : defaults.pieceKey,
-			pieceMode: modeOptions.includes(restoredPiece.mode) ? restoredPiece.mode : defaults.pieceMode,
-			instrumentId: hasInstrument ? restored.instrument : defaults.instrumentId,
-			selectedTimeSignature: getTimeSignatureLabel(safeBarLength),
-			fastTempo:
-				typeof safeFastTempo === 'number' && Number.isFinite(safeFastTempo) && safeFastTempo > 0
-					? String(Math.round(safeFastTempo))
-					: defaults.fastTempo,
-			melody: restoredMelody.length > 0 ? restoredMelody : createInitialRests(safeBarLength),
-			teacherShareNote: restored.teacherNote ?? ''
-		};
+		return parseDraftStateFromCustomUnitMaterial(restored);
 	} catch {
 		return defaults;
 	}
 }
 
+function parseDraftStateFromStoredMaterial(value: unknown): ComposerDraftState | null {
+	try {
+		return parseDraftStateFromCustomUnitMaterial(value as CustomUnitMaterial);
+	} catch {
+		return null;
+	}
+}
+
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const { session, user } = await locals.safeGetSession();
-	if (!session) {
+	if (!session || !user) {
 		const redirectTarget = `${url.pathname}${url.search}`;
 		throw redirect(303, `/teachers/login?next=${encodeURIComponent(redirectTarget)}`);
 	}
@@ -113,6 +140,60 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		referralData.referred_by_studio.trim().length > 0 &&
 		Boolean(referralData.referral_rewarded_at);
 
+	const pieceIdParam = (url.searchParams.get(COMPOSER_PIECE_ID_PARAM) ?? '').trim();
+	const requestedPieceId = isUuid(pieceIdParam) ? pieceIdParam : '';
+
+	let initialPieceId = '';
+	let initialPieceIsPublished = false;
+	let initialPieceShortUrl = '';
+	let initialSavedSourceFingerprint = '';
+	let initialDraftState = parseDraftStateFromUrl(url);
+
+	if (requestedPieceId) {
+		const { data: pieceRow, error: pieceError } = await locals.supabase
+			.from('teacher_pieces')
+			.select('id, custom_unit_material, is_published')
+			.eq('id', requestedPieceId)
+			.eq('teacher_id', user.id)
+			.maybeSingle();
+
+		if (!pieceError && pieceRow) {
+			const row = pieceRow as TeacherPieceSeedRow;
+			initialPieceId = row.id.trim();
+			initialPieceIsPublished = row.is_published;
+
+			const packedDraft = url.searchParams.get(COMPOSER_DRAFT_PARAM);
+			if (!packedDraft) {
+				const parsedStoredDraft = parseDraftStateFromStoredMaterial(row.custom_unit_material);
+				if (parsedStoredDraft) {
+					initialDraftState = parsedStoredDraft;
+				}
+			}
+
+			try {
+				initialSavedSourceFingerprint = packCustomUnitMaterialForUrl(
+					row.custom_unit_material as CustomUnitMaterial
+				);
+			} catch {
+				initialSavedSourceFingerprint = '';
+			}
+
+			const { data: shortLinkRows, error: shortLinkError } = await locals.supabase
+				.from('short_links')
+				.select('id')
+				.eq('teacher_piece_id', row.id)
+				.eq('created_by', user.id)
+				.limit(1);
+
+			if (!shortLinkError) {
+				const shortLink = (shortLinkRows?.[0] ?? null) as ShortLinkSeedRow | null;
+				if (shortLink?.id) {
+					initialPieceShortUrl = `${url.origin}/s/${shortLink.id}`;
+				}
+			}
+		}
+	}
+
 	return {
 		sharePreviewData: {
 			title: 'Composer - Teacher Tools - The Sharpest Note',
@@ -120,7 +201,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			image: `${url.origin}/og-logo.png`,
 			url: url.href
 		},
-		initialDraftState: parseDraftStateFromUrl(url),
+		initialDraftState,
+		initialPieceId,
+		initialPieceIsPublished,
+		initialPieceShortUrl,
+		initialSavedSourceFingerprint,
 		teacherEmail: user?.email ?? '',
 		hasUnlimitedComposerCredits,
 		composerCredits: hasUnlimitedComposerCredits ? null : (user?.credits ?? 0),

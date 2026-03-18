@@ -43,11 +43,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const pieceRef = `tp_${pieceId}`;
 		const shareUrl = piece.is_published ? `/unit/custom/${pieceRef}` : null;
 
-		let composerUrl = '/teachers/composer/edit';
+		let composerUrl = `/teachers/composer/edit?pieceId=${encodeURIComponent(pieceId)}`;
 		try {
-			composerUrl = `/teachers/composer/edit?draft=${encodeURIComponent(packCustomUnitMaterialForUrl(piece.custom_unit_material as CustomUnitMaterial))}`;
+			composerUrl = `/teachers/composer/edit?pieceId=${encodeURIComponent(pieceId)}&draft=${encodeURIComponent(packCustomUnitMaterialForUrl(piece.custom_unit_material as CustomUnitMaterial))}`;
 		} catch {
-			composerUrl = '/teachers/composer/edit';
+			composerUrl = `/teachers/composer/edit?pieceId=${encodeURIComponent(pieceId)}`;
 		}
 
 		return {
