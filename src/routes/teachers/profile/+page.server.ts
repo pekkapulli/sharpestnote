@@ -68,7 +68,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const { data } = await locals.supabase
 		.from('teacher_profiles')
-		.select('display_name, studio_name')
+		.select('display_name, studio_name, terms_accepted_at, email_opt_in')
 		.eq('id', user.id)
 		.maybeSingle();
 
@@ -99,7 +99,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					: '',
 		isOwner: user.role === 'owner',
 		composerCredits: hasUnlimitedComposerCredits ? null : user.credits,
-		composerAccessPlan: getComposerAccessPlan(user.role)
+		composerAccessPlan: getComposerAccessPlan(user.role),
+		needsTermsAcceptance: !data?.terms_accepted_at,
+		emailOptIn: data?.email_opt_in ?? false
 	};
 };
 
@@ -210,5 +212,53 @@ export const actions: Actions = {
 	signout: async ({ locals }) => {
 		await locals.supabase.auth.signOut();
 		throw redirect(303, '/teachers/login');
+	},
+
+	acceptTerms: async ({ request, locals }) => {
+		const { session, user } = await locals.safeGetSession();
+		if (!session || !user) throw redirect(303, '/teachers/login');
+
+		const formData = await request.formData();
+		const termsAgreed = formData.get('termsAgreed') === 'on';
+
+		if (!termsAgreed) {
+			return fail(400, { acceptTermsError: 'You must agree to the terms to continue.' });
+		}
+
+		const emailOptIn = formData.get('emailOptIn') === 'on';
+
+		const { error } = await locals.supabase
+			.from('teacher_profiles')
+			.update({
+				terms_accepted_at: new Date().toISOString(),
+				terms_accepted_version: '2026-03-18',
+				email_opt_in: emailOptIn
+			})
+			.eq('id', user.id);
+
+		if (error) {
+			return fail(500, { acceptTermsError: 'Could not save your preferences. Please try again.' });
+		}
+
+		return {};
+	},
+
+	updateEmailOptIn: async ({ request, locals }) => {
+		const { session, user } = await locals.safeGetSession();
+		if (!session || !user) throw redirect(303, '/teachers/login');
+
+		const formData = await request.formData();
+		const emailOptIn = formData.get('emailOptIn') === 'on';
+
+		const { error } = await locals.supabase
+			.from('teacher_profiles')
+			.update({ email_opt_in: emailOptIn })
+			.eq('id', user.id);
+
+		if (error) {
+			return fail(500, { emailOptInError: 'Could not save your preference. Please try again.' });
+		}
+
+		return { emailOptInSuccess: true };
 	}
 };

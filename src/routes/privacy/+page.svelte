@@ -14,119 +14,123 @@
 <div class="privacy-container">
 	<BackButton />
 	<h1>Privacy Policy</h1>
-	<p class="last-updated">Last updated: 15th Mar 2026</p>
+	<p class="last-updated">Effective date: 18th Mar 2026</p>
 
 	<section>
-		<p>
-			The Sharpest Note respects your privacy and is committed to keeping this site simple, safe,
-			and transparent.
-		</p>
+		<p>This Privacy Policy explains how The Sharpest Note collects and uses personal data.</p>
 	</section>
 
 	<section>
-		<h2>What data we collect</h2>
-		<p>For student practice access, we keep data collection minimal.</p>
-		<p>For teacher accounts, we collect and store only:</p>
+		<h2>1. What we collect</h2>
+		<p>We collect only the data needed to operate and improve the service.</p>
+		<p>Account information:</p>
 		<ul>
-			<li>email address</li>
-			<li>display name (optional, provided by the teacher)</li>
+			<li>Name (if provided)</li>
+			<li>Email address</li>
 		</ul>
-		<p>
-			Payments and downloads are handled by third-party platforms (such as Gumroad), which have
-			their own privacy policies.
-		</p>
-	</section>
-
-	<section>
-		<h2>Why we process this data (GDPR legal basis)</h2>
+		<p>Usage data:</p>
 		<ul>
-			<li>to provide teacher login and account functionality</li>
-			<li>to keep the service secure and prevent misuse</li>
-			<li>to show teacher profile information inside teacher tools</li>
+			<li>Features you use (e.g. Composer, shared units)</li>
+			<li>Credit usage and activity</li>
+			<li>Basic interaction data</li>
 		</ul>
-		<p>Our legal basis under GDPR is:</p>
+		<p>Technical data:</p>
 		<ul>
-			<li>performance of a contract (Article 6(1)(b)) for account functionality</li>
-			<li>
-				legitimate interests (Article 6(1)(f)) for security, abuse prevention, and service integrity
-			</li>
+			<li>IP address</li>
+			<li>Browser and device type</li>
 		</ul>
 	</section>
 
 	<section>
-		<h2>Where data is stored and who processes it</h2>
-		<p>
-			Teacher account data is stored in Supabase (our database and authentication provider) in the
-			EU region.
-		</p>
-		<p>
-			Supabase acts as our data processor. We use only the minimum data needed for authentication
-			and teacher profile features.
-		</p>
-	</section>
-
-	<section>
-		<h2>Local storage</h2>
-		<p>
-			This site uses local browser storage (localStorage) to enable core functionality, such as:
-		</p>
+		<h2>2. How we use data</h2>
+		<p>We use data to:</p>
 		<ul>
-			<li>remembering whether interactive content has been unlocked</li>
-			<li>improving the practice experience across visits</li>
-		</ul>
-		<p>This data:</p>
-		<ul>
-			<li>stays in your browser</li>
-			<li>is not shared with third parties</li>
-			<li>is not used for tracking or advertising</li>
+			<li>provide and maintain the service</li>
+			<li>process content (e.g. generate notation, audio, interactive tools)</li>
+			<li>manage credits and access</li>
+			<li>improve the product and user experience</li>
+			<li>ensure security and prevent misuse</li>
 		</ul>
 	</section>
 
 	<section>
-		<h2>Cookies</h2>
+		<h2>3. Legal basis (GDPR)</h2>
+		<p>We process personal data based on:</p>
+		<ul>
+			<li>Contract - to provide the service you signed up for</li>
+			<li>Legitimate interest - to improve and secure the service</li>
+			<li>Consent - where required (e.g. certain analytics or cookies)</li>
+		</ul>
+	</section>
+
+	<section>
+		<h2>4. Teacher responsibility and student data</h2>
+		<p>The service is designed to work without student personal data.</p>
 		<p>
-			This site does not use tracking or marketing cookies. For teacher login, essential
-			authentication/session cookies may be used so sign-in works securely.
+			Teachers should not enter personal data of students into the service unless they have a valid
+			legal basis and appropriate consent.
 		</p>
 	</section>
 
 	<section>
-		<h2>Analytics</h2>
-		<p>No third-party analytics, advertising pixels, or user profiling tools are used.</p>
+		<h2>5. Sharing and third parties</h2>
+		<p>We do not sell personal data.</p>
+		<p>We use trusted third-party services to operate the platform, such as:</p>
+		<ul>
+			<li>hosting and database providers</li>
+			<li>infrastructure and delivery services</li>
+			<li>analytics tools (if applicable)</li>
+		</ul>
+		<p>These providers process data only as needed to provide their services.</p>
 	</section>
 
 	<section>
-		<h2>Data retention</h2>
+		<h2>6. International data transfers</h2>
+		<p>Some data may be processed outside the EU.</p>
+		<p>In such cases, we ensure appropriate safeguards are in place in accordance with GDPR.</p>
+	</section>
+
+	<section>
+		<h2>7. Data retention</h2>
+		<p>We retain personal data only as long as necessary to:</p>
+		<ul>
+			<li>provide the service</li>
+			<li>comply with legal obligations</li>
+		</ul>
 		<p>
-			Teacher profile data is kept while the account is active. If an account is deleted, related
-			profile data is deleted or anonymized, except where limited retention is required for legal,
-			security, or backup reasons.
+			If you delete your account, your personal data will be removed within a reasonable period,
+			unless retention is required by law.
 		</p>
 	</section>
 
 	<section>
-		<h2>Your rights (EU/EEA)</h2>
-		<p>Where GDPR applies, you may have the right to:</p>
+		<h2>8. Your rights</h2>
+		<p>Under GDPR, you have the right to:</p>
 		<ul>
 			<li>access your personal data</li>
 			<li>correct inaccurate data</li>
 			<li>request deletion of your data</li>
-			<li>restrict or object to certain processing</li>
-			<li>request data portability where applicable</li>
-			<li>lodge a complaint with your local supervisory authority</li>
+			<li>restrict or object to processing</li>
+			<li>request data portability</li>
 		</ul>
+		<p>To exercise these rights, contact us at the email below.</p>
 	</section>
 
 	<section>
-		<h2>External links</h2>
+		<h2>9. Security</h2>
+		<p>We take reasonable technical and organizational measures to protect personal data.</p>
+	</section>
+
+	<section>
+		<h2>10. Changes to this policy</h2>
 		<p>
-			Some materials may link to external services (such as Gumroad). We are not responsible for the
-			privacy practices of those services.
+			We may update this policy as the service evolves. Continued use means you accept the updated
+			version.
 		</p>
 	</section>
 
 	<section>
-		<h2>Contact</h2>
+		<h2>11. Contact</h2>
 		<p>If you have questions about privacy or data use, you can contact us at:</p>
 		<p>
 			<a href="mailto:support@sharpestnote.com">support@sharpestnote.com</a>

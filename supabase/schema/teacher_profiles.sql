@@ -13,7 +13,10 @@ alter table public.teacher_profiles
   add column if not exists studio_name text,
   add column if not exists teacher_role text,
   add column if not exists credits integer not null default 0,
-  add column if not exists credits_refreshed_at timestamptz;
+  add column if not exists credits_refreshed_at timestamptz,
+  add column if not exists terms_accepted_at timestamptz,
+  add column if not exists terms_accepted_version text,
+  add column if not exists email_opt_in boolean not null default false;
 
 alter table public.teacher_profiles enable row level security;
 

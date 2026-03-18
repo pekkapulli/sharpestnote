@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { browser } from '$app/environment';
 	import melodyIcon from '$lib/assets/melody_icon.png';
+	import TermsConsentModal from '$lib/components/auth/TermsConsentModal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -14,6 +16,17 @@
 	let studioName = $state('');
 	let referralLinkCopied = $state(false);
 	let referralLinkCopyTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// Terms acceptance and email opt-in
+	const showTermsModal = $derived(data.needsTermsAcceptance);
+	// Initialized from server data; plain POST form reloads the page, so no reactive resync needed.
+	let emailOptIn = $state(untrack(() => data.emailOptIn));
+
+	// Typed helpers for action-specific form results
+	const formData = $derived(form as Record<string, unknown> | null);
+	const acceptTermsError = $derived(formData?.acceptTermsError as string | undefined);
+	const emailOptInSuccess = $derived(Boolean(formData?.emailOptInSuccess));
+	const emailOptInError = $derived(formData?.emailOptInError as string | undefined);
 
 	const referralLink = $derived(
 		data.teacherStudioName
@@ -203,6 +216,8 @@
 <svelte:head>
 	<title>Teacher Profile - The Sharpest Note</title>
 </svelte:head>
+
+<TermsConsentModal isOpen={showTermsModal} errorMessage={acceptTermsError} />
 
 <div class="min-h-screen bg-off-white py-10">
 	<div class="mx-auto w-full max-w-2xl px-4">
@@ -397,6 +412,39 @@
 					your personal recommendation link.
 				</p>
 			{/if}
+		</section>
+
+		<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+			<h2 class="text-xl font-semibold text-slate-900">Email settings</h2>
+			<form method="POST" action="?/updateEmailOptIn" class="mt-4 space-y-4">
+				<label class="flex cursor-pointer items-start gap-3">
+					<input
+						type="checkbox"
+						name="emailOptIn"
+						bind:checked={emailOptIn}
+						class="mt-0.5 h-4 w-4 rounded border-slate-300"
+					/>
+					<span class="text-sm text-slate-700"> Receive occasional product updates by email. </span>
+				</label>
+				{#if emailOptInSuccess}
+					<p
+						class="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+					>
+						Email preference saved.
+					</p>
+				{/if}
+				{#if emailOptInError}
+					<p class="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+						{emailOptInError}
+					</p>
+				{/if}
+				<button
+					type="submit"
+					class="inline-flex items-center rounded-md bg-brand-green px-4 py-2 text-sm font-semibold text-white transition hover:brightness-95"
+				>
+					Save
+				</button>
+			</form>
 		</section>
 
 		<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
