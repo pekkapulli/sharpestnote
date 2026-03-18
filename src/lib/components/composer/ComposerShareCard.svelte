@@ -34,6 +34,9 @@
 		composerCredits: number | null;
 		shareCreditCost: number;
 		isShareBlocked: boolean;
+		hasPendingRecommendationCredits: boolean;
+		hasReceivedRecommendationCredits: boolean;
+		recommendationBonusCredits: number;
 	}
 
 	let {
@@ -61,7 +64,10 @@
 		hasUnlimitedComposerCredits,
 		composerCredits,
 		shareCreditCost,
-		isShareBlocked
+		isShareBlocked,
+		hasPendingRecommendationCredits,
+		hasReceivedRecommendationCredits,
+		recommendationBonusCredits
 	}: Props = $props();
 
 	let qrCodeDataUrl = $state('');
@@ -152,6 +158,30 @@
 
 		return `Publishing this piece for the first time uses ${shareCreditCost} credit. ${creditsLabel}.`;
 	});
+	const recommendationCreditSummary = $derived.by(() => {
+		if (hasUnlimitedComposerCredits || !hasPendingRecommendationCredits) {
+			return undefined;
+		}
+
+		if (hasSharedPiece) {
+			return `Recommendation bonus pending: +${recommendationBonusCredits} credits will be added shortly for your first publish. Estimated balance after bonus: ${normalizedComposerCredits + recommendationBonusCredits}.`;
+		}
+
+		const estimatedAfterFirstPublish =
+			Math.max(0, normalizedComposerCredits - shareCreditCost) + recommendationBonusCredits;
+		return `Recommendation bonus ready: after your first publish, +${recommendationBonusCredits} credits are added. Estimated balance after first publish: ${estimatedAfterFirstPublish}.`;
+	});
+	const modalRecommendationCreditSummary = $derived.by(() => {
+		if (hasUnlimitedComposerCredits) {
+			return undefined;
+		}
+
+		if (hasReceivedRecommendationCredits && hasSharedPiece) {
+			return `Great work! Your +${recommendationBonusCredits} recommendation credits have been added to your balance.`;
+		}
+
+		return recommendationCreditSummary;
+	});
 	const publishedChangeWarning = $derived.by(() => {
 		if (!hasSharedPiece) return undefined;
 		if (hasUnsavedPieceChanges) {
@@ -162,7 +192,7 @@
 	});
 
 	const hasShareState = $derived(() => {
-		return !!shareCreditSummary || !!publishedChangeWarning;
+		return !!shareCreditSummary || !!recommendationCreditSummary || !!publishedChangeWarning;
 	});
 
 	async function ensureShareReadyForAction(): Promise<boolean> {
@@ -634,6 +664,9 @@
 				{#if shareCreditSummary}
 					<p class="mt-2 text-sm text-slate-700">{shareCreditSummary}</p>
 				{/if}
+				{#if recommendationCreditSummary}
+					<p class="mt-2 text-sm text-emerald-900">{recommendationCreditSummary}</p>
+				{/if}
 				{#if publishedChangeWarning}
 					<p class="mt-2 text-sm font-medium text-amber-800">{publishedChangeWarning}</p>
 				{/if}
@@ -705,6 +738,13 @@
 				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Share status</p>
 				{#if shareCreditSummary}
 					<p class="mt-2 text-sm text-slate-700">{shareCreditSummary}</p>
+				{/if}
+				{#if modalRecommendationCreditSummary}
+					<p
+						class={`mt-2 text-sm ${hasReceivedRecommendationCredits && hasSharedPiece ? 'font-semibold text-emerald-800' : 'text-emerald-900'}`}
+					>
+						{modalRecommendationCreditSummary}
+					</p>
 				{/if}
 				{#if publishedChangeWarning}
 					<p class="mt-2 text-sm font-medium text-amber-800">{publishedChangeWarning}</p>

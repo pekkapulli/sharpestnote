@@ -9,6 +9,7 @@ import { createInitialRests, normalizeMelodyToBars } from '$lib/util/composerUti
 import { unpackCustomUnitMaterialFromUrl } from '$lib/util/pieceUrl';
 
 const COMPOSER_DRAFT_PARAM = 'draft';
+const RECOMMENDATION_BONUS_CREDITS = 3;
 
 const modeOptions: Mode[] = ['major', 'natural_minor'];
 const noteOptions: NoteName[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -97,6 +98,21 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const hasUnlimitedComposerCredits =
 		user?.role === 'institution_teacher' || user?.role === 'admin' || user?.role === 'owner';
 
+	const { data: referralData } = await locals.supabase
+		.from('teacher_profiles')
+		.select('referred_by_studio, referral_rewarded_at')
+		.eq('id', user.id)
+		.maybeSingle();
+
+	const hasPendingRecommendationCredits =
+		typeof referralData?.referred_by_studio === 'string' &&
+		referralData.referred_by_studio.trim().length > 0 &&
+		!referralData.referral_rewarded_at;
+	const hasReceivedRecommendationCredits =
+		typeof referralData?.referred_by_studio === 'string' &&
+		referralData.referred_by_studio.trim().length > 0 &&
+		Boolean(referralData.referral_rewarded_at);
+
 	return {
 		sharePreviewData: {
 			title: 'Composer - Teacher Tools - The Sharpest Note',
@@ -107,7 +123,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		initialDraftState: parseDraftStateFromUrl(url),
 		teacherEmail: user?.email ?? '',
 		hasUnlimitedComposerCredits,
-		composerCredits: hasUnlimitedComposerCredits ? null : (user?.credits ?? 0)
+		composerCredits: hasUnlimitedComposerCredits ? null : (user?.credits ?? 0),
+		hasPendingRecommendationCredits,
+		hasReceivedRecommendationCredits,
+		recommendationBonusCredits: RECOMMENDATION_BONUS_CREDITS
 	};
 };
 

@@ -8,6 +8,7 @@ type ShareCreateResponse = {
 	creditsRemaining: number;
 	hasUnlimitedCredits: boolean;
 	createdNew: boolean;
+	recommendationCreditsAwarded: boolean;
 };
 
 type ShareCreateRequest = {
@@ -162,22 +163,28 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 					? Math.max(0, Math.trunc(row.remaining_credits))
 					: 0;
 
+			const { data: awardReferralCreditsData, error: awardReferralCreditsError } =
+				await locals.supabase.rpc('award_referral_credits', { new_teacher_id: user.id }).single();
+
+			if (awardReferralCreditsError) {
+				console.error('award_referral_credits failed:', awardReferralCreditsError);
+			}
+
+			const recommendationCreditsAwarded = Boolean(awardReferralCreditsData);
+			const adjustedRemainingCredits = recommendationCreditsAwarded
+				? remainingCredits + 3
+				: remainingCredits;
+
 			const data: ShareCreateResponse = {
 				id: shortLinkId,
 				shortUrl: `${url.origin}/s/${shortLinkId}`,
 				targetUrl,
 				consumedCredit: Boolean(row?.consumed_credit),
-				creditsRemaining: remainingCredits,
+				creditsRemaining: adjustedRemainingCredits,
 				hasUnlimitedCredits,
-				createdNew: Boolean(row?.created_new)
+				createdNew: Boolean(row?.created_new),
+				recommendationCreditsAwarded
 			};
-
-			// Fire-and-forget referral credit award on first publish
-			locals.supabase
-				.rpc('award_referral_credits', { new_teacher_id: user.id })
-				.then(({ error: awardError }) => {
-					if (awardError) console.error('award_referral_credits failed:', awardError);
-				});
 
 			return new Response(JSON.stringify(data), {
 				status: 200,

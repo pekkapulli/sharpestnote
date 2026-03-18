@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { getTransposedKeySignature } from '$lib/config/keys';
 	import { instrumentConfigs } from '$lib/config/instruments';
@@ -47,6 +48,9 @@
 			initialDraftState: ComposerDraftState;
 			hasUnlimitedComposerCredits: boolean;
 			composerCredits: number | null;
+			hasPendingRecommendationCredits: boolean;
+			hasReceivedRecommendationCredits: boolean;
+			recommendationBonusCredits: number;
 		};
 	}
 
@@ -97,14 +101,33 @@
 	let melodyPreviewSessionId = $state(0);
 
 	const hasUnlimitedComposerCredits = $derived(data.hasUnlimitedComposerCredits);
+	const recommendationBonusCredits = $derived(data.recommendationBonusCredits);
 	let composerCredits = $state<number | null>(null);
 	let hasInitializedCredits = $state(false);
+	let hasPendingRecommendationCredits = $state(untrack(() => data.hasPendingRecommendationCredits));
+	let hasReceivedRecommendationCredits = $state(
+		untrack(() => data.hasReceivedRecommendationCredits)
+	);
 	const shareCreditCost = 1;
 	const isShareBlocked = $derived(
 		!hasUnlimitedComposerCredits &&
 			!hasSavedSharedPiece &&
 			(typeof composerCredits === 'number' ? composerCredits <= 0 : true)
 	);
+	const pendingRecommendationSummary = $derived.by(() => {
+		if (hasUnlimitedComposerCredits || !hasPendingRecommendationCredits) {
+			return '';
+		}
+
+		const currentCredits = typeof composerCredits === 'number' ? Math.max(0, composerCredits) : 0;
+		if (hasSavedSharedPiece) {
+			return `Recommendation bonus pending: +${recommendationBonusCredits} credits coming in. Estimated balance soon: ${currentCredits + recommendationBonusCredits}.`;
+		}
+
+		const estimatedAfterFirstPublish =
+			Math.max(0, currentCredits - shareCreditCost) + recommendationBonusCredits;
+		return `Recommendation bonus available: +${recommendationBonusCredits} credits after your first publish. Estimated balance after first publish: ${estimatedAfterFirstPublish}.`;
+	});
 
 	const instrumentConfig = $derived(
 		instrumentConfigs.find((instrument) => instrument.id === instrumentId) ?? instrumentConfigs[0]
@@ -587,6 +610,7 @@
 				consumedCredit?: boolean;
 				creditsRemaining?: number;
 				hasUnlimitedCredits?: boolean;
+				recommendationCreditsAwarded?: boolean;
 			};
 			if (!payload.shortUrl) {
 				throw new Error('Short-link service returned an invalid response.');
@@ -605,7 +629,14 @@
 				composerCredits = Math.max(0, Math.trunc(payload.creditsRemaining));
 			}
 
-			if (payload.consumedCredit) {
+			if (payload.recommendationCreditsAwarded) {
+				hasPendingRecommendationCredits = false;
+				hasReceivedRecommendationCredits = true;
+			}
+
+			if (payload.recommendationCreditsAwarded) {
+				shareStatus = `First share complete. +${recommendationBonusCredits} recommendation credits added.`;
+			} else if (payload.consumedCredit) {
 				shareStatus = '1 credit consumed for this shared piece.';
 			} else {
 				shareStatus = 'Share link is ready.';
@@ -663,20 +694,25 @@
 					This tool is great for teachers who want to use the Sharpest Note practice experience with
 					their own material, and even better for creating together with the student!
 				</p>
-				<div class="max-w-xl rounded-xl border border-emerald-300 bg-emerald-50 p-4">
-					<p class="text-xs font-semibold tracking-wide text-emerald-900 uppercase">
-						Composer credits
-					</p>
-					{#if hasUnlimitedComposerCredits}
-						<p class="mt-2 text-2xl font-bold text-emerald-800">Unlimited</p>
-					{:else}
-						<p class="mt-2 text-2xl font-bold text-emerald-800">{composerCredits ?? 0}</p>
-						<p class="text-sm font-medium text-emerald-900">credits remaining</p>
-						<p class="mt-2 text-sm text-emerald-900">
-							Sharing one piece consumes 1 credit. Draft freely!
+				{#if !hasSavedSharedPiece}
+					<div class="max-w-xl rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+						<p class="text-xs font-semibold tracking-wide text-emerald-900 uppercase">
+							Composer credits
 						</p>
-					{/if}
-				</div>
+						{#if hasUnlimitedComposerCredits}
+							<p class="mt-2 text-2xl font-bold text-emerald-800">Unlimited</p>
+						{:else}
+							<p class="mt-2 text-2xl font-bold text-emerald-800">{composerCredits ?? 0}</p>
+							<p class="text-sm font-medium text-emerald-900">credits remaining</p>
+							<p class="mt-2 text-sm text-emerald-900">
+								Sharing one piece consumes 1 credit. Draft freely!
+							</p>
+							{#if pendingRecommendationSummary}
+								<p class="mt-2 text-sm text-emerald-900">{pendingRecommendationSummary}</p>
+							{/if}
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</header>
 
@@ -740,6 +776,9 @@
 				{composerCredits}
 				{shareCreditCost}
 				{isShareBlocked}
+				{hasPendingRecommendationCredits}
+				{hasReceivedRecommendationCredits}
+				{recommendationBonusCredits}
 			/>
 		</section>
 	</div>
