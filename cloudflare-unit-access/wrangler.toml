@@ -7,3 +7,7 @@ compatibility_date = "2024-11-15"
 compatibility_flags = ["nodejs_compat"]
 
 [env.production]
+
+[env.dev]
+name = "cloudflare-unit-access-dev"
+workers_dev = true
