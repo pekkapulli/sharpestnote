@@ -1,5 +1,5 @@
 // User roles for Supabase user table
-export type UserRole = null | 'admin' | 'owner' | 'core' | 'institution_teacher' | 'user';
+export type UserRole = null | 'admin' | 'owner' | 'core' | 'institutional_teacher' | 'user';
 import type { Mode, NoteName } from './keys';
 import type { MelodyItem } from './melody';
 

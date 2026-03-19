@@ -8,6 +8,7 @@ import type { CustomUnitMaterial } from '$lib/config/types';
 import type { MelodyItem, NoteLength } from '$lib/config/melody';
 import { createInitialRests, normalizeMelodyToBars } from '$lib/util/composerUtils';
 import { packCustomUnitMaterialForUrl, unpackCustomUnitMaterialFromUrl } from '$lib/util/pieceUrl';
+import { isUnlimitedComposerCredits } from '$lib/util/teacherAccess';
 
 const COMPOSER_DRAFT_PARAM = 'draft';
 const COMPOSER_PIECE_ID_PARAM = 'pieceId';
@@ -123,8 +124,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		throw redirect(303, `/teachers/login?next=${encodeURIComponent(redirectTarget)}`);
 	}
 
-	const hasUnlimitedComposerCredits =
-		user?.role === 'institution_teacher' || user?.role === 'admin' || user?.role === 'owner';
+	const hasUnlimitedComposerCredits = isUnlimitedComposerCredits(user.role);
 
 	const { data: referralData } = await locals.supabase
 		.from('teacher_profiles')

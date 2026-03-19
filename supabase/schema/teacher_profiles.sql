@@ -2,7 +2,25 @@
 -- Run this in Supabase SQL editor.
 
 -- Create enum type for teacher roles
-create type public.teacher_role_enum as enum ('user', 'core', 'institutional_teacher', 'admin', 'owner');
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where t.typname = 'teacher_role_enum'
+      and n.nspname = 'public'
+  ) then
+    create type public.teacher_role_enum as enum ('user', 'core', 'institutional_teacher', 'admin', 'owner');
+  end if;
+end
+$$;
+
+alter type public.teacher_role_enum add value if not exists 'user';
+alter type public.teacher_role_enum add value if not exists 'core';
+alter type public.teacher_role_enum add value if not exists 'institutional_teacher';
+alter type public.teacher_role_enum add value if not exists 'admin';
+alter type public.teacher_role_enum add value if not exists 'owner';
 
 create table if not exists public.teacher_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -120,9 +138,7 @@ begin
 
   role_value := coalesce(role_from_profile, role_from_jwt);
 
-  if role_value = 'core' then
-    monthly_amount := 15;
-  elsif role_value in ('institution_teacher', 'admin', 'owner') then
+  if role_value in ('core', 'institutional_teacher', 'admin', 'owner') then
     monthly_amount := null;
   else
     monthly_amount := 1;

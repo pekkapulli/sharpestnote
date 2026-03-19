@@ -1,10 +1,12 @@
 <script lang="ts">
 	import OpenableButton from './OpenableButton.svelte';
+	import type { UserRole } from '$lib/config/types';
+	import { isUnlimitedComposerCredits } from '$lib/util/teacherAccess';
 
 	interface TeacherUser {
 		email?: string | null;
 		credits?: number | null;
-		role?: string | null;
+		role?: UserRole;
 	}
 
 	interface Props {
@@ -13,9 +15,7 @@
 
 	let { user }: Props = $props();
 	const teacherEmail = $derived(user?.email ?? '');
-	const hasUnlimitedComposerCredits = $derived(
-		user?.role === 'institution_teacher' || user?.role === 'admin' || user?.role === 'owner'
-	);
+	const hasUnlimitedComposerCredits = $derived(isUnlimitedComposerCredits(user?.role ?? null));
 	const teacherCredits = $derived.by(() => {
 		if (hasUnlimitedComposerCredits) return 'Unlimited credits';
 		const credits =

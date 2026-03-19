@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { isStudioNameTooCloseToBrand, isValidStudioName } from '$lib/util/studioNameValidation';
+import { isUnlimitedComposerCredits } from '$lib/util/teacherAccess';
 import type { UserRole } from '$lib/config/types';
 
 const OWNER_STUDIO_NAME = 'TheSharpestNote';
@@ -17,20 +18,20 @@ function getComposerAccessPlan(role: UserRole): ComposerAccessPlan {
 			return {
 				name: 'Collaborator plan',
 				headline:
-					'Thank you for your collaboration! You get 15 composer credits per every month you log in.',
-				details: 'Your account includes an expanded monthly composer allowance.'
+					'Thank you for your collaboration! You have unlimited access to the teacher tools.',
+				details: 'Your collaborator account includes unlimited teacher tool access.'
 			};
-		case 'institution_teacher':
+		case 'institutional_teacher':
 			return {
 				name: 'Organization-covered plan',
-				headline: 'You have unlimited access to the composer tool.',
-				details: 'Your composer use is being covered by your organization.'
+				headline: 'You have unlimited access to the teacher tools.',
+				details: 'Your teacher tool use is being covered by your organization.'
 			};
 		case 'admin':
 			return {
 				name: 'Admin access',
-				headline: 'You can use the composer tool freely.',
-				details: 'Admin access includes free use of composer features.'
+				headline: 'You can use the teacher tools freely.',
+				details: 'Admin access includes free use of teacher tools.'
 			};
 		case 'owner':
 			return {
@@ -43,8 +44,8 @@ function getComposerAccessPlan(role: UserRole): ComposerAccessPlan {
 		default:
 			return {
 				name: 'Free plan',
-				headline: 'You get 3 free composer credits per every month you log in.',
-				details: 'Credits refresh monthly.'
+				headline: 'You get a free monthly teacher tool credit.',
+				details: 'This plan lets you e.g. create one assignment per month.'
 			};
 	}
 }
@@ -85,8 +86,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}
 	}
 
-	const hasUnlimitedComposerCredits =
-		user.role === 'institution_teacher' || user.role === 'admin' || user.role === 'owner';
+	const hasUnlimitedComposerCredits = isUnlimitedComposerCredits(user.role);
 
 	return {
 		teacherEmail: user.email ?? '',

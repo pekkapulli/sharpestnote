@@ -2,12 +2,14 @@ import type { Handle } from '@sveltejs/kit';
 import { createSupabaseServerClient } from '$lib/supabase/server';
 import type { UserRole } from '$lib/config/types';
 import { ensureTeacherProfile } from '$lib/supabase/teacherProfile';
+import { getMonthlyComposerCreditAmount } from '$lib/util/teacherAccess';
 
-const USER_ROLES = new Set(['admin', 'owner', 'core', 'institution_teacher', 'user']);
+const USER_ROLES = new Set(['admin', 'owner', 'core', 'institutional_teacher', 'user']);
 
 function toUserRole(value: unknown): UserRole {
 	if (value === null) return null;
 	if (typeof value !== 'string') return null;
+
 	return USER_ROLES.has(value) ? (value as Exclude<UserRole, null>) : null;
 }
 
@@ -38,9 +40,7 @@ type ProfileFallbackRow = {
 };
 
 function getMonthlyCreditAmount(role: UserRole): number | null {
-	if (role === 'core') return 15;
-	if (role === 'institution_teacher' || role === 'admin' || role === 'owner') return null;
-	return 1;
+	return getMonthlyComposerCreditAmount(role);
 }
 
 function getElapsedRefreshMonths(value: unknown, now = new Date()): number {
