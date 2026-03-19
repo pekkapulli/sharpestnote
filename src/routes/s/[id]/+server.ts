@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 
 type ShortLinkRow = {
 	teacher_piece_id: string;
+	expires_at: string;
 };
 
 type TeacherPieceRow = {
@@ -17,7 +18,7 @@ async function resolveShortLink(id: string, locals: App.Locals, origin: string) 
 
 	const { data, error } = await locals.supabase
 		.from('short_links')
-		.select('teacher_piece_id')
+		.select('teacher_piece_id, expires_at')
 		.eq('id', normalizedId)
 		.maybeSingle();
 
@@ -33,6 +34,11 @@ async function resolveShortLink(id: string, locals: App.Locals, origin: string) 
 	const row = data as ShortLinkRow;
 	if (!row.teacher_piece_id) {
 		return new Response('Short link is invalid.', { status: 500 });
+	}
+
+	const expiresAt = new Date(row.expires_at);
+	if (!row.expires_at || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+		return new Response('Short link not found or expired.', { status: 404 });
 	}
 
 	const { data: pieceData, error: pieceError } = await locals.supabase

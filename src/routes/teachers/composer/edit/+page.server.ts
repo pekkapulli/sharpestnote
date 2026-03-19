@@ -40,6 +40,7 @@ type TeacherPieceSeedRow = {
 
 type ShortLinkSeedRow = {
 	id: string;
+	expires_at: string;
 };
 
 function createDefaultDraftState(): ComposerDraftState {
@@ -146,6 +147,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	let initialPieceId = '';
 	let initialPieceIsPublished = false;
 	let initialPieceShortUrl = '';
+	let initialPieceShortLinkExpiresAt = '';
 	let initialSavedSourceFingerprint = '';
 	let initialDraftState = parseDraftStateFromUrl(url);
 
@@ -180,15 +182,19 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 			const { data: shortLinkRows, error: shortLinkError } = await locals.supabase
 				.from('short_links')
-				.select('id')
+				.select('id, expires_at')
 				.eq('teacher_piece_id', row.id)
 				.eq('created_by', user.id)
+				.gt('expires_at', new Date().toISOString())
+				.order('expires_at', { ascending: false })
+				.order('created_at', { ascending: false })
 				.limit(1);
 
 			if (!shortLinkError) {
 				const shortLink = (shortLinkRows?.[0] ?? null) as ShortLinkSeedRow | null;
 				if (shortLink?.id) {
 					initialPieceShortUrl = `${url.origin}/s/${shortLink.id}`;
+					initialPieceShortLinkExpiresAt = shortLink.expires_at;
 				}
 			}
 		}
@@ -205,6 +211,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		initialPieceId,
 		initialPieceIsPublished,
 		initialPieceShortUrl,
+		initialPieceShortLinkExpiresAt,
 		initialSavedSourceFingerprint,
 		teacherEmail: user?.email ?? '',
 		hasUnlimitedComposerCredits,

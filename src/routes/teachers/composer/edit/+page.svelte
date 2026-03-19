@@ -24,6 +24,7 @@
 	import ComposerShareCard from '$lib/components/composer/ComposerShareCard.svelte';
 
 	const COMPOSER_DRAFT_PARAM = 'draft';
+	const COMPOSER_PIECE_ID_PARAM = 'pieceId';
 	const LENGTH_OPTIONS: NoteLength[] = [1, 2, 3, 4, 6, 8, 12, 16];
 
 	interface ComposerDraftState {
@@ -49,6 +50,7 @@
 			initialPieceId: string;
 			initialPieceIsPublished: boolean;
 			initialPieceShortUrl: string;
+			initialPieceShortLinkExpiresAt: string;
 			initialSavedSourceFingerprint: string;
 			hasUnlimitedComposerCredits: boolean;
 			composerCredits: number | null;
@@ -90,6 +92,7 @@
 	let teacherShareNote = $state(initialDraftState.teacherShareNote);
 	let isShareModalOpen = $state(false);
 	let shortShareUrl = $state(untrack(() => data.initialPieceShortUrl || ''));
+	let shortShareExpiresAt = $state(untrack(() => data.initialPieceShortLinkExpiresAt || ''));
 	let shortShareSourceFingerprint = $state('');
 	let shortShareError = $state('');
 	let savedPieceId = $state(untrack(() => data.initialPieceId || ''));
@@ -99,6 +102,7 @@
 	);
 	let isSavingPiece = $state(false);
 	let isCreatingShortShareUrl = $state(false);
+	let isRenewingShortShareUrl = $state(false);
 	let isPlayingMelodyPreview = $state(false);
 	let isMelodyPreviewMuted = $state(false);
 	let shouldStopMelodyPreview = $state(false);
@@ -112,9 +116,10 @@
 	let hasPendingRecommendationCredits = $state(untrack(() => data.hasPendingRecommendationCredits));
 	let hasReceivedRecommendationCredits = $state(false);
 	const shareCreditCost = 1;
+	const hasActiveShortShareLink = $derived(shortShareUrl.trim().length > 0);
 	const isShareBlocked = $derived(
 		!hasUnlimitedComposerCredits &&
-			!hasSavedSharedPiece &&
+			!hasActiveShortShareLink &&
 			(typeof composerCredits === 'number' ? composerCredits <= 0 : true)
 	);
 	const pendingRecommendationSummary = $derived.by(() => {
@@ -123,7 +128,7 @@
 		}
 
 		const currentCredits = typeof composerCredits === 'number' ? Math.max(0, composerCredits) : 0;
-		if (hasSavedSharedPiece) {
+		if (hasActiveShortShareLink) {
 			return `Recommendation bonus pending: +${recommendationBonusCredits} credits coming in. Estimated balance soon: ${currentCredits + recommendationBonusCredits}.`;
 		}
 
@@ -263,13 +268,30 @@
 
 		const customUnitMaterial = buildDraftCustomUnitMaterial();
 		const packedDraft = packCustomUnitMaterialForUrl(customUnitMaterial);
+		const normalizedPieceId = savedPieceId.trim();
 		const currentUrl = new URL(window.location.href);
+		const currentDraft = currentUrl.searchParams.get(COMPOSER_DRAFT_PARAM) ?? '';
+		const currentPieceId = (currentUrl.searchParams.get(COMPOSER_PIECE_ID_PARAM) ?? '').trim();
 
-		if (currentUrl.searchParams.get(COMPOSER_DRAFT_PARAM) === packedDraft) {
+		const shouldUpdateDraft = currentDraft !== packedDraft;
+		const shouldUpdatePieceId = currentPieceId !== normalizedPieceId;
+
+		if (!shouldUpdateDraft && !shouldUpdatePieceId) {
 			return;
 		}
 
-		currentUrl.searchParams.set(COMPOSER_DRAFT_PARAM, packedDraft);
+		if (shouldUpdateDraft) {
+			currentUrl.searchParams.set(COMPOSER_DRAFT_PARAM, packedDraft);
+		}
+
+		if (shouldUpdatePieceId) {
+			if (normalizedPieceId) {
+				currentUrl.searchParams.set(COMPOSER_PIECE_ID_PARAM, normalizedPieceId);
+			} else {
+				currentUrl.searchParams.delete(COMPOSER_PIECE_ID_PARAM);
+			}
+		}
+
 		const nextUrl = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
 		window.history.replaceState(window.history.state, '', nextUrl);
 	});
@@ -488,6 +510,7 @@
 		isPublished?: boolean;
 		hasShortLink?: boolean;
 		shortUrl?: string | null;
+		shortLinkExpiresAt?: string | null;
 	};
 
 	function applySavedPiecePayload(payload: SavedPiecePayload, sourceFingerprint: string) {
@@ -502,6 +525,7 @@
 		const normalizedShortUrl = payload.shortUrl?.trim() || '';
 		if (normalizedShortUrl) {
 			shortShareUrl = normalizedShortUrl;
+			shortShareExpiresAt = payload.shortLinkExpiresAt?.trim() || '';
 			shortShareSourceFingerprint = sourceFingerprint;
 		}
 
@@ -524,7 +548,7 @@
 		if (savedPieceSourceFingerprint === sourceFingerprint && savedPieceId.trim()) {
 			if (showStatusMessage) {
 				shareStatus = hasSavedSharedPiece
-					? 'Piece already saved. Your existing share link points to this version.'
+					? 'Assignment saved. Generate or reuse an assignment link when you are ready.'
 					: 'Piece already saved as a draft.';
 			}
 			return true;
@@ -557,8 +581,8 @@
 
 			if (showStatusMessage) {
 				shareStatus = hasSavedSharedPiece
-					? 'Piece saved. Existing share link now opens this updated version.'
-					: 'Piece saved. Share when you are ready.';
+					? 'Assignment saved. You can now generate or reuse an assignment link.'
+					: 'Draft saved. Share the assignment when you are ready.';
 			}
 
 			return true;
@@ -572,7 +596,7 @@
 
 	async function ensureShortShareUrl() {
 		if (isShareBlocked) {
-			shortShareError = 'You need at least 1 credit to share a piece.';
+			shortShareError = 'You need at least 1 credit to share the assignment.';
 			return;
 		}
 
@@ -623,9 +647,11 @@
 
 			const payload = (await res.json()) as {
 				shortUrl?: string;
+				expiresAt?: string | null;
 				consumedCredit?: boolean;
 				creditsRemaining?: number;
 				hasUnlimitedCredits?: boolean;
+				createdNew?: boolean;
 				recommendationCreditsAwarded?: boolean;
 			};
 			if (!payload.shortUrl) {
@@ -633,6 +659,7 @@
 			}
 
 			shortShareUrl = payload.shortUrl;
+			shortShareExpiresAt = payload.expiresAt?.trim() || '';
 			shortShareSourceFingerprint = sourceFingerprint;
 			hasSavedSharedPiece = true;
 
@@ -653,9 +680,15 @@
 			if (payload.recommendationCreditsAwarded) {
 				shareStatus = `First share complete. +${recommendationBonusCredits} recommendation credits added.`;
 			} else if (payload.consumedCredit) {
-				shareStatus = '1 credit consumed for this shared piece.';
+				shareStatus = payload.expiresAt
+					? `1 credit consumed. Assignment active until ${new Date(payload.expiresAt).toLocaleDateString()}.`
+					: '1 credit consumed for this assignment.';
+			} else if (payload.createdNew === false) {
+				shareStatus = 'Existing active assignment link is ready.';
 			} else {
-				shareStatus = 'Share link is ready.';
+				shareStatus = payload.expiresAt
+					? `Assignment link is ready and active until ${new Date(payload.expiresAt).toLocaleDateString()}.`
+					: 'Assignment link is ready.';
 			}
 		} catch (error) {
 			shortShareError =
@@ -665,9 +698,95 @@
 		}
 	}
 
+	async function renewShortShareLink() {
+		if (isRenewingShortShareUrl || isCreatingShortShareUrl) return;
+
+		const sourceFingerprint = customPieceShare.payloadFingerprint;
+		const customUnitMaterial = customPieceShare.customUnitMaterial;
+		if (!sourceFingerprint || !customUnitMaterial) {
+			shortShareError = customPieceShare.error || 'Piece is not valid yet.';
+			return;
+		}
+
+		if (!shortShareUrl.trim()) {
+			shortShareError = 'No active assignment link found to renew.';
+			return;
+		}
+
+		if (!hasUnlimitedComposerCredits && (composerCredits ?? 0) <= 0) {
+			shortShareError = 'You need at least 1 credit to renew this assignment link.';
+			return;
+		}
+
+		const hasSavedLatestPiece =
+			savedPieceId.trim().length > 0 && savedPieceSourceFingerprint === sourceFingerprint;
+		if (!hasSavedLatestPiece) {
+			const didSave = await savePiece(false);
+			if (!didSave) {
+				return;
+			}
+		}
+
+		const teacherPieceId = savedPieceId.trim();
+		if (!teacherPieceId) {
+			shortShareError = 'Unable to find saved piece id.';
+			return;
+		}
+
+		isRenewingShortShareUrl = true;
+		shortShareError = '';
+
+		try {
+			const res = await fetch('/api/share/custom', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ teacherPieceId, renewLink: true })
+			});
+
+			if (!res.ok) {
+				const payload = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new Error(payload.error || 'Unable to renew assignment link.');
+			}
+
+			const payload = (await res.json()) as {
+				shortUrl?: string;
+				expiresAt?: string | null;
+				consumedCredit?: boolean;
+				creditsRemaining?: number;
+				hasUnlimitedCredits?: boolean;
+			};
+
+			if (!payload.shortUrl) {
+				throw new Error('Short-link service returned an invalid response.');
+			}
+
+			shortShareUrl = payload.shortUrl;
+			shortShareExpiresAt = payload.expiresAt?.trim() || '';
+			shortShareSourceFingerprint = sourceFingerprint;
+			hasSavedSharedPiece = true;
+
+			if (payload.hasUnlimitedCredits) {
+				composerCredits = null;
+			} else if (
+				typeof payload.creditsRemaining === 'number' &&
+				Number.isFinite(payload.creditsRemaining)
+			) {
+				composerCredits = Math.max(0, Math.trunc(payload.creditsRemaining));
+			}
+
+			shareStatus = payload.expiresAt
+				? `Assignment link renewed. Active until ${new Date(payload.expiresAt).toLocaleDateString()}.`
+				: 'Assignment link renewed.';
+		} catch (error) {
+			shortShareError = error instanceof Error ? error.message : 'Unable to renew assignment link.';
+		} finally {
+			isRenewingShortShareUrl = false;
+		}
+	}
+
 	async function prepareShareForAction(): Promise<boolean> {
 		if (isShareBlocked) {
-			shortShareError = 'You need at least 1 credit to share a piece.';
+			shortShareError = 'You need at least 1 credit to share the assignment.';
 			return false;
 		}
 
@@ -704,7 +823,7 @@
 		<header class="space-y-4">
 			<div class="space-y-3">
 				<h1 class="mt-2 mb-4 text-3xl font-semibold text-slate-900">
-					Compose your own Sharpest Note piece
+					Compose your own Sharpest Note assignment
 				</h1>
 				<p class="mt-8 max-w-xl text-lg text-slate-700">
 					Use the tool below to create a custom piece that you can share with your students. Once
@@ -790,8 +909,12 @@
 				{hasSavedPiece}
 				{hasUnsavedPieceChanges}
 				hasSharedPiece={hasSavedSharedPiece}
+				hasActiveShareLink={hasActiveShortShareLink}
+				shareLinkExpiresAt={shortShareExpiresAt}
 				onCopyUrl={copyCustomPieceUrl}
 				onPrepareShareUrl={prepareShareForAction}
+				onRenewShareUrl={renewShortShareLink}
+				isRenewingShareUrl={isRenewingShortShareUrl}
 				{hasUnlimitedComposerCredits}
 				{composerCredits}
 				{shareCreditCost}

@@ -4,6 +4,7 @@ type ShareCreateResponse = {
 	id: string;
 	shortUrl: string;
 	targetUrl: string;
+	expiresAt: string | null;
 	consumedCredit: boolean;
 	creditsRemaining: number;
 	hasUnlimitedCredits: boolean;
@@ -13,10 +14,12 @@ type ShareCreateResponse = {
 
 type ShareCreateRequest = {
 	teacherPieceId?: string;
+	renewLink?: boolean;
 };
 
 type EnsureShortLinkRpcResult = {
 	short_link_id: unknown;
+	short_link_expires_at: unknown;
 	consumed_credit: unknown;
 	has_unlimited_credits: unknown;
 	remaining_credits: unknown;
@@ -60,6 +63,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 
 		const body = (await request.json()) as ShareCreateRequest;
 		const teacherPieceId = (body.teacherPieceId || '').trim();
+		const renewLink = body.renewLink === true;
 		if (!teacherPieceId || !isUuid(teacherPieceId)) {
 			return new Response(JSON.stringify({ error: 'teacherPieceId is required.' }), {
 				status: 400,
@@ -115,7 +119,8 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			const { data: rpcData, error: rpcError } = await locals.supabase
 				.rpc('ensure_short_link_for_piece', {
 					input_teacher_piece_id: teacherPieceId,
-					input_short_link_id: id
+					input_short_link_id: id,
+					input_force_renew: renewLink
 				})
 				.single();
 
@@ -150,6 +155,8 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 
 			const row = rpcData as EnsureShortLinkRpcResult | null;
 			const shortLinkId = typeof row?.short_link_id === 'string' ? row.short_link_id : '';
+			const expiresAt =
+				typeof row?.short_link_expires_at === 'string' ? row.short_link_expires_at : null;
 			if (!shortLinkId) {
 				return new Response(JSON.stringify({ error: 'Invalid short-link response.' }), {
 					status: 502,
@@ -179,6 +186,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 				id: shortLinkId,
 				shortUrl: `${url.origin}/s/${shortLinkId}`,
 				targetUrl,
+				expiresAt,
 				consumedCredit: Boolean(row?.consumed_credit),
 				creditsRemaining: adjustedRemainingCredits,
 				hasUnlimitedCredits,

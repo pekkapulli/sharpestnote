@@ -40,18 +40,27 @@ type ProfileFallbackRow = {
 function getMonthlyCreditAmount(role: UserRole): number | null {
 	if (role === 'core') return 15;
 	if (role === 'institution_teacher' || role === 'admin' || role === 'owner') return null;
-	return 3;
+	return 1;
 }
 
-function isMonthlyRefreshDue(value: unknown, now = new Date()): boolean {
-	if (!value) return true;
-	if (typeof value !== 'string') return true;
+function getElapsedRefreshMonths(value: unknown, now = new Date()): number {
+	const currentYear = now.getUTCFullYear();
+	const currentMonth = now.getUTCMonth();
+
+	if (!value || typeof value !== 'string') {
+		return 1;
+	}
 
 	const refreshed = new Date(value);
-	if (Number.isNaN(refreshed.getTime())) return true;
+	if (Number.isNaN(refreshed.getTime())) {
+		return 1;
+	}
 
-	const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-	return refreshed < currentMonthStart;
+	const refreshedYear = refreshed.getUTCFullYear();
+	const refreshedMonth = refreshed.getUTCMonth();
+	const monthDelta = (currentYear - refreshedYear) * 12 + (currentMonth - refreshedMonth);
+
+	return Math.max(0, monthDelta);
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -115,7 +124,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 				role = toUserRole(fallbackProfile.teacher_role);
 				credits = toUserCredits(fallbackProfile.credits);
 
-				if (isMonthlyRefreshDue(fallbackProfile.credits_refreshed_at)) {
+				const monthsDue = getElapsedRefreshMonths(fallbackProfile.credits_refreshed_at);
+				if (monthsDue > 0) {
 					const monthlyAmount = getMonthlyCreditAmount(role);
 					const currentMonthStartIso = new Date(
 						Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)
@@ -131,13 +141,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 						await event.locals.supabase
 							.from('teacher_profiles')
 							.update({
-								credits: credits + monthlyAmount,
+								credits: credits + monthlyAmount * monthsDue,
 								credits_refreshed_at: new Date().toISOString()
 							})
 							.eq('id', user.id)
 							.or(`credits_refreshed_at.is.null,credits_refreshed_at.lt.${currentMonthStartIso}`);
 
-						credits += monthlyAmount;
+						credits += monthlyAmount * monthsDue;
 					}
 				}
 			}

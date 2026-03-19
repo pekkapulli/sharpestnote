@@ -15,6 +15,7 @@ type CreatedPieceRow = {
 
 type ExistingShortLinkRow = {
 	id: string;
+	expires_at: string;
 };
 
 function isUuid(value: string): boolean {
@@ -136,9 +137,12 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 
 		const { data: shortLinkRows, error: shortLinkError } = await locals.supabase
 			.from('short_links')
-			.select('id')
+			.select('id, expires_at')
 			.eq('teacher_piece_id', updatedPiece.id)
 			.eq('created_by', user.id)
+			.gt('expires_at', new Date().toISOString())
+			.order('expires_at', { ascending: false })
+			.order('created_at', { ascending: false })
 			.limit(1);
 
 		if (shortLinkError) {
@@ -155,54 +159,16 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 				targetUrl: `${url.origin}/unit/custom/${pieceRef}`,
 				isPublished: updatedPiece.is_published,
 				hasShortLink: Boolean(existingShortLink?.id),
-				shortUrl: existingShortLink?.id ? `${url.origin}/s/${existingShortLink.id}` : null
+				shortUrl: existingShortLink?.id ? `${url.origin}/s/${existingShortLink.id}` : null,
+				shortLinkExpiresAt: existingShortLink?.expires_at ?? null
 			},
 			{ status: 200 }
 		);
 	}
 
-	const { data: existingRows, error: existingError } = await locals.supabase
-		.from('teacher_pieces')
-		.select('id, is_published')
-		.eq('teacher_id', user.id)
-		.eq('piece_fingerprint', pieceFingerprint)
-		.limit(1);
-
-	if (existingError) {
-		console.error('Failed to check existing teacher piece for sharing:', existingError);
-		return json({ error: 'Could not save piece for sharing' }, { status: 500 });
-	}
-
-	const existingPiece = (existingRows?.[0] ?? null) as CreatedPieceRow | null;
-	if (existingPiece?.id) {
-		const pieceRef = `${STORED_TEACHER_PIECE_PREFIX}${existingPiece.id}`;
-
-		const { data: shortLinkRows, error: shortLinkError } = await locals.supabase
-			.from('short_links')
-			.select('id')
-			.eq('teacher_piece_id', existingPiece.id)
-			.eq('created_by', user.id)
-			.limit(1);
-
-		if (shortLinkError) {
-			console.error('Failed to check existing short-link for saved piece:', shortLinkError);
-			return json({ error: 'Could not save piece for sharing' }, { status: 500 });
-		}
-
-		const existingShortLink = (shortLinkRows?.[0] ?? null) as ExistingShortLinkRow | null;
-
-		return json(
-			{
-				pieceId: existingPiece.id,
-				pieceRef,
-				targetUrl: `${url.origin}/unit/custom/${pieceRef}`,
-				isPublished: existingPiece.is_published,
-				hasShortLink: Boolean(existingShortLink?.id),
-				shortUrl: existingShortLink?.id ? `${url.origin}/s/${existingShortLink.id}` : null
-			},
-			{ status: 200 }
-		);
-	}
+	// No explicit pieceId means the user is creating a new assignment draft.
+	// Always insert a new teacher_piece row so first share for that draft can
+	// consume credits based on link creation rules.
 
 	const { data, error } = await locals.supabase
 		.from('teacher_pieces')
@@ -234,7 +200,8 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
 			targetUrl: `${url.origin}/unit/custom/${pieceRef}`,
 			isPublished: row.is_published,
 			hasShortLink: false,
-			shortUrl: null
+			shortUrl: null,
+			shortLinkExpiresAt: null
 		},
 		{ status: 200 }
 	);

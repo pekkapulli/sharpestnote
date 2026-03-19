@@ -1,6 +1,9 @@
 -- Teacher profiles for Sharpest Note auth MVP
 -- Run this in Supabase SQL editor.
 
+-- Create enum type for teacher roles
+create type public.teacher_role_enum as enum ('user', 'core', 'institutional_teacher', 'admin', 'owner');
+
 create table if not exists public.teacher_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
@@ -11,12 +14,15 @@ create table if not exists public.teacher_profiles (
 
 alter table public.teacher_profiles
   add column if not exists studio_name text,
-  add column if not exists teacher_role text,
+  add column if not exists teacher_role public.teacher_role_enum not null default 'user'::public.teacher_role_enum,
   add column if not exists credits integer not null default 0,
   add column if not exists credits_refreshed_at timestamptz,
   add column if not exists terms_accepted_at timestamptz,
   add column if not exists terms_accepted_version text,
   add column if not exists email_opt_in boolean not null default false;
+
+alter table public.teacher_profiles
+  alter column credits set default 9;
 
 alter table public.teacher_profiles enable row level security;
 
@@ -70,6 +76,9 @@ declare
   role_from_profile text;
   role_from_jwt text;
   refreshed_at timestamptz;
+  refresh_month_start timestamptz;
+  current_month_start timestamptz := date_trunc('month', now());
+  months_due integer := 0;
   monthly_amount integer;
 begin
   if current_uid is null then
@@ -116,27 +125,41 @@ begin
   elsif role_value in ('institution_teacher', 'admin', 'owner') then
     monthly_amount := null;
   else
-    monthly_amount := 3;
+    monthly_amount := 1;
   end if;
 
-  if refreshed_at is null or date_trunc('month', refreshed_at) < date_trunc('month', now()) then
+  if refreshed_at is null then
+    months_due := 1;
+  else
+    refresh_month_start := date_trunc('month', refreshed_at);
+    months_due := (
+      (extract(year from age(current_month_start, refresh_month_start))::integer * 12)
+      + extract(month from age(current_month_start, refresh_month_start))::integer
+    );
+
+    if months_due < 0 then
+      months_due := 0;
+    end if;
+  end if;
+
+  if months_due > 0 then
     if monthly_amount is null then
       update public.teacher_profiles as p
       set credits_refreshed_at = now()
       where p.id = current_uid
         and (
           p.credits_refreshed_at is null
-          or date_trunc('month', p.credits_refreshed_at) < date_trunc('month', now())
+          or date_trunc('month', p.credits_refreshed_at) < current_month_start
         );
     else
       update public.teacher_profiles as p
       set
-        credits = coalesce(p.credits, 0) + monthly_amount,
+        credits = coalesce(p.credits, 0) + (monthly_amount * months_due),
         credits_refreshed_at = now()
       where p.id = current_uid
         and (
           p.credits_refreshed_at is null
-          or date_trunc('month', p.credits_refreshed_at) < date_trunc('month', now())
+          or date_trunc('month', p.credits_refreshed_at) < current_month_start
         );
     end if;
   end if;

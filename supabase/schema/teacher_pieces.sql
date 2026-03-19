@@ -28,7 +28,9 @@ create index if not exists teacher_pieces_teacher_id_idx
 create index if not exists teacher_pieces_created_at_idx
   on public.teacher_pieces (created_at desc);
 
-create unique index if not exists teacher_pieces_teacher_fingerprint_unique_idx
+drop index if exists public.teacher_pieces_teacher_fingerprint_unique_idx;
+
+create index if not exists teacher_pieces_teacher_fingerprint_idx
   on public.teacher_pieces (teacher_id, piece_fingerprint);
 
 alter table public.teacher_pieces enable row level security;
