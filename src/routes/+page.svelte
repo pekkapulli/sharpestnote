@@ -41,17 +41,17 @@
 		<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
 
 		<h2 class="mb-4 max-w-lg text-center text-xl font-light">
-			Beginner units for orchestral instruments, with interactive practice tools.
+			It made sense in the lesson.<br />At home, less so.
 		</h2>
-		<p class="text-center">A thoughtful bridge between the music lesson and home practice.</p>
+		<p class="text-center">Tools and material for instrumental practice between lessons.</p>
 		<nav
 			class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
 		>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href={resolve('/units')}
+				href={resolve('/store')}
 			>
-				Units
+				Store
 			</a>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
@@ -67,6 +67,11 @@
 			</a>
 		</nav>
 	</header>
+
+	<section class="mt-16 w-full max-w-2xl">
+		<h2 class="mb-4 text-2xl font-semibold">Try our core tool, the Sight Game</h2>
+		<SightGameFrontDemo />
+	</section>
 
 	<details class="mt-8 w-full max-w-md">
 		<summary
@@ -118,11 +123,6 @@
 			interactive material runs directly in the browser and works on phones, tablets, and computers.
 		</p>
 		<p class="font-bold">Students play on their own instrument, getting immediate feedback.</p>
-	</section>
-
-	<section class="mt-16 w-full max-w-2xl">
-		<h2 class="mb-4 text-2xl font-semibold">Try our core tool, the Sight Game</h2>
-		<SightGameFrontDemo />
 	</section>
 
 	<section class="mt-16 w-full max-w-md">
