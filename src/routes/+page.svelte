@@ -14,6 +14,7 @@
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
 	import PracticeCalendar from '$lib/components/ui/PracticeCalendar.svelte';
+	import SightGameFrontDemo from '$lib/components/sight/SightGameFrontDemo.svelte';
 
 	let { data } = $props();
 
@@ -119,11 +120,16 @@
 		<p class="font-bold">Students play on their own instrument, getting immediate feedback.</p>
 	</section>
 
+	<section class="mt-16 w-full max-w-2xl">
+		<h2 class="mb-4 text-2xl font-semibold">Try our core tool, the Sight Game</h2>
+		<SightGameFrontDemo />
+	</section>
+
 	<section class="mt-16 w-full max-w-md">
 		<h2 class="mb-4 text-2xl font-semibold">Try a free demo</h2>
 		<UnitGrid
 			units={Object.values(units)
-				.filter((u) => u.demo)
+				.filter((u) => u.demo && u.published)
 				.slice(0, 3)}
 		/>
 		<div class="mt-6 flex w-full flex-col items-center">
