@@ -1,7 +1,9 @@
 <script lang="ts">
 	import OpenableButton from './OpenableButton.svelte';
+	import KeyCodeNavigator from './KeyCodeNavigator.svelte';
 	import type { UserRole } from '$lib/config/types';
 	import { isUnlimitedComposerCredits } from '$lib/util/teacherAccess';
+	import LinkButton from './LinkButton.svelte';
 
 	interface TeacherUser {
 		email?: string | null;
@@ -26,27 +28,42 @@
 	});
 	let isOpen = $state(false);
 	let menuRoot = $state<HTMLElement | null>(null);
+	let isCodeOpen = $state(false);
+	let codeRoot = $state<HTMLElement | null>(null);
 
 	function toggleMenu() {
 		isOpen = !isOpen;
+		if (isOpen) isCodeOpen = false;
 	}
 
 	function closeMenu() {
 		isOpen = false;
 	}
 
+	function toggleCode() {
+		isCodeOpen = !isCodeOpen;
+		if (isCodeOpen) isOpen = false;
+	}
+
+	function closeCode() {
+		isCodeOpen = false;
+	}
+
 	function handleWindowClick(event: MouseEvent) {
-		if (!isOpen || !menuRoot) return;
 		const target = event.target;
 		if (!(target instanceof Node)) return;
-		if (!menuRoot.contains(target)) {
+		if (isOpen && menuRoot && !menuRoot.contains(target)) {
 			closeMenu();
+		}
+		if (isCodeOpen && codeRoot && !codeRoot.contains(target)) {
+			closeCode();
 		}
 	}
 
 	function handleWindowKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			closeMenu();
+			closeCode();
 		}
 	}
 </script>
@@ -54,41 +71,68 @@
 <svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
 
 <div class="teacher-nav-shell">
-	{#if user}
-		<div class="teacher-nav-dropdown" bind:this={menuRoot}>
+	<div class="teacher-nav-items">
+		<div class="teacher-nav-dropdown" bind:this={codeRoot}>
 			<OpenableButton
 				type="button"
-				opened={isOpen}
-				ariaControls="teacher-tools-menu"
-				ariaHaspopup="menu"
-				className="teacher-nav-trigger"
-				onclick={toggleMenu}
+				opened={isCodeOpen}
+				ariaControls="key-code-panel"
+				ariaHaspopup="dialog"
+				color="green"
+				onclick={toggleCode}
 			>
-				Tools
+				Enter code
 			</OpenableButton>
 
-			{#if isOpen}
+			{#if isCodeOpen}
 				<div
-					id="teacher-tools-menu"
-					class="teacher-nav-panel"
-					role="menu"
-					aria-label="Teacher navigation"
+					id="key-code-panel"
+					class="teacher-nav-panel key-code-panel"
+					role="dialog"
+					aria-label="Enter key code"
 				>
-					{#if teacherEmail}
-						<p class="teacher-email">{teacherEmail}</p>
-					{/if}
-					<p class="teacher-credits">{teacherCredits}</p>
-					<a href="/teachers/composer" role="menuitem" onclick={closeMenu}>Composer</a>
-					<a href="/teachers/profile" role="menuitem" onclick={closeMenu}>Profile</a>
-					<form method="POST" action="/teachers/profile?/signout" class="teacher-signout-form">
-						<button type="submit" role="menuitem" class="teacher-signout-button"> Sign out </button>
-					</form>
+					<KeyCodeNavigator compact onSuccess={closeCode} />
 				</div>
 			{/if}
 		</div>
-	{:else}
-		<a href="/teachers/login" class="teacher-login-button">Log in / Sign up</a>
-	{/if}
+
+		{#if user}
+			<div class="teacher-nav-dropdown" bind:this={menuRoot}>
+				<OpenableButton
+					type="button"
+					opened={isOpen}
+					ariaControls="teacher-tools-menu"
+					ariaHaspopup="menu"
+					onclick={toggleMenu}
+				>
+					Tools
+				</OpenableButton>
+
+				{#if isOpen}
+					<div
+						id="teacher-tools-menu"
+						class="teacher-nav-panel"
+						role="menu"
+						aria-label="Teacher navigation"
+					>
+						{#if teacherEmail}
+							<p class="teacher-email">{teacherEmail}</p>
+						{/if}
+						<p class="teacher-credits">{teacherCredits}</p>
+						<a href="/teachers/composer" role="menuitem" onclick={closeMenu}>Composer</a>
+						<a href="/teachers/profile" role="menuitem" onclick={closeMenu}>Profile</a>
+						<form method="POST" action="/teachers/profile?/signout" class="teacher-signout-form">
+							<button type="submit" role="menuitem" class="teacher-signout-button">
+								Sign out
+							</button>
+						</form>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<LinkButton href="/teachers/login" color="green">Log in / Sign up</LinkButton>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -99,20 +143,14 @@
 		z-index: 150;
 	}
 
-	.teacher-login-button,
-	:global(.teacher-nav-trigger) {
-		display: inline-flex;
+	.teacher-nav-items {
+		display: flex;
 		align-items: center;
-		gap: 0.35rem;
-		padding: 0.45rem 0.75rem;
-		border: 1px solid color-mix(in srgb, var(--color-dark-blue) 28%, transparent);
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--color-off-white) 85%, white);
-		text-decoration: none;
-		font-size: 0.9rem;
-		font-weight: 600;
-		line-height: 1;
-		backdrop-filter: blur(4px);
+		gap: 0.5rem;
+	}
+
+	.key-code-panel {
+		min-width: 14rem;
 	}
 
 	.teacher-nav-dropdown {
@@ -183,12 +221,6 @@
 		.teacher-nav-shell {
 			top: 0.6rem;
 			right: 0.65rem;
-		}
-
-		.teacher-login-button,
-		:global(.teacher-nav-trigger) {
-			font-size: 0.82rem;
-			padding: 0.4rem 0.65rem;
 		}
 	}
 </style>

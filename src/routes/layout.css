@@ -21,6 +21,14 @@
 	background-color: var(--color-off-white);
 	font-family: var(--font-serif);
 	line-height: 1.6;
+
+	/* Shared button size tokens */
+	--btn-font-sm: 0.875rem;
+	--btn-font-md: 1rem;
+	--btn-font-lg: 1.125rem;
+	--btn-pad-sm: 0.25rem 0.5rem;
+	--btn-pad-md: 0.5rem;
+	--btn-pad-lg: 0.75rem;
 }
 
 * {
@@ -39,22 +47,6 @@ h3,
 h4 {
 	font-weight: 300;
 	letter-spacing: -0.015em;
-}
-
-h1 {
-	font-size: clamp(2rem, 3vw, 2.75rem);
-}
-
-h2 {
-	font-size: clamp(1.75rem, 2.5vw, 2.25rem);
-}
-
-h3 {
-	font-size: clamp(1.5rem, 2vw, 1.85rem);
-}
-
-h4 {
-	font-size: 1.25rem;
 }
 
 p {

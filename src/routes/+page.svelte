@@ -8,7 +8,6 @@
 	import practiceImage from '$lib/assets/practice.png';
 	import listeningImage from '$lib/assets/intonation.png';
 	import UnitGrid from '$lib/components/ui/UnitGrid.svelte';
-	import KeyCodeNavigator from '$lib/components/ui/KeyCodeNavigator.svelte';
 	import { units } from '$lib/config/units';
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
@@ -37,12 +36,14 @@
 
 <div class="py-2rem flex min-h-screen flex-col items-center justify-center bg-off-white px-2">
 	<header class="mt-6 mb-12 flex flex-col items-center px-4 text-center">
-		<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-200" />
+		<img src={TheSharpestNoteLogo} alt="The Sharpest Note" class="mt-24 mb-8 w-80" />
 
-		<h2 class="mb-4 max-w-lg text-center text-xl font-light">
-			Beginner units for orchestral instruments, with interactive practice tools.
-		</h2>
-		<p class="text-center">A thoughtful bridge between the music lesson and home practice.</p>
+		<h1 class="mb-4 max-w-lg text-center text-3xl font-light sm:text-4xl md:text-6xl">
+			It made sense in the lesson. At home, less so.
+		</h1>
+		<p class="text-center text-xl">
+			Tools and material for instrumental practice between the lessons.
+		</p>
 		<nav
 			class="mb-6 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-slate-800"
 		>
@@ -67,16 +68,10 @@
 		</nav>
 	</header>
 
-	<details class="mt-8 w-full max-w-md">
-		<summary
-			class="cursor-pointer rounded-lg bg-emerald-600 px-6 py-3 text-center font-semibold text-white transition hover:bg-emerald-700"
-		>
-			I have a code, take me to my unit!
-		</summary>
-		<div class="mt-4">
-			<KeyCodeNavigator />
-		</div>
-	</details>
+	<section class="mt-16 w-full max-w-2xl">
+		<h2 class="mb-4 text-2xl font-semibold">Try our core tool, the Sight Game</h2>
+		<SightGameFrontDemo />
+	</section>
 
 	<section class="mt-10 w-full max-w-md">
 		<PracticeCalendar title="Your recent practice" />

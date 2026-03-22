@@ -79,18 +79,18 @@
 	}
 
 	.openable-button-root.large {
-		font-size: 1.125rem;
-		padding: 0.75rem;
+		font-size: var(--btn-font-lg);
+		padding: var(--btn-pad-lg);
 	}
 
 	.openable-button-root.medium {
-		font-size: 1rem;
-		padding: 0.5rem;
+		font-size: var(--btn-font-md);
+		padding: var(--btn-pad-md);
 	}
 
 	.openable-button-root.small {
-		font-size: 0.875rem;
-		padding: 0.25rem 0.5rem;
+		font-size: var(--btn-font-sm);
+		padding: var(--btn-pad-sm);
 	}
 
 	.openable-button-root.solid.blue {

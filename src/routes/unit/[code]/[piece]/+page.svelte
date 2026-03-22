@@ -16,16 +16,39 @@
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
 	import type { Speed } from '$lib/config/types';
+	import Staff from '$lib/components/music/Staff.svelte';
+	import ExpandablePreview from '$lib/components/ui/ExpandablePreview.svelte';
+	import { instrumentMap } from '$lib/config/instruments';
+	import { getTransposedKeySignature } from '$lib/config/keys';
+	import { splitPhrasesToDisplayBars } from '$lib/components/music/vexflowHelper';
 
 	const { data } = $props();
-	const { piece, code, pieceCode, previousPiece, nextPiece, unit, imageUrl, pageUrl, teacherNote } =
-		$derived(data);
+	const {
+		piece,
+		code,
+		pieceCode,
+		previousPiece,
+		nextPiece,
+		unit,
+		imageUrl,
+		pageUrl,
+		teacherNote,
+		isCustomPiece
+	} = $derived(data);
 	const trimmedTeacherNote = $derived((teacherNote ?? '').trim());
 	let hasKeyAccess = $state(false);
 	const sheetMusicCta = $derived(`/unit/${unit.gumroadUrl}`);
 	let badgeTexts = $state<Record<string, string | undefined>>({});
 	let showSuccessMessage = $state(false);
 	let teachComplete = $state(false);
+
+	// Staff preview setup
+	const instrument = $derived(instrumentMap[unit.instrument]);
+	const keySignature = $derived(
+		getTransposedKeySignature(piece.key, piece.mode, instrument?.transpositionSemitones ?? 0)
+	);
+	const staffBars = $derived(splitPhrasesToDisplayBars(piece.melody ?? [], piece.barLength));
+	const showFullStaff = $derived(hasKeyAccess || isCustomPiece);
 
 	const gameCards = [
 		{
@@ -144,7 +167,7 @@
 					class="h-full w-full shrink-0 rounded-lg object-cover xs:mt-2 xs:h-16 xs:w-16"
 				/>
 				<div>
-					<h1 class="text-xl font-semibold text-slate-900 md:text-2xl">{piece.label}</h1>
+					<h1 class="text-2xl font-semibold text-slate-900 md:text-3xl">{piece.label}</h1>
 					<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
 						From {unit.title}
 					</p>
@@ -164,6 +187,21 @@
 				<div class="mt-6">
 					<KeyEntry unitCode={unit.code} onSuccess={handleKeySuccess} purchaseUrl={sheetMusicCta} />
 				</div>
+			{/if}
+
+			{#if staffBars.length > 0 && showFullStaff}
+				<section class="mt-6">
+					<ExpandablePreview expandLabel="Show full piece" collapseLabel="Hide piece">
+						<Staff
+							bars={staffBars}
+							clef={instrument?.clef ?? 'treble'}
+							{keySignature}
+							barLength={piece.barLength}
+							showAllBlack
+							singleRow={false}
+						/>
+					</ExpandablePreview>
+				</section>
 			{/if}
 
 			{#if !piece.practice}

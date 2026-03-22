@@ -20,61 +20,72 @@
 	}: Props = $props();
 </script>
 
-<a
-	{href}
-	{target}
-	class="{size} {color} {fullWidth
-		? 'block'
-		: 'inline-block'} rounded-lg px-3 text-sm font-semibold text-off-white transition hover:-translate-y-px hover:shadow"
->
+<a {href} {target} class="link-button-root {size} {color} {fullWidth ? 'block' : 'inline'}">
 	{@render children()}
 </a>
 
 <style>
-	a {
+	.link-button-root {
+		border-radius: 0.5rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.375rem;
+		font-weight: 600;
+		line-height: 1.2;
 		text-decoration: none;
 		color: var(--color-off-white);
+		transition:
+			transform 0.2s,
+			box-shadow 0.2s,
+			background-color 0.2s;
 	}
 
-	a.block {
+	.link-button-root.block {
 		width: 100%;
 		text-align: center;
 	}
 
-	a.large {
-		font-size: 1.125rem;
-		padding: 0.75rem;
+	.link-button-root.large {
+		font-size: var(--btn-font-lg);
+		padding: var(--btn-pad-lg);
 	}
 
-	a.medium {
-		font-size: 1rem;
-		padding: 0.5rem;
+	.link-button-root.medium {
+		font-size: var(--btn-font-md);
+		padding: var(--btn-pad-md);
 	}
 
-	a.small {
-		font-size: 0.875rem;
-		padding: 0.25rem 0.5rem;
+	.link-button-root.small {
+		font-size: var(--btn-font-sm);
+		padding: var(--btn-pad-sm);
 	}
 
-	a:visited {
+	.link-button-root:visited {
 		color: var(--color-off-white);
 	}
 
-	a.blue {
+	.link-button-root.blue {
 		background-color: var(--color-dark-blue);
+		color: var(--color-off-white);
 	}
 
-	a.blue:hover {
+	.link-button-root.blue:hover {
 		background-color: var(--color-dark-blue-highlight);
 		color: var(--color-off-white);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
 
-	a.green {
+	.link-button-root.green {
 		background-color: var(--color-brand-green);
+		color: var(--color-off-white);
 	}
 
-	a.green:hover {
+	.link-button-root.green:hover {
 		background-color: var(--color-brand-green-highlight);
 		color: var(--color-off-white);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
 </style>

@@ -315,7 +315,7 @@
 <div class="space-y-6">
 	<!-- Custom Audio Player -->
 	<div>
-		<h3 class="text-sm font-semibold text-dark-blue">Listen and play along</h3>
+		<h3 class="text-xl font-semibold text-dark-blue">Listen and play along</h3>
 		{#if teachComplete}
 			<p class="mb-4 text-sm text-slate-600">
 				Great job learning the piece! Now you can practice playing along.
