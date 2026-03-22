@@ -334,54 +334,11 @@ export function renderVexFlowStaff(
 	const noteYPositions: number[] = [];
 
 	if (allNotes.length > 0) {
-		// Set proportional widths based on note duration within each bar
-		const minWidth = Math.max(10, Math.floor(layoutOptions.minNoteWidth ?? 20));
-		const assignedNoteWidths: number[] = [];
-		let noteIndex = 0;
-		let totalComputedWidth = 0;
-		const firstBarHeaderReserve = Math.max(
-			0,
-			Math.floor(layoutOptions.firstBarHeaderReserve ?? 150)
-		);
-		const subsequentBarReserve = Math.max(0, Math.floor(layoutOptions.subsequentBarReserve ?? 20));
-
-		for (const bar of displayBars) {
-			const barSixteenths = bar.reduce((sum, item) => sum + item.length, 0);
-			const reserveForClefAndKey = noteIndex === 0 ? firstBarHeaderReserve : subsequentBarReserve; // Only first bar needs full clef/key reserve
-			const barAvailableWidth = (width / totalSixteenths) * barSixteenths - reserveForClefAndKey;
-			const barPixelsPerSixteenth = barAvailableWidth / barSixteenths;
-
-			for (const item of bar) {
-				const noteWidth = Math.max(minWidth, item.length * barPixelsPerSixteenth);
-				allNotes[noteIndex].setWidth(noteWidth);
-				assignedNoteWidths[noteIndex] = noteWidth;
-				totalComputedWidth += noteWidth;
-				noteIndex++;
-			}
-		}
-
-		// Determine available note area (stave.format() is called lazily by getNoteStartX)
-		const availableNoteWidth = stave.getNoteEndX() - stave.getNoteStartX();
-
-		// Scale note widths down if they exceed the available stave area (prevents SVG overflow in print)
-		if (totalComputedWidth > availableNoteWidth) {
-			const scale = (availableNoteWidth - 8) / totalComputedWidth;
-			let idx = 0;
-			for (const bar of displayBars) {
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				for (const _item of bar) {
-					const scaledWidth = Math.max(12, (assignedNoteWidths[idx] ?? minWidth) * scale);
-					allNotes[idx].setWidth(scaledWidth);
-					assignedNoteWidths[idx] = scaledWidth;
-					idx++;
-				}
-			}
-			totalComputedWidth = availableNoteWidth - 8;
-		}
-
 		const voice = vf.Voice({ time: { numBeats: totalBeats, beatValue: 4 } });
 		voice.setMode(Voice.Mode.SOFT);
 		voice.addTickables(allTickables);
+
+		let noteIndex = 0;
 
 		// Create beams based on manual beam markers or auto-generate
 		const beams: Beam[] = [];
@@ -434,16 +391,10 @@ export function renderVexFlowStaff(
 			);
 		}
 
-		// Format and draw with proportional spacing
+		// Let VexFlow's formatter handle proportional spacing based on note durations
+		const availableNoteWidth = stave.getNoteEndX() - stave.getNoteStartX();
 		const formatter = vf.Formatter();
-
-		// Pass the computed total width so formatter doesn't expand/compress our proportional widths
-		// Cap formatter width to the actual note area so notes never overflow the SVG viewport
-		const formatterWidth = Math.min(
-			Math.max(totalComputedWidth + 40, availableNoteWidth - 5),
-			availableNoteWidth - 5
-		);
-		formatter.joinVoices([voice]).format([voice], formatterWidth, {
+		formatter.joinVoices([voice]).format([voice], availableNoteWidth, {
 			context: context
 		});
 

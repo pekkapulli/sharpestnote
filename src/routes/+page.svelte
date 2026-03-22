@@ -13,6 +13,7 @@
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
 	import PracticeCalendar from '$lib/components/ui/PracticeCalendar.svelte';
+	import SightGameFrontDemo from '$lib/components/sight/SightGameFrontDemo.svelte';
 
 	let { data } = $props();
 
@@ -49,9 +50,9 @@
 		>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
-				href={resolve('/units')}
+				href={resolve('/store')}
 			>
-				Units
+				Store
 			</a>
 			<a
 				class="rounded-full bg-white px-4 py-2 shadow-sm transition hover:-translate-y-px hover:shadow"
@@ -118,7 +119,7 @@
 		<h2 class="mb-4 text-2xl font-semibold">Try a free demo</h2>
 		<UnitGrid
 			units={Object.values(units)
-				.filter((u) => u.demo)
+				.filter((u) => u.demo && u.published)
 				.slice(0, 3)}
 		/>
 		<div class="mt-6 flex w-full flex-col items-center">
