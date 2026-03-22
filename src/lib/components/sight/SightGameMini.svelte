@@ -20,6 +20,7 @@
 		barLength?: number;
 		melody: MelodyItem[];
 		onBack?: () => void;
+		onComplete?: () => void;
 	}
 
 	let {
@@ -29,7 +30,8 @@
 		tempoBPM = 100,
 		barLength = 16,
 		melody,
-		onBack
+		onBack,
+		onComplete
 	}: Props = $props();
 
 	const game = useSightGameLogic({
@@ -84,6 +86,7 @@
 			const greatIntonationCount = game.greatIntonationIndices().length;
 			const usePreciseCompliment = playableNotes > 0 && greatIntonationCount / playableNotes >= 0.5;
 			successMessage = getRandomCompliment(usePreciseCompliment ? 'precise' : 'great');
+			onComplete?.();
 		}
 		if (!isShowingSuccess) {
 			successMessage = 'Correct!';

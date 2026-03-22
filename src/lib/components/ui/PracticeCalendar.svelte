@@ -270,7 +270,7 @@
 
 <section class="rounded-xl">
 	<div class="mb-2 flex items-baseline justify-between gap-2">
-		<h3 class="text-xs font-semibold tracking-wide text-slate-800">{title}</h3>
+		<h2 class="font-semibold tracking-wide text-slate-800">{title}</h2>
 	</div>
 
 	{#if totalInView === 0}

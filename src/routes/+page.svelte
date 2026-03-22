@@ -12,7 +12,6 @@
 	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 	import SharePreview from '$lib/components/SharePreview.svelte';
 	import { resolve } from '$app/paths';
-	import PracticeCalendar from '$lib/components/ui/PracticeCalendar.svelte';
 	import SightGameFrontDemo from '$lib/components/sight/SightGameFrontDemo.svelte';
 
 	let { data } = $props();
@@ -74,13 +73,9 @@
 		<SightGameFrontDemo />
 	</section>
 
-	<section class="mt-10 w-full max-w-md">
-		<PracticeCalendar title="Your recent practice" />
-	</section>
-
 	<section class="mt-24 w-full max-w-md">
 		<p class="text-md">
-			The Sharpest Note creates short, musical units for early orchestral players. Each unit
+			The Sharpest Note creates tools, musical units for early orchestral players. Each unit
 			combines:
 		</p>
 		<CardGrid items={whatThisIs} />

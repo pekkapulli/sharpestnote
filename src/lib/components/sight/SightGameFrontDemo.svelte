@@ -12,6 +12,8 @@
 	import { lengthToMs } from '$lib/config/melody';
 	import { resolve } from '$app/paths';
 	import { getRandomCompliment } from './great';
+	import Button from '$lib/components/ui/Button.svelte';
+	import LinkButton from '$lib/components/ui/LinkButton.svelte';
 
 	type DemoPhase = 'locked' | 'preview' | 'play';
 
@@ -62,6 +64,7 @@
 	let playheadPosition = $state<number | null>(null);
 	let activeFrame: number | null = null;
 	let currentAudio: HTMLAudioElement | null = null;
+	let hasCompletedPlay = $state(false);
 
 	const synth = createSynth({
 		waveform: 'sine',
@@ -94,9 +97,30 @@
 	const previewKeySignature = $derived(getTransposedKeySignature(keyNote, mode, 0));
 	const previewClef = $derived(instrumentMap[selectedInstrument]?.clef ?? 'treble');
 
+	const audioUnitCode: Record<InstrumentId, string | null> = {
+		violin: 'tw-v',
+		viola: 'tw-c',
+		cello: 'tw-c',
+		'double-bass': 'tw-c',
+		guitar: null,
+		flute: null,
+		'french-horn': null,
+		recorder: null
+	};
+
+	const audioSourceUnit = $derived.by(() => {
+		const code = audioUnitCode[selectedInstrument];
+		if (!code) return null;
+		return (units[code] ?? null) as UnitMaterial | null;
+	});
+
+	const audioSourcePiece = $derived(
+		audioSourceUnit?.pieces?.find((p) => p.code === 'twinkle-twinkle-little-star') ?? null
+	);
+
 	const defaultRecordingUrl = $derived(
-		activeUnit && twinklePiece?.tracks?.slow?.audioUrl
-			? `${fileStore}/${activeUnit.code}/${twinklePiece.tracks.slow.audioUrl}`
+		audioSourceUnit && audioSourcePiece?.tracks?.slow?.audioUrl
+			? `${fileStore}/${audioSourceUnit.code}/${audioSourcePiece.tracks.slow.audioUrl}`
 			: null
 	);
 
@@ -239,7 +263,7 @@
 		}
 
 		hasCompletedPreview = true;
-		previewStatus = `I have my ${instrumentLabel(selectedInstrument).toLowerCase()} ready!`;
+		previewStatus = `Get your ${instrumentLabel(selectedInstrument).toLowerCase()} ready!`;
 		phase = 'locked';
 	}
 
@@ -250,7 +274,12 @@
 	function handlePlayIt() {
 		stopPreviewPlayback();
 		showPreviewSuccess = false;
+		hasCompletedPlay = false;
 		phase = 'play';
+	}
+
+	function handlePlayComplete() {
+		hasCompletedPlay = true;
 	}
 
 	function handleBackFromPlay() {
@@ -266,7 +295,7 @@
 			phase = 'locked';
 		}
 		if (hasCompletedPreview || phase === 'play') {
-			previewStatus = `I have my ${instrumentLabel(selectedInstrument).toLowerCase()} ready!`;
+			previewStatus = `Get your ${instrumentLabel(selectedInstrument).toLowerCase()} ready!`;
 		}
 	}
 
@@ -309,6 +338,7 @@
 					{barLength}
 					melody={demoMelody}
 					onBack={handleBackFromPlay}
+					onComplete={handlePlayComplete}
 				/>
 			{/key}
 		{:else}
@@ -335,21 +365,9 @@
 					class="absolute inset-0 flex items-center justify-center bg-white/45 backdrop-blur-[1px]"
 				>
 					{#if hasCompletedPreview}
-						<button
-							type="button"
-							onclick={handlePlayIt}
-							class="rounded-full bg-dark-blue px-5 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-px hover:bg-dark-blue-highlight"
-						>
-							Play it yourself
-						</button>
+						<Button onclick={handlePlayIt} size="large">Play it yourself</Button>
 					{:else}
-						<button
-							type="button"
-							onclick={handleTryIt}
-							class="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-px hover:bg-emerald-700"
-						>
-							Try it
-						</button>
+						<Button onclick={handleTryIt} size="large" color="green">Try it</Button>
 					{/if}
 				</div>
 			{/if}
@@ -372,25 +390,22 @@
 
 	{#if phase === 'locked' && hasCompletedPreview}
 		<div class="mt-4 flex flex-wrap items-center gap-2">
-			<button
-				type="button"
-				onclick={handlePlayIt}
-				class="rounded-full bg-dark-blue px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-dark-blue-highlight hover:shadow"
+			<Button size="medium" onclick={handlePlayIt}>Play it yourself</Button>
+			<LinkButton size="medium" href={resolve('/teachers')} color="blue"
+				>Create a teacher account</LinkButton
 			>
-				Play it yourself
-			</button>
-			<a
-				href={resolve('/teachers')}
-				class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-px hover:shadow"
+			<LinkButton size="medium" href={fullDemoUnitHref} color="blue">Show full demo unit</LinkButton
 			>
-				Create a teacher account
-			</a>
-			<a
-				href={fullDemoUnitHref}
-				class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-px hover:shadow"
+		</div>
+	{/if}
+
+	{#if phase === 'play' && hasCompletedPlay}
+		<div class="mt-4 flex flex-wrap items-center gap-2">
+			<LinkButton size="medium" href={resolve('/teachers')} color="blue"
+				>Create a teacher account</LinkButton
 			>
-				Show full demo unit
-			</a>
+			<LinkButton size="medium" href={fullDemoUnitHref} color="blue">Show full demo unit</LinkButton
+			>
 		</div>
 	{/if}
 </section>
